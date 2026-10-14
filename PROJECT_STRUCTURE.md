@@ -87,7 +87,9 @@ Digi_View_System/
 │   └── 📁 src/
 │       ├── 📁 main/
 │       │   ├── 📁 resources/
-│       │   │   └── ⚙️ application.properties # Supabase DB connection URL, pool, and server port
+│       │   │   ├── ⚙️ application.properties # Supabase DB connection URL, pool, and server port
+│       │   │   └── 📁 static/
+│       │   │       └── 🌐 index.html         # Interactive server health dashboard & Cyber Dino minigame
 │       │   └── 📁 java/com/digiview/
 │       │       ├── ☕ DigiViewApplication.java # Spring Boot main entry point (auto-loads .env)
 │       │       ├── 📁 config/
@@ -210,7 +212,7 @@ Digi_View_System/
 | [`schema.sql`](backend/schema.sql) | Supabase PostgreSQL database definition. Creates `users`, `quiz_records`, and `user_achievements` tables with foreign keys and performance indexes. |
 | [`application.properties`](backend/src/main/resources/application.properties) | Database connectivity configurations (JDBC SSL URL for Supabase, Hikari connection pool limits, dynamic `${PORT:8080}`). |
 | [`run-backend.bat`](backend/run-backend.bat) | Batch script to start the Spring Boot server using Gradle with automatic `.env` parameter loading. |
-| [`controller/`](backend/src/main/java/com/digiview/controller/) | REST API layer handling HTTP requests: registration, authentication, quiz submissions, history queries, leaderboard rankings, and `/health` uptime monitoring. |
+| [`controller/`](backend/src/main/java/com/digiview/controller/) | REST API layer handling HTTP requests: registration, authentication, quiz submissions, history queries, leaderboard rankings, and content-negotiated `/health` & `/` serving an interactive browser health dashboard with a Cyber Dino arcade runner alongside structured JSON telemetry for uptime monitors. |
 | [`entity/`](backend/src/main/java/com/digiview/entity/) | JPA mapping classes representing persistent database rows (`UserEntity`, `QuizRecordEntity`, `AchievementEntity`). |
 | [`repository/`](backend/src/main/java/com/digiview/repository/) | Spring Data JPA interfaces providing automated CRUD and queries (`findByUsernameIgnoreCase`, `findTop50ByOrderByXpDesc`). |
 | [`dto/`](backend/src/main/java/com/digiview/dto/) | Request and response data transfer objects including a unified `ApiResponse<T>` wrapper. |
