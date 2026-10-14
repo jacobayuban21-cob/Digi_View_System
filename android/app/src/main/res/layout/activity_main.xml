@@ -20,17 +20,36 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- App Brand -->
-        <TextView
+        <!-- App Brand Logo + Name -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="DIGI-VIEW"
-            android:textColor="@color/cyan"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.05" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_dv_logo"
+                android:gravity="center"
+                android:text="DV"
+                android:textColor="@color/text_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DIGIVIEW"
+                android:textColor="@color/cyan"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.05"
+                android:singleLine="true" />
+        </LinearLayout>
 
         <!-- Live XP Pill -->
         <LinearLayout
@@ -41,7 +60,7 @@
             android:gravity="center"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:layout_marginEnd="8dp">
+            android:layout_marginEnd="6dp">
 
             <TextView
                 android:id="@+id/tvTopXp"
@@ -60,9 +79,9 @@
             android:layout_height="34dp"
             android:background="@drawable/bg_pill"
             android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:layout_marginEnd="10dp">
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginEnd="6dp">
 
             <TextView
                 android:id="@+id/tvTopLevel"
@@ -74,7 +93,28 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- User Initials Avatar -->
+        <!-- Cloud Server Status Pill -->
+        <LinearLayout
+            android:id="@+id/topCloudPill"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_pill"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginEnd="6dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/tvTopCloud"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☁️"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- User Initials Avatar Badge -->
         <TextView
             android:id="@+id/topAvatar"
             android:layout_width="38dp"
@@ -106,7 +146,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+    <!-- ================= BOTTOM NAVIGATION BAR (6 DESKTOP SECTIONS) ================= -->
     <View
         android:id="@+id/bottomNavDivider"
         android:layout_width="0dp"
@@ -119,7 +159,7 @@
     <LinearLayout
         android:id="@+id/bottomNav"
         android:layout_width="0dp"
-        android:layout_height="64dp"
+        android:layout_height="62dp"
         android:background="@color/d_sidebar"
         android:gravity="center"
         android:orientation="horizontal"
@@ -143,15 +183,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🏠"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/labelNavDashboard"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Dashboard"
+                android:text="Home"
                 android:textColor="@color/cyan"
-                android:textSize="11sp"
+                android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
@@ -171,8 +211,8 @@
                 android:id="@+id/iconNavLessons"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📖"
-                android:textSize="18sp" />
+                android:text="📚"
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/labelNavLessons"
@@ -180,7 +220,7 @@
                 android:layout_height="wrap_content"
                 android:text="Lessons"
                 android:textColor="@color/muted"
-                android:textSize="11sp"
+                android:textSize="10.5sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
@@ -199,8 +239,8 @@
                 android:id="@+id/iconNavQuiz"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🎯"
-                android:textSize="18sp" />
+                android:text="🧠"
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/labelNavQuiz"
@@ -208,13 +248,13 @@
                 android:layout_height="wrap_content"
                 android:text="Quiz"
                 android:textColor="@color/muted"
-                android:textSize="11sp"
+                android:textSize="10.5sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
-        <!-- 4. Profile -->
+        <!-- 4. Achievements -->
         <LinearLayout
-            android:id="@+id/navProfile"
+            android:id="@+id/navAchievements"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -224,19 +264,19 @@
             android:focusable="true">
 
             <TextView
-                android:id="@+id/iconNavProfile"
+                android:id="@+id/iconNavAchievements"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="👤"
-                android:textSize="18sp" />
+                android:text="🏆"
+                android:textSize="17sp" />
 
             <TextView
-                android:id="@+id/labelNavProfile"
+                android:id="@+id/labelNavAchievements"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Profile"
+                android:text="Badges"
                 android:textColor="@color/muted"
-                android:textSize="11sp"
+                android:textSize="10.5sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
@@ -255,8 +295,8 @@
                 android:id="@+id/iconNavHistory"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📜"
-                android:textSize="18sp" />
+                android:text="📊"
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/labelNavHistory"
@@ -264,9 +304,51 @@
                 android:layout_height="wrap_content"
                 android:text="History"
                 android:textColor="@color/muted"
-                android:textSize="11sp"
+                android:textSize="10.5sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- 6. Profile -->
+        <LinearLayout
+            android:id="@+id/navProfile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/iconNavProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="👤"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/labelNavProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Profile"
+                android:textColor="@color/muted"
+                android:textSize="10.5sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- ================= FULLSCREEN AUTH OVERLAY (LOGIN & SIGN UP GREETING) ================= -->
+    <FrameLayout
+        android:id="@+id/authScreenContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="visible"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <include layout="@layout/layout_auth" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -44,6 +44,7 @@ graph TB
 ```text
 Digi_View_System/
 │
+├── 📜 digiview.bat               # 👑 Unified Master CLI & interactive menu (install, apk, dist, run, server, exit)
 ├── 📜 README.md                  # Beginner-friendly guide & developer instructions
 ├── 📜 PROJECT_STRUCTURE.md       # Complete repository architecture and documentation
 ├── 📜 build-android.bat          # 📱 One-click Android APK compiler (auto-SDK detection)
@@ -179,6 +180,7 @@ Digi_View_System/
 ### 1. Root Configuration & Launchers
 | File | Description |
 | :--- | :--- |
+| [`digiview.bat`](digiview.bat) | 👑 **Unified Master CLI & interactive menu**. Supports single-command execution: `digiview install`, `apk`, `dist`, `run`, `server`, `health`, `devices`, `logs`, `clean`, `exit`. |
 | [`README.md`](README.md) | Beginner-friendly project overview, architecture diagram, and step-by-step developer guide. |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Comprehensive architecture documentation with visual diagrams and file breakdowns. |
 | [`run.bat`](run.bat) | One-click desktop launcher. Automatically compiles changed Java files in `src/System/` and launches the Swing GUI using `javaw` without blocking the terminal. |

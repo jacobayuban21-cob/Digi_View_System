@@ -19,4 +19,10 @@
     <color name="red">#EF4444</color>
     <color name="amber">#FBBF24</color>
     <color name="gold">#FACC15</color>
+    <color name="teal_dv">#0891B2</color>
+    <color name="auth_card_bg">#0D1524</color>
+    <color name="auth_card_border">#213450</color>
+    <color name="auth_input_bg">#101A2B</color>
+    <color name="auth_input_border">#263A58</color>
+    <color name="auth_hint">#7887A0</color>
 </resources>
