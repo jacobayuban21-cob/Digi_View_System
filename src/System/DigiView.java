@@ -141,13 +141,21 @@ class DigiViewLMS extends JFrame {
 
     private static InputStream getAudioResourceStream(String filename) {
         try {
-            InputStream is = DigiView.class.getResourceAsStream("/System/sounds/" + filename);
+            File f = new File("public/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = new File("public/Sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            InputStream is = DigiView.class.getResourceAsStream("/sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/System/sounds/" + filename);
             if (is != null) return is;
             is = DigiView.class.getResourceAsStream("sounds/" + filename);
             if (is != null) return is;
             is = DigiView.class.getClassLoader().getResourceAsStream("System/sounds/" + filename);
             if (is != null) return is;
-            File f = new File("src/System/sounds/" + filename);
+            is = DigiView.class.getClassLoader().getResourceAsStream("sounds/" + filename);
+            if (is != null) return is;
+            f = new File("src/System/sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
             f = new File("bin/System/sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
@@ -545,8 +553,35 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     .collect(java.util.stream.Collectors.toList());
     
     
-    
+    private void loadAppIcon() {
+        try {
+            File[] candidates = new File[] {
+                new File("public/Icons/Splash-icon.png"),
+                new File("public/Icons/Icon.jpg"),
+                new File("public/Icons/Icon.ico"),
+                new File("Icons/Splash-icon.png"),
+                new File("Icons/Icon.jpg")
+            };
+            for (File f : candidates) {
+                if (f.exists()) {
+                    Image img = javax.imageio.ImageIO.read(f);
+                    if (img != null) {
+                        setIconImage(img);
+                        return;
+                    }
+                }
+            }
+            InputStream is = DigiView.class.getResourceAsStream("/Icons/Splash-icon.png");
+            if (is != null) {
+                Image img = javax.imageio.ImageIO.read(is);
+                if (img != null) setIconImage(img);
+            }
+        } catch (Exception ignored) {}
+    }
+
     public DigiViewLMS() {
+        setTitle("DigiView");
+        loadAppIcon();
         loadData();
         initAudio();
 
