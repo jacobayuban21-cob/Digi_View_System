@@ -1,6 +1,7 @@
-# 🚀 DigiView LMS — Release Notes (v1.2.0)
+# 🚀 DigiView LMS — Release Notes (v1.0.0 — Initial Release)
 
 **Release Date:** October 14, 2026  
+**Version:** `1.0.0` (Initial Production Release)  
 **Branch:** `dev`  
 **Live Backend Service:** [https://digi-view-system.onrender.com](https://digi-view-system.onrender.com)  
 **Distribution Artifacts:**
@@ -12,7 +13,7 @@
 
 ## 🌟 Executive Summary
 
-The **DigiView LMS v1.2.0** update represents a major milestone in design consistency, cross-platform parity, asset centralization, and cloud connectivity. Both the **Desktop Swing application** and the **Android mobile app** now feature 100% visual and functional parity—including shared audio engines, unified dark-mode themes, automatic database sync with Supabase PostgreSQL, official logo integration, and a universal **Root Redirection system** allowing symbol-based path aliasing (`@`).
+The **DigiView LMS v1.0.0 Initial Release** establishes the complete educational learning ecosystem across Desktop, Mobile, and Cloud. Both the **Desktop Swing application** and the **Android mobile app** feature 100% visual and functional parity—including shared audio engines, unified dark-mode themes, automatic database sync with Supabase PostgreSQL, official logo integration, and a universal **Root Redirection system** allowing symbol-based path aliasing (`@`).
 
 ---
 
@@ -114,7 +115,7 @@ A universal path-resolution and routing system has been implemented across the e
 
 ---
 
-## 📋 Git Commit Log (v1.2.0)
+## 📋 Git Commit Log (v1.0.0 — Initial Release)
 
 | Commit | Summary |
 | :--- | :--- |
