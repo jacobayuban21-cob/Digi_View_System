@@ -128,23 +128,39 @@ Digi_View_System/
 │           │   ├── 📁 values/
 │           │   │   ├── 🎨 colors.xml # Exact hex tokens from Swing (#050F23, #071120, #0E1B30, etc.)
 │           │   │   └── 🎨 themes.xml # Dark theme matching desktop aesthetics
-│           │   ├── 📁 drawable/      # UI Shapes & Vector Drawables
+│           │   ├── 📁 drawable/      # UI Shapes & Custom Renderers
 │           │   │   ├── 🖼️ bg_gradient.xml       # Diagonal background gradient
 │           │   │   ├── 🖼️ bg_card.xml           # 22dp rounded card with border stroke
-│           │   │   ├── 🖼️ bg_card_outline.xml   # Transparent outline tile
+│           │   │   ├── 🖼️ bg_hero.xml           # Header hero banner with cyan accent
+│           │   │   ├── 🖼️ bg_chip.xml           # Semi-transparent pill chip for XP/Level
+│           │   │   ├── 🖼️ bg_chip_gold.xml      # Gold badge chip for status and ranks
+│           │   │   ├── 🖼️ bg_code_container.xml # Monospace syntax preview container
+│           │   │   ├── 🖼️ bg_progress_pill.xml  # Dual-tone level progress bar
+│           │   │   ├── 🖼️ bg_badge_success.xml  # PASSED status badge
+│           │   │   ├── 🖼️ bg_badge_danger.xml   # FAILED / EXITED status badge
+│           │   │   ├── 🖼️ bg_avatar.xml         # Circular avatar with cyan glow
 │           │   │   ├── 🖼️ bg_button.xml         # Blue rounded pill with ripple effect
-│           │   │   ├── 🖼️ bg_avatar.xml         # Circular avatar with cyan accent
 │           │   │   ├── 🖼️ bg_option_normal.xml  # Interactive quiz option (default state)
 │           │   │   ├── 🖼️ bg_option_correct.xml # Correct answer green outline & soft tint
-│           │   │   └── 🖼️ bg_option_wrong.xml   # Wrong answer red outline & soft tint
+│           │   │   ├── 🖼️ bg_option_wrong.xml   # Wrong answer red outline & soft tint
+│           │   │   └── 🖼️ bg_bottom_nav.xml     # Bottom navigation border styling
 │           │   ├── 📁 anim/          # Micro-animations
 │           │   │   ├── ✨ card_pop.xml # Subtle bounce scale for selections
 │           │   │   ├── ✨ fade_in.xml  # Smooth screen transitions
 │           │   │   └── ✨ slide_up.xml # Smooth card entry
 │           │   └── 📁 layout/
-│           │       └── 📱 activity_quiz.xml # Exact layout replica of the interactive quiz
+│           │       ├── 📱 activity_main.xml       # Top bar (XP/Level/Avatar), dynamic content frame, bottom nav
+│           │       ├── 📱 layout_dashboard.xml    # Greeting hero, 4 stat tiles, quick action cards
+│           │       ├── 📱 layout_lessons.xml      # 7 HTML curriculum module cards
+│           │       ├── 📱 dialog_lesson_detail.xml# Modal lesson reader with monospace code blocks
+│           │       ├── 📱 layout_quiz_hub.xml     # 3-tier difficulty hub & live quiz runner with 5 hearts
+│           │       ├── 📱 layout_profile.xml      # Profile hero, avatar glow, 2x2 stats, level progress
+│           │       ├── 📱 layout_history.xml      # Dynamic list of past quiz attempts with status badges
+│           │       ├── 📱 dialog_auth.xml         # Account & cloud sync settings modal
+│           │       ├── 📱 item_lesson_card.xml    # Reusable lesson card layout
+│           │       └── 📱 item_history_card.xml   # Reusable quiz history card layout
 │           └── 📁 java/com/digiview/lms/
-│               ├── ☕ MainActivity.java # Complete quiz activity with animations & backend sync
+│               ├── ☕ MainActivity.java # Master controller: SharedPreferences, 5 tabs, quiz engine, sync
 │               ├── 📁 model/        # Android POJO models (User, QuizRecord, UserProfile, etc.)
 │               └── 📁 api/          # Retrofit API interface & client connecting to Spring Boot
 │
@@ -206,11 +222,11 @@ Digi_View_System/
 | File / Folder | Purpose & Details |
 | :--- | :--- |
 | [`colors.xml`](android/app/src/main/res/values/colors.xml) | Pixel-perfect port of desktop Swing color constants (`#050F23`, `#071120`, `#0E1B30`, `#1E304C`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`). |
-| `res/drawable/` | Custom XML shapes and selectors reproducing Swing custom painting: gradients (`bg_gradient.xml`), 22dp rounded containers (`bg_card.xml`), and quiz option state changes (Normal, Selected, Correct, Wrong). |
+| `res/drawable/` | Custom XML shapes and selectors reproducing Swing custom painting: gradients (`bg_gradient.xml`), 22dp rounded containers (`bg_card.xml`), hero banner (`bg_hero.xml`), level progress pill (`bg_progress_pill.xml`), status badges (`bg_badge_success.xml`, `bg_badge_danger.xml`, `bg_badge_gold.xml`), and quiz option state changes (Normal, Selected, Correct, Wrong). |
 | `res/anim/` | Micro-animations including `card_pop.xml` (overshoot scale bounce on selection) and smooth alpha transitions (`fade_in.xml`, `slide_up.xml`). |
-| [`activity_quiz.xml`](android/app/src/main/res/layout/activity_quiz.xml) | XML layout mirroring the desktop quiz interface: Title header, live hearts counter, exit button, question card, A/B/C/D option cards, feedback text, and action buttons. |
-| [`MainActivity.java`](android/app/src/main/java/com/digiview/lms/MainActivity.java) | Complete native quiz controller matching desktop behavior, hearts system, score calculation, and background Spring Boot synchronization. |
-| `api/` & `model/` | Type-safe Retrofit 2 networking client connecting directly to the Spring Boot REST endpoints. |
+| `res/layout/` | Complete modular layouts matching desktop Swing panels: Top Bar with Live XP & Level badges (`activity_main.xml`), Dashboard with greeting hero & stat cards (`layout_dashboard.xml`), 7 HTML curriculum cards (`layout_lessons.xml`), Lesson reader with dark code preview (`dialog_lesson_detail.xml`), 3-tier Quiz Hub & Active Runner with 5 hearts (`layout_quiz_hub.xml`), Profile with 2x2 grid & level progress (`layout_profile.xml`), History attempt list with status badges (`layout_history.xml`), and Account/Sync settings modal (`dialog_auth.xml`). |
+| [`MainActivity.java`](android/app/src/main/java/com/digiview/lms/MainActivity.java) | Master Android controller matching desktop Swing functionality: Offline-first persistence via `SharedPreferences`, bottom tab navigation, full quiz runner with hearts and scoring locks, HTML lesson viewer modal, and background Spring Boot cloud sync. |
+| `api/` & `model/` | Type-safe Retrofit 2 networking client connecting directly to Spring Boot REST endpoints (`/api/quiz/record`, `/api/auth/register`, `/api/users/{username}`) with dynamic server URL configuration. |
 
 ---
 

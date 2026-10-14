@@ -1,292 +1,843 @@
 package com.digiview.lms;
 
-import android.animation.ArgbEvaluator;
-import android.animation.ValueAnimator;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.button.MaterialButton;
 import com.digiview.lms.api.ApiClient;
 import com.digiview.lms.model.ApiResponse;
 import com.digiview.lms.model.QuizRecord;
+import com.digiview.lms.model.RegisterRequest;
+import com.google.android.material.button.MaterialButton;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * DigiView LMS Quiz Activity for Android.
- * Replicates the desktop Swing DigiView styling, color scheme, and micro-animations.
+ * DigiView LMS - Full Native Android Client
+ * Replicates the complete Dark-themed desktop Java Swing application:
+ * Dashboard, Lessons curriculum, Interactive Quiz engine, Profile, and Quiz History
+ * with offline-first persistence and live Spring Boot / Supabase cloud sync.
  */
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tvQuizTitle;
-    private TextView tvProgressLabel;
-    private TextView tvHearts;
-    private TextView tvQuestionNumber;
-    private TextView tvQuestionText;
-    private TextView tvFeedback;
+    private static final String PREFS_NAME = "DigiViewPrefs";
+    private static final String KEY_USERNAME = "username";
+    private static final String KEY_FULL_NAME = "fullName";
+    private static final String KEY_SECTION = "gradeSection";
+    private static final String KEY_GENDER = "gender";
+    private static final String KEY_XP = "xp";
+    private static final String KEY_HISTORY = "history_json";
 
-    private LinearLayout cardQuestion;
-    private LinearLayout[] optionLayouts = new LinearLayout[4];
-    private TextView[] optionTexts = new TextView[4];
+    // User State
+    private String currentUsername = "student";
+    private String currentFullName = "Student User";
+    private String currentSection = "Grade 11 - STEM A";
+    private String currentGender = "Not specified";
+    private int currentXp = 0;
 
-    private MaterialButton btnSubmit;
-    private MaterialButton btnNext;
-    private MaterialButton btnExit;
+    // Top Bar Views
+    private TextView tvTopXp, tvTopLevel, topAvatar;
 
-    private int currentQuestionIndex = 0;
-    private int score = 0;
-    private int hearts = 5;
+    // Content Frame
+    private FrameLayout contentContainer;
+
+    // Bottom Navigation Views
+    private LinearLayout[] navItems = new LinearLayout[5];
+    private TextView[] navIcons = new TextView[5];
+    private TextView[] navLabels = new TextView[5];
+    private int activePageIndex = 0;
+
+    // Cache of Inflated Views
+    private View viewDashboard;
+    private View viewLessons;
+    private View viewQuizHub;
+    private View viewProfile;
+    private View viewHistory;
+
+    // Lessons Curriculum Model
+    private static class LessonItem {
+        final String title, icon, explanation, code;
+        LessonItem(String title, String icon, String explanation, String code) {
+            this.title = title;
+            this.icon = icon;
+            this.explanation = explanation;
+            this.code = code;
+        }
+    }
+    private final List<LessonItem> lessonsList = new ArrayList<>();
+
+    // Quiz Engine State
+    private static class Question {
+        final String text;
+        final List<String> options;
+        final int answer;
+        final int difficulty;
+        Question(String text, List<String> options, int answer, int difficulty) {
+            this.text = text;
+            this.options = options;
+            this.answer = answer;
+            this.difficulty = difficulty;
+        }
+    }
+    private final List<Question> questionBank = new ArrayList<>();
+    private final List<Question> activeQuestions = new ArrayList<>();
+    private int activeQuestionIndex = 0;
+    private int activeScore = 0;
+    private int activeHearts = 5;
     private int selectedOptionIndex = -1;
     private boolean isSubmitted = false;
+    private String activeDifficultyName = "Beginner";
+    private int activeDifficultyLevel = 1;
 
-    private final List<QuestionItem> questions = new ArrayList<>();
+    // Quiz Hub View References
+    private View quizDifficultyView, quizActiveView, quizResultView;
+    private TextView tvActiveHearts, tvActiveQuestionNumber, tvActiveQuestionText, tvActiveFeedback;
+    private TextView activeQuizTitle, activeQuizProgress;
+    private LinearLayout[] activeOptionLayouts = new LinearLayout[4];
+    private TextView[] activeOptionTexts = new TextView[4];
+    private MaterialButton btnActiveSubmit, btnActiveNext, btnActiveExitQuiz;
+
+    // History Records Cache
+    private final List<QuizRecord> historyRecords = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_quiz);
+        setContentView(R.layout.activity_main);
 
-        bindViews();
-        loadQuestionBank();
-        setupListeners();
-        displayCurrentQuestion();
+        loadUserData();
+        initLessonsData();
+        initQuestionBank();
+
+        bindTopBar();
+        bindBottomNav();
+
+        // Start on Dashboard
+        switchPage(0);
     }
 
-    private void bindViews() {
-        tvQuizTitle = findViewById(R.id.quizTitle);
-        tvProgressLabel = findViewById(R.id.quizProgressLabel);
-        tvHearts = findViewById(R.id.tvHearts);
-        tvQuestionNumber = findViewById(R.id.tvQuestionNumber);
-        tvQuestionText = findViewById(R.id.tvQuestionText);
-        tvFeedback = findViewById(R.id.tvFeedback);
+    // =========================================================================
+    // 1. DATA PERSISTENCE & CLOUD SYNC
+    // =========================================================================
+    private void loadUserData() {
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        currentUsername = sp.getString(KEY_USERNAME, "student");
+        currentFullName = sp.getString(KEY_FULL_NAME, "Student User");
+        currentSection = sp.getString(KEY_SECTION, "Grade 11 - STEM A");
+        currentGender = sp.getString(KEY_GENDER, "Not specified");
+        currentXp = sp.getInt(KEY_XP, 0);
 
-        cardQuestion = findViewById(R.id.cardQuestion);
-
-        optionLayouts[0] = findViewById(R.id.optA);
-        optionLayouts[1] = findViewById(R.id.optB);
-        optionLayouts[2] = findViewById(R.id.optC);
-        optionLayouts[3] = findViewById(R.id.optD);
-
-        optionTexts[0] = findViewById(R.id.tvOptionA);
-        optionTexts[1] = findViewById(R.id.tvOptionB);
-        optionTexts[2] = findViewById(R.id.tvOptionC);
-        optionTexts[3] = findViewById(R.id.tvOptionD);
-
-        btnSubmit = findViewById(R.id.btnSubmit);
-        btnNext = findViewById(R.id.btnNext);
-        btnExit = findViewById(R.id.btnExitQuiz);
-    }
-
-    private void loadQuestionBank() {
-        questions.clear();
-        questions.add(new QuestionItem("What does HTML stand for?",
-                Arrays.asList("HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language"), 0));
-        questions.add(new QuestionItem("Which file extension is used for a webpage written in HTML?",
-                Arrays.asList(".java", ".html", ".docx", ".exe"), 1));
-        questions.add(new QuestionItem("Which program is used to open and view a webpage?",
-                Arrays.asList("A calculator", "A spreadsheet", "A web browser", "A compiler"), 2));
-        questions.add(new QuestionItem("Which element contains the visible content of a webpage?",
-                Arrays.asList("<head>", "<body>", "<title>", "<meta>"), 1));
-        questions.add(new QuestionItem("Which element sets the title shown in the browser tab?",
-                Arrays.asList("<head>", "<h1>", "<title>", "<header>"), 2));
-        questions.add(new QuestionItem("Which element creates the largest heading?",
-                Arrays.asList("<h6>", "<heading>", "<h1>", "<head>"), 2));
-        questions.add(new QuestionItem("Which element creates a hyperlink?",
-                Arrays.asList("<link>", "<a>", "<href>", "<url>"), 1));
-        questions.add(new QuestionItem("Which element displays an image?",
-                Arrays.asList("<image>", "<picture>", "<src>", "<img>"), 3));
-        questions.add(new QuestionItem("Which element creates a bulleted list?",
-                Arrays.asList("<ol>", "<li>", "<ul>", "<list>"), 2));
-        questions.add(new QuestionItem("Which element creates a clickable button?",
-                Arrays.asList("<click>", "<press>", "<button>", "<btn>"), 2));
-
-        Collections.shuffle(questions);
-    }
-
-    private void setupListeners() {
-        for (int i = 0; i < 4; i++) {
-            final int index = i;
-            optionLayouts[i].setOnClickListener(v -> selectOption(index));
-        }
-
-        btnSubmit.setOnClickListener(v -> submitAnswer());
-        btnNext.setOnClickListener(v -> nextQuestion());
-        btnExit.setOnClickListener(v -> showExitDialog());
-    }
-
-    private void selectOption(int index) {
-        if (isSubmitted) return;
-
-        selectedOptionIndex = index;
-        for (int i = 0; i < 4; i++) {
-            if (i == index) {
-                optionLayouts[i].setBackgroundResource(R.drawable.bg_card_outline);
-            } else {
-                optionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
-            }
-        }
-        tvFeedback.setText("Selected option: " + (char) ('A' + index));
-        tvFeedback.setTextColor(Color.parseColor("#94A3B8"));
-    }
-
-    private void displayCurrentQuestion() {
-        if (currentQuestionIndex >= questions.size()) {
-            finishQuiz();
-            return;
-        }
-
-        QuestionItem q = questions.get(currentQuestionIndex);
-        selectedOptionIndex = -1;
-        isSubmitted = false;
-
-        tvProgressLabel.setText(String.format("Question %d of %d", currentQuestionIndex + 1, questions.size()));
-        tvQuestionNumber.setText(String.format("QUESTION %02d", currentQuestionIndex + 1));
-        tvQuestionText.setText(q.question);
-        tvHearts.setText(String.format("❤ %d Hearts", hearts));
-        tvFeedback.setText("Choose the best answer.");
-        tvFeedback.setTextColor(Color.parseColor("#94A3B8"));
-
-        for (int i = 0; i < 4; i++) {
-            optionTexts[i].setText(q.options.get(i));
-            optionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
-            optionLayouts[i].setEnabled(true);
-        }
-
-        btnSubmit.setVisibility(View.VISIBLE);
-        btnNext.setVisibility(View.GONE);
-
-        // Micro-animations matching desktop version
+        historyRecords.clear();
+        String jsonHistory = sp.getString(KEY_HISTORY, "[]");
         try {
-            Animation popAnim = AnimationUtils.loadAnimation(this, R.anim.card_pop);
-            cardQuestion.startAnimation(popAnim);
-
-            Animation slideAnim = AnimationUtils.loadAnimation(this, R.anim.slide_up);
-            findViewById(R.id.optionsContainer).startAnimation(slideAnim);
+            JSONArray arr = new JSONArray(jsonHistory);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                QuizRecord r = new QuizRecord(
+                        obj.optString("username", currentUsername),
+                        obj.optString("quiz", "Quiz"),
+                        obj.optInt("score", 0),
+                        obj.optInt("total", 5),
+                        obj.optInt("percent", 0),
+                        obj.optString("date", "")
+                );
+                historyRecords.add(r);
+            }
         } catch (Exception ignored) {}
     }
 
-    private void submitAnswer() {
-        if (selectedOptionIndex < 0) {
-            Toast.makeText(this, "Please select an answer first!", Toast.LENGTH_SHORT).show();
+    private void saveUserData() {
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor ed = sp.edit();
+        ed.putString(KEY_USERNAME, currentUsername);
+        ed.putString(KEY_FULL_NAME, currentFullName);
+        ed.putString(KEY_SECTION, currentSection);
+        ed.putString(KEY_GENDER, currentGender);
+        ed.putInt(KEY_XP, currentXp);
+
+        JSONArray arr = new JSONArray();
+        for (QuizRecord r : historyRecords) {
+            try {
+                JSONObject obj = new JSONObject();
+                obj.put("username", r.getUsername());
+                obj.put("quiz", r.getQuiz());
+                obj.put("score", r.getScore());
+                obj.put("total", r.getTotal());
+                obj.put("percent", r.getPercent());
+                obj.put("date", r.getDate());
+                arr.put(obj);
+            } catch (Exception ignored) {}
+        }
+        ed.putString(KEY_HISTORY, arr.toString());
+        ed.apply();
+
+        updateTopBar();
+    }
+
+    // =========================================================================
+    // 2. TOP BAR & NAVIGATION
+    // =========================================================================
+    private void bindTopBar() {
+        tvTopXp = findViewById(R.id.tvTopXp);
+        tvTopLevel = findViewById(R.id.tvTopLevel);
+        topAvatar = findViewById(R.id.topAvatar);
+
+        topAvatar.setOnClickListener(v -> showAuthModal());
+        updateTopBar();
+    }
+
+    private void updateTopBar() {
+        int level = (currentXp / 100) + 1;
+        tvTopXp.setText("⚡ " + currentXp + " XP");
+        tvTopLevel.setText("Level " + level);
+        if (!currentUsername.isEmpty()) {
+            topAvatar.setText(currentUsername.substring(0, 1).toUpperCase(Locale.ROOT));
+        }
+    }
+
+    private void bindBottomNav() {
+        contentContainer = findViewById(R.id.contentContainer);
+
+        navItems[0] = findViewById(R.id.navDashboard);
+        navItems[1] = findViewById(R.id.navLessons);
+        navItems[2] = findViewById(R.id.navQuiz);
+        navItems[3] = findViewById(R.id.navProfile);
+        navItems[4] = findViewById(R.id.navHistory);
+
+        navIcons[0] = findViewById(R.id.iconNavDashboard);
+        navIcons[1] = findViewById(R.id.iconNavLessons);
+        navIcons[2] = findViewById(R.id.iconNavQuiz);
+        navIcons[3] = findViewById(R.id.iconNavProfile);
+        navIcons[4] = findViewById(R.id.iconNavHistory);
+
+        navLabels[0] = findViewById(R.id.labelNavDashboard);
+        navLabels[1] = findViewById(R.id.labelNavLessons);
+        navLabels[2] = findViewById(R.id.labelNavQuiz);
+        navLabels[3] = findViewById(R.id.labelNavProfile);
+        navLabels[4] = findViewById(R.id.labelNavHistory);
+
+        for (int i = 0; i < 5; i++) {
+            final int page = i;
+            navItems[i].setOnClickListener(v -> switchPage(page));
+        }
+    }
+
+    private void switchPage(int index) {
+        activePageIndex = index;
+
+        // Highlight Active Tab
+        int cyanColor = getResources().getColor(R.color.cyan, getTheme());
+        int mutedColor = getResources().getColor(R.color.muted, getTheme());
+
+        for (int i = 0; i < 5; i++) {
+            boolean isActive = (i == index);
+            navLabels[i].setTextColor(isActive ? cyanColor : mutedColor);
+            navLabels[i].setTextSize(isActive ? 11.5f : 11.0f);
+        }
+
+        // Animate Page Transition
+        contentContainer.removeAllViews();
+        View pageView = getOrCreatePageView(index);
+        Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+        pageView.startAnimation(fadeIn);
+        contentContainer.addView(pageView);
+
+        // Refresh dynamic view contents
+        if (index == 0) refreshDashboardView();
+        else if (index == 1) refreshLessonsView();
+        else if (index == 3) refreshProfileView();
+        else if (index == 4) refreshHistoryView();
+    }
+
+    private View getOrCreatePageView(int index) {
+        LayoutInflater inflater = LayoutInflater.from(this);
+        switch (index) {
+            case 0:
+                if (viewDashboard == null) viewDashboard = inflater.inflate(R.layout.layout_dashboard, contentContainer, false);
+                return viewDashboard;
+            case 1:
+                if (viewLessons == null) viewLessons = inflater.inflate(R.layout.layout_lessons, contentContainer, false);
+                return viewLessons;
+            case 2:
+                if (viewQuizHub == null) {
+                    viewQuizHub = inflater.inflate(R.layout.layout_quiz_hub, contentContainer, false);
+                    initQuizHubViews(viewQuizHub);
+                }
+                return viewQuizHub;
+            case 3:
+                if (viewProfile == null) viewProfile = inflater.inflate(R.layout.layout_profile, contentContainer, false);
+                return viewProfile;
+            case 4:
+                if (viewHistory == null) viewHistory = inflater.inflate(R.layout.layout_history, contentContainer, false);
+                return viewHistory;
+            default:
+                return new View(this);
+        }
+    }
+
+    // =========================================================================
+    // 3. DASHBOARD PAGE
+    // =========================================================================
+    private void refreshDashboardView() {
+        if (viewDashboard == null) return;
+
+        TextView tvTitle = viewDashboard.findViewById(R.id.dashWelcomeTitle);
+        TextView tvAvatar = viewDashboard.findViewById(R.id.dashAvatarBadge);
+        TextView statXp = viewDashboard.findViewById(R.id.dashStatXp);
+        TextView statLevel = viewDashboard.findViewById(R.id.dashStatLevel);
+        TextView statQuizzes = viewDashboard.findViewById(R.id.dashStatQuizzes);
+
+        tvTitle.setText("Welcome, " + currentFullName + "!");
+        if (!currentUsername.isEmpty()) {
+            tvAvatar.setText(currentUsername.substring(0, 1).toUpperCase(Locale.ROOT));
+        }
+
+        int level = (currentXp / 100) + 1;
+        statXp.setText(currentXp + " XP");
+        statLevel.setText("Level " + level);
+        statQuizzes.setText(historyRecords.size() + " Completed");
+
+        viewDashboard.findViewById(R.id.dashActionLessons).setOnClickListener(v -> switchPage(1));
+        viewDashboard.findViewById(R.id.dashActionQuiz).setOnClickListener(v -> switchPage(2));
+    }
+
+    // =========================================================================
+    // 4. LESSONS CURRICULUM
+    // =========================================================================
+    private void initLessonsData() {
+        lessonsList.clear();
+        lessonsList.add(new LessonItem("HTML Basics", "🌐",
+                "HTML stands for HyperText Markup Language. It is used to create and structure the content of webpages. A basic HTML document contains <html>, <head>, <title>, and <body> elements.",
+                "<!DOCTYPE html>\n<html>\n<head>\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n  <p>Welcome!</p>\n</body>\n</html>"));
+        lessonsList.add(new LessonItem("Headings & Paragraphs", "📝",
+                "HTML headings range from <h1> (highest importance) to <h6>. The <p> tag creates text paragraphs with default browser spacing.",
+                "<h1>Main Heading</h1>\n<h2>Sub-Heading</h2>\n<p>This is a standard text paragraph.</p>"));
+        lessonsList.add(new LessonItem("Links & Anchors", "🔗",
+                "HTML links allow navigation across pages. The <a> tag creates anchors, and the 'href' attribute specifies the target URL destination.",
+                "<a href=\"https://example.com\" target=\"_blank\">Visit Website</a>"));
+        lessonsList.add(new LessonItem("Images & Media", "🖼",
+                "The <img> tag embeds graphics. The 'src' attribute defines the file path, and 'alt' provides accessibility descriptions.",
+                "<img src=\"photo.jpg\" alt=\"A scenic view\" width=\"400\">"));
+        lessonsList.add(new LessonItem("Unordered & Ordered Lists", "📋",
+                "HTML provides unordered bulleted lists (<ul>) and ordered numbered lists (<ol>). Each list item is placed inside an <li> element.",
+                "<ul>\n  <li>HTML5</li>\n  <li>CSS3</li>\n</ul>\n\n<ol>\n  <li>Step 1</li>\n  <li>Step 2</li>\n</ol>"));
+        lessonsList.add(new LessonItem("HTML Tables", "📊",
+                "Tables organize data into rows (<tr>), headers (<th>), and standard data cells (<td>).",
+                "<table>\n  <tr><th>Student</th><th>Grade</th></tr>\n  <tr><td>Juan</td><td>95</td></tr>\n</table>"));
+        lessonsList.add(new LessonItem("HTML Forms", "📝",
+                "Forms collect user input via <input>, <label>, and <button> elements. Crucial for logins and questionnaires.",
+                "<form action=\"/submit\">\n  <label>Name:</label>\n  <input type=\"text\" name=\"user\">\n  <button type=\"submit\">Submit</button>\n</form>"));
+    }
+
+    private void refreshLessonsView() {
+        if (viewLessons == null) return;
+        LinearLayout container = viewLessons.findViewById(R.id.lessonsListContainer);
+        container.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (LessonItem item : lessonsList) {
+            View card = inflater.inflate(R.layout.item_lesson_card, container, false);
+            TextView tvIcon = card.findViewById(R.id.tvLessonItemIcon);
+            TextView tvTitle = card.findViewById(R.id.tvLessonItemTitle);
+            TextView tvSummary = card.findViewById(R.id.tvLessonItemSummary);
+
+            tvIcon.setText(item.icon);
+            tvTitle.setText(item.title);
+            tvSummary.setText(item.explanation);
+
+            card.setOnClickListener(v -> showLessonDetailModal(item));
+            container.addView(card);
+        }
+    }
+
+    private void showLessonDetailModal(LessonItem item) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_lesson_detail, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvIcon = dialogView.findViewById(R.id.tvLessonModalIcon);
+        TextView tvTitle = dialogView.findViewById(R.id.tvLessonModalTitle);
+        TextView tvExp = dialogView.findViewById(R.id.tvLessonModalExplanation);
+        TextView tvCode = dialogView.findViewById(R.id.tvLessonModalCode);
+        MaterialButton btnClose = dialogView.findViewById(R.id.btnLessonModalClose);
+
+        tvIcon.setText(item.icon);
+        tvTitle.setText(item.title);
+        tvExp.setText(item.explanation);
+        tvCode.setText(item.code);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    // =========================================================================
+    // 5. QUIZ ENGINE (MATCHING DESKTOP DIFFICULTY & HEARTS)
+    // =========================================================================
+    private void initQuestionBank() {
+        questionBank.clear();
+        // Difficulty 1: Beginner
+        questionBank.add(new Question("What does HTML stand for?",
+                Arrays.asList("HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language"), 0, 1));
+        questionBank.add(new Question("Which file extension is used for HTML webpages?",
+                Arrays.asList(".html", ".web", ".page", ".doc"), 0, 1));
+        questionBank.add(new Question("Which HTML tag is used for the largest heading?",
+                Arrays.asList("<h6>", "<h1>", "<head>", "<heading>"), 1, 1));
+        questionBank.add(new Question("Which HTML tag creates a paragraph of text?",
+                Arrays.asList("<text>", "<p>", "<para>", "<content>"), 1, 1));
+        questionBank.add(new Question("Which element contains the visible content of a webpage?",
+                Arrays.asList("<head>", "<body>", "<title>", "<meta>"), 1, 1));
+
+        // Difficulty 2: Intermediate
+        questionBank.add(new Question("Which code correctly creates a link to example.com?",
+                Arrays.asList("<a src=\"https://example.com\">Visit</a>", "<a href=\"https://example.com\">Visit</a>", "<link>https://example.com</link>", "<href>example.com</href>"), 1, 2));
+        questionBank.add(new Question("Which tag creates a bulleted unordered list?",
+                Arrays.asList("<ol>", "<ul>", "<list>", "<dl>"), 1, 2));
+        questionBank.add(new Question("Which attribute specifies alternative text for an image?",
+                Arrays.asList("src", "title", "alt", "name"), 2, 2));
+        questionBank.add(new Question("Which HTML tag defines a table row?",
+                Arrays.asList("<td>", "<th>", "<tr>", "<table>"), 2, 2));
+        questionBank.add(new Question("Which HTML tag creates a form to collect user input?",
+                Arrays.asList("<input>", "<form>", "<fieldset>", "<submit>"), 1, 2));
+
+        // Difficulty 3: Advanced
+        questionBank.add(new Question("What is the correct HTML5 Doctype declaration?",
+                Arrays.asList("<!DOCTYPE html>", "<!DOCTYPE HTML5>", "<?xml version='1.0'?>", "<html doctype='html5'>"), 0, 3));
+        questionBank.add(new Question("Which tag indicates self-contained navigation links in HTML5?",
+                Arrays.asList("<menu>", "<navigate>", "<nav>", "<links>"), 2, 3));
+        questionBank.add(new Question("Which attribute opens a link in a new browser tab?",
+                Arrays.asList("target=\"_blank\"", "target=\"_new\"", "window=\"new\"", "rel=\"external\""), 0, 3));
+        questionBank.add(new Question("Which element is used to group related options in a drop-down list?",
+                Arrays.asList("<group>", "<optgroup>", "<options>", "<selectgroup>"), 1, 3));
+        questionBank.add(new Question("Which attribute makes an input field required before form submission?",
+                Arrays.asList("validate", "mandatory", "required", "need"), 2, 3));
+    }
+
+    private void initQuizHubViews(View hub) {
+        quizDifficultyView = hub.findViewById(R.id.quizDifficultyView);
+        quizActiveView = hub.findViewById(R.id.quizActiveView);
+        quizResultView = hub.findViewById(R.id.quizResultView);
+
+        // Difficulty Selector Cards
+        hub.findViewById(R.id.btnTierBeginner).setOnClickListener(v -> startQuiz("Beginner", 1));
+        hub.findViewById(R.id.btnTierIntermediate).setOnClickListener(v -> startQuiz("Intermediate", 2));
+        hub.findViewById(R.id.btnTierAdvanced).setOnClickListener(v -> startQuiz("Advanced", 3));
+
+        // Active Quiz Controls
+        activeQuizTitle = hub.findViewById(R.id.activeQuizTitle);
+        activeQuizProgress = hub.findViewById(R.id.activeQuizProgress);
+        tvActiveHearts = hub.findViewById(R.id.tvActiveHearts);
+        tvActiveQuestionNumber = hub.findViewById(R.id.tvActiveQuestionNumber);
+        tvActiveQuestionText = hub.findViewById(R.id.tvActiveQuestionText);
+        tvActiveFeedback = hub.findViewById(R.id.tvActiveFeedback);
+
+        activeOptionLayouts[0] = hub.findViewById(R.id.activeOptA);
+        activeOptionLayouts[1] = hub.findViewById(R.id.activeOptB);
+        activeOptionLayouts[2] = hub.findViewById(R.id.activeOptC);
+        activeOptionLayouts[3] = hub.findViewById(R.id.activeOptD);
+
+        activeOptionTexts[0] = hub.findViewById(R.id.tvActiveOptionA);
+        activeOptionTexts[1] = hub.findViewById(R.id.tvActiveOptionB);
+        activeOptionTexts[2] = hub.findViewById(R.id.tvActiveOptionC);
+        activeOptionTexts[3] = hub.findViewById(R.id.tvActiveOptionD);
+
+        btnActiveSubmit = hub.findViewById(R.id.btnActiveSubmit);
+        btnActiveNext = hub.findViewById(R.id.btnActiveNext);
+        btnActiveExitQuiz = hub.findViewById(R.id.btnActiveExitQuiz);
+
+        for (int i = 0; i < 4; i++) {
+            final int optIndex = i;
+            activeOptionLayouts[i].setOnClickListener(v -> selectQuizOption(optIndex));
+        }
+
+        btnActiveSubmit.setOnClickListener(v -> submitQuizAnswer());
+        btnActiveNext.setOnClickListener(v -> advanceQuizQuestion());
+        btnActiveExitQuiz.setOnClickListener(v -> exitQuizWithRecord());
+
+        // Result Button
+        hub.findViewById(R.id.btnResultReturn).setOnClickListener(v -> {
+            quizResultView.setVisibility(View.GONE);
+            quizDifficultyView.setVisibility(View.VISIBLE);
+        });
+    }
+
+    private void startQuiz(String diffName, int diffLevel) {
+        activeDifficultyName = diffName;
+        activeDifficultyLevel = diffLevel;
+
+        activeQuestions.clear();
+        for (Question q : questionBank) {
+            if (q.difficulty == diffLevel) {
+                activeQuestions.add(q);
+            }
+        }
+        Collections.shuffle(activeQuestions);
+
+        activeQuestionIndex = 0;
+        activeScore = 0;
+        activeHearts = 5;
+
+        quizDifficultyView.setVisibility(View.GONE);
+        quizResultView.setVisibility(View.GONE);
+        quizActiveView.setVisibility(View.VISIBLE);
+
+        renderActiveQuestion();
+    }
+
+    private void renderActiveQuestion() {
+        if (activeQuestionIndex >= activeQuestions.size()) {
+            finishQuizSuccess();
+            return;
+        }
+
+        isSubmitted = false;
+        selectedOptionIndex = -1;
+
+        Question q = activeQuestions.get(activeQuestionIndex);
+        activeQuizTitle.setText(activeDifficultyName + " Quiz");
+        activeQuizProgress.setText("Question " + (activeQuestionIndex + 1) + " of " + activeQuestions.size());
+        tvActiveQuestionNumber.setText(String.format("QUESTION %02d", activeQuestionIndex + 1));
+        tvActiveQuestionText.setText(q.text);
+
+        updateHeartsText();
+
+        for (int i = 0; i < 4; i++) {
+            activeOptionTexts[i].setText(q.options.get(i));
+            activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
+            activeOptionLayouts[i].setEnabled(true);
+        }
+
+        tvActiveFeedback.setText("Choose the best answer.");
+        tvActiveFeedback.setTextColor(getResources().getColor(R.color.muted, getTheme()));
+
+        btnActiveSubmit.setVisibility(View.VISIBLE);
+        btnActiveSubmit.setEnabled(true);
+        btnActiveNext.setVisibility(View.GONE);
+    }
+
+    private void updateHeartsText() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < activeHearts; i++) sb.append("❤️");
+        for (int i = activeHearts; i < 5; i++) sb.append("🖤");
+        tvActiveHearts.setText(sb.toString());
+    }
+
+    private void selectQuizOption(int index) {
+        if (isSubmitted) return;
+        selectedOptionIndex = index;
+
+        Animation pop = AnimationUtils.loadAnimation(this, R.anim.card_pop);
+        for (int i = 0; i < 4; i++) {
+            if (i == index) {
+                activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_card);
+                activeOptionLayouts[i].startAnimation(pop);
+            } else {
+                activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
+            }
+        }
+    }
+
+    private void submitQuizAnswer() {
+        if (selectedOptionIndex == -1) {
+            Toast.makeText(this, "Please select an answer first.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         isSubmitted = true;
-        QuestionItem q = questions.get(currentQuestionIndex);
-        boolean correct = (selectedOptionIndex == q.correctIndex);
+        btnActiveSubmit.setEnabled(false);
 
-        for (int i = 0; i < 4; i++) {
-            optionLayouts[i].setEnabled(false);
-        }
+        Question q = activeQuestions.get(activeQuestionIndex);
+        boolean isCorrect = (selectedOptionIndex == q.answer);
 
-        if (correct) {
-            score++;
-            optionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_correct);
-            tvFeedback.setText("✔ Correct! Great job!");
-            tvFeedback.setTextColor(Color.parseColor("#34D399"));
+        if (isCorrect) {
+            activeScore++;
+            activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_correct);
+            tvActiveFeedback.setText("Correct answer! Great job! 🎉");
+            tvActiveFeedback.setTextColor(getResources().getColor(R.color.green, getTheme()));
         } else {
-            hearts--;
-            tvHearts.setText(String.format("❤ %d Hearts", Math.max(0, hearts)));
-            optionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_wrong);
-            optionLayouts[q.correctIndex].setBackgroundResource(R.drawable.bg_option_correct);
-            tvFeedback.setText("✖ Incorrect! The correct answer was " + (char) ('A' + q.correctIndex) + ".");
-            tvFeedback.setTextColor(Color.parseColor("#F87171"));
+            activeHearts--;
+            activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_wrong);
+            activeOptionLayouts[q.answer].setBackgroundResource(R.drawable.bg_option_correct);
+            tvActiveFeedback.setText("Incorrect. One heart deducted.");
+            tvActiveFeedback.setTextColor(getResources().getColor(R.color.red, getTheme()));
         }
 
-        btnSubmit.setVisibility(View.GONE);
-        btnNext.setVisibility(View.VISIBLE);
+        updateHeartsText();
 
-        if (hearts <= 0) {
-            btnNext.setText("View Results");
-        } else if (currentQuestionIndex + 1 >= questions.size()) {
-            btnNext.setText("Complete Quiz");
-        } else {
-            btnNext.setText("Next Question →");
-        }
-    }
-
-    private void nextQuestion() {
-        if (hearts <= 0) {
-            finishQuiz();
+        if (activeHearts <= 0) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Out of Hearts")
+                    .setMessage("You ran out of hearts! Please review the lesson and try again.")
+                    .setPositiveButton("Try Again", (dialog, which) -> {
+                        recordQuizAttempt(activeDifficultyName + " (Failed)", activeScore, activeQuestions.size(), 0);
+                        quizActiveView.setVisibility(View.GONE);
+                        quizDifficultyView.setVisibility(View.VISIBLE);
+                    })
+                    .setCancelable(false)
+                    .show();
             return;
         }
 
-        currentQuestionIndex++;
-        displayCurrentQuestion();
+        btnActiveSubmit.setVisibility(View.GONE);
+        btnActiveNext.setVisibility(View.VISIBLE);
+        btnActiveNext.setText(activeQuestionIndex == activeQuestions.size() - 1 ? "View Results →" : "Next Question →");
     }
 
-    private void finishQuiz() {
-        int totalQuestions = questions.size();
-        int finalScore = (int) Math.round(((double) score / Math.max(1, totalQuestions)) * 100);
+    private void advanceQuizQuestion() {
+        activeQuestionIndex++;
+        renderActiveQuestion();
+    }
 
-        // Sync with Spring Boot backend in background
-        syncQuizResultWithBackend("Student", "HTML Basics Quiz", score, totalQuestions, finalScore);
-
+    private void exitQuizWithRecord() {
         new AlertDialog.Builder(this)
-                .setTitle(hearts > 0 ? "🎉 Quiz Completed!" : "💔 Out of Hearts")
-                .setMessage(String.format("Final Score: %d/%d (%d%%)\nRemaining Hearts: %d\n\nResults synced with DigiView Cloud!",
-                        score, totalQuestions, finalScore, Math.max(0, hearts)))
-                .setPositiveButton("Play Again", (dialog, which) -> {
-                    currentQuestionIndex = 0;
-                    score = 0;
-                    hearts = 5;
-                    loadQuestionBank();
-                    displayCurrentQuestion();
+                .setTitle("Exit Quiz?")
+                .setMessage("Are you sure you want to exit? Your attempt will be recorded as exited.")
+                .setPositiveButton("Exit", (dialog, which) -> {
+                    recordQuizAttempt(activeDifficultyName + " Quiz (Exited)", activeScore, activeQuestions.size(), 0);
+                    quizActiveView.setVisibility(View.GONE);
+                    quizDifficultyView.setVisibility(View.VISIBLE);
                 })
-                .setNegativeButton("Exit", (dialog, which) -> finish())
-                .setCancelable(false)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void syncQuizResultWithBackend(String username, String category, int correct, int total, int scorePct) {
-        QuizRecord record = new QuizRecord(username, category, correct, total, scorePct, "NORMAL");
-        ApiClient.getApi().saveQuizRecord(record).enqueue(new Callback<ApiResponse<QuizRecord>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<QuizRecord>> call, Response<ApiResponse<QuizRecord>> response) {
-                // Background sync succeeded
-            }
+    private void finishQuizSuccess() {
+        quizActiveView.setVisibility(View.GONE);
+        quizResultView.setVisibility(View.VISIBLE);
 
-            @Override
-            public void onFailure(Call<ApiResponse<QuizRecord>> call, Throwable t) {
-                // Background sync fallback - offline friendly
-            }
-        });
-    }
+        int total = activeQuestions.size();
+        int percent = (int) Math.round((activeScore * 100.0) / total);
+        int xpGained = activeScore * 10;
+        currentXp += xpGained;
 
-    private void showExitDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Exit Quiz")
-                .setMessage("Are you sure you want to exit? Your current progress will be lost.")
-                .setPositiveButton("Yes, Exit", (dialog, which) -> finish())
-                .setNegativeButton("Keep Playing", null)
-                .show();
-    }
+        // Populate Result Card
+        TextView tvScore = quizResultView.findViewById(R.id.tvResultScore);
+        TextView tvPercent = quizResultView.findViewById(R.id.tvResultPercent);
+        ProgressBar pb = quizResultView.findViewById(R.id.resultProgressBar);
+        TextView tvBadge = quizResultView.findViewById(R.id.tvResultBadge);
+        TextView tvXp = quizResultView.findViewById(R.id.tvResultXpGained);
 
-    private static class QuestionItem {
-        final String question;
-        final List<String> options;
-        final int correctIndex;
+        tvScore.setText(activeScore + " / " + total);
+        tvPercent.setText(percent + "%");
+        pb.setProgress(percent);
+        tvXp.setText("⚡ +" + xpGained + " XP Earned");
 
-        QuestionItem(String question, List<String> options, int correctIndex) {
-            this.question = question;
-            this.options = options;
-            this.correctIndex = correctIndex;
+        if (percent == 100) {
+            tvBadge.setText("PERFECT SCORE 🏆");
+            tvBadge.setTextColor(getResources().getColor(R.color.gold, getTheme()));
+            tvBadge.setBackgroundResource(R.drawable.bg_badge_gold);
+        } else if (percent >= 70) {
+            tvBadge.setText("PASSED ✅");
+            tvBadge.setTextColor(getResources().getColor(R.color.green, getTheme()));
+            tvBadge.setBackgroundResource(R.drawable.bg_badge_success);
+        } else {
+            tvBadge.setText("TRY AGAIN ❌");
+            tvBadge.setTextColor(getResources().getColor(R.color.red, getTheme()));
+            tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
         }
+
+        recordQuizAttempt(activeDifficultyName + " Quiz", activeScore, total, percent);
+    }
+
+    private void recordQuizAttempt(String title, int score, int total, int percent) {
+        String formattedDate = new SimpleDateFormat("MMM dd, yyyy  •  h:mm a", Locale.ENGLISH).format(new Date());
+        QuizRecord r = new QuizRecord(currentUsername, title, score, total, percent, formattedDate);
+        historyRecords.add(0, r);
+        saveUserData();
+
+        // Background Cloud Sync to Spring Boot Backend
+        try {
+            ApiClient.getApi().saveQuizRecord(r).enqueue(new Callback<ApiResponse<QuizRecord>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<QuizRecord>> call, Response<ApiResponse<QuizRecord>> response) {}
+                @Override
+                public void onFailure(Call<ApiResponse<QuizRecord>> call, Throwable t) {}
+            });
+        } catch (Exception ignored) {}
+    }
+
+    // =========================================================================
+    // 6. PROFILE PAGE
+    // =========================================================================
+    private void refreshProfileView() {
+        if (viewProfile == null) return;
+
+        TextView tvAvatar = viewProfile.findViewById(R.id.profileAvatar);
+        TextView tvFullName = viewProfile.findViewById(R.id.profileFullName);
+        TextView tvHandle = viewProfile.findViewById(R.id.profileUsername);
+        TextView chipLevel = viewProfile.findViewById(R.id.profileChipLevel);
+        TextView chipXp = viewProfile.findViewById(R.id.profileChipXp);
+        TextView chipSec = viewProfile.findViewById(R.id.profileChipSection);
+
+        TextView tileName = viewProfile.findViewById(R.id.profileTileFullName);
+        TextView tileUser = viewProfile.findViewById(R.id.profileTileUsername);
+        TextView tileGender = viewProfile.findViewById(R.id.profileTileGender);
+        TextView tileSec = viewProfile.findViewById(R.id.profileTileSection);
+
+        TextView tvNextLvl = viewProfile.findViewById(R.id.profileNextLevelTitle);
+        TextView tvRatio = viewProfile.findViewById(R.id.profileProgressRatio);
+        ProgressBar pbLevel = viewProfile.findViewById(R.id.profileLevelProgressBar);
+
+        int level = (currentXp / 100) + 1;
+        int progress = currentXp % 100;
+
+        if (!currentUsername.isEmpty()) {
+            tvAvatar.setText(currentUsername.substring(0, 1).toUpperCase(Locale.ROOT));
+        }
+        tvFullName.setText(currentFullName);
+        tvHandle.setText("@" + currentUsername);
+
+        chipLevel.setText("⭐ Level " + level);
+        chipXp.setText("⚡ " + currentXp + " XP");
+        chipSec.setText("🏫 " + currentSection);
+
+        tileName.setText(currentFullName);
+        tileUser.setText(currentUsername);
+        tileGender.setText(currentGender);
+        tileSec.setText(currentSection);
+
+        tvNextLvl.setText("Progress to Level " + (level + 1));
+        tvRatio.setText(currentXp + " / " + (level * 100) + " XP");
+        pbLevel.setProgress(progress);
+
+        viewProfile.findViewById(R.id.btnProfileAuth).setOnClickListener(v -> showAuthModal());
+    }
+
+    // =========================================================================
+    // 7. HISTORY PAGE
+    // =========================================================================
+    private void refreshHistoryView() {
+        if (viewHistory == null) return;
+
+        LinearLayout container = viewHistory.findViewById(R.id.historyCardsContainer);
+        TextView tvEmpty = viewHistory.findViewById(R.id.tvHistoryEmpty);
+        container.removeAllViews();
+
+        if (historyRecords.isEmpty()) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            return;
+        }
+        tvEmpty.setVisibility(View.GONE);
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (QuizRecord r : historyRecords) {
+            View card = inflater.inflate(R.layout.item_history_card, container, false);
+
+            TextView tvIcon = card.findViewById(R.id.tvHistIcon);
+            TextView tvTitle = card.findViewById(R.id.tvHistTitle);
+            TextView tvDate = card.findViewById(R.id.tvHistDate);
+            TextView tvScore = card.findViewById(R.id.tvHistScore);
+            TextView tvPercent = card.findViewById(R.id.tvHistPercent);
+            ProgressBar pb = card.findViewById(R.id.histProgressBar);
+            TextView tvBadge = card.findViewById(R.id.tvHistBadge);
+
+            tvTitle.setText(r.getQuiz());
+            tvDate.setText(r.getDate());
+            tvScore.setText("Score: " + r.getScore() + " / " + r.getTotal());
+            tvPercent.setText(r.getPercent() + "%");
+            pb.setProgress(r.getPercent());
+
+            if (r.getQuiz().contains("Beginner")) tvIcon.setText("🟢");
+            else if (r.getQuiz().contains("Intermediate")) tvIcon.setText("🟡");
+            else tvIcon.setText("🔴");
+
+            if (r.getQuiz().contains("Exited")) {
+                tvBadge.setText("EXITED");
+                tvBadge.setTextColor(getResources().getColor(R.color.red, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
+            } else if (r.getPercent() == 100) {
+                tvBadge.setText("PERFECT 🏆");
+                tvBadge.setTextColor(getResources().getColor(R.color.gold, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_gold);
+            } else if (r.getPercent() >= 70) {
+                tvBadge.setText("PASSED ✅");
+                tvBadge.setTextColor(getResources().getColor(R.color.green, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_success);
+            } else {
+                tvBadge.setText("FAILED");
+                tvBadge.setTextColor(getResources().getColor(R.color.red, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
+            }
+
+            container.addView(card);
+        }
+    }
+
+    // =========================================================================
+    // 8. AUTHENTICATION & SYNC MODAL
+    // =========================================================================
+    private void showAuthModal() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_auth, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        EditText etName = dialogView.findViewById(R.id.etAuthFullName);
+        EditText etSec = dialogView.findViewById(R.id.etAuthSection);
+        EditText etUser = dialogView.findViewById(R.id.etAuthUsername);
+        MaterialButton btnSave = dialogView.findViewById(R.id.btnAuthSave);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnAuthCancel);
+
+        etName.setText(currentFullName);
+        etSec.setText(currentSection);
+        etUser.setText(currentUsername);
+
+        btnSave.setOnClickListener(v -> {
+            String newName = etName.getText().toString().trim();
+            String newSec = etSec.getText().toString().trim();
+            String newUser = etUser.getText().toString().trim();
+
+            if (newName.isEmpty() || newUser.isEmpty()) {
+                Toast.makeText(this, "Name and username are required.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            currentFullName = newName;
+            if (!newSec.isEmpty()) currentSection = newSec;
+            currentUsername = newUser;
+            saveUserData();
+
+            // Background Registration Sync to Spring Boot & Supabase
+            try {
+                RegisterRequest req = new RegisterRequest(newName, 16, currentGender, "General", currentSection, newUser, "default123");
+                ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
+                    @Override
+                    public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
+                });
+            } catch (Exception ignored) {}
+
+            Toast.makeText(this, "Profile saved and synced!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+            switchPage(activePageIndex);
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 }

@@ -8,11 +8,21 @@ import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
 
-    // When running in Android Emulator, 10.0.2.2 points to host PC localhost:8080
-    // On physical Android device connected via Wi-Fi, replace with PC's LAN IP (e.g. http://192.168.1.X:8080/)
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
-
+    // Default to port 8085 (or 8080 / Render URL)
+    private static String baseUrl = "http://10.0.2.2:8085/";
     private static Retrofit retrofit = null;
+
+    public static void setBaseUrl(String url) {
+        if (!url.endsWith("/")) {
+            url += "/";
+        }
+        baseUrl = url;
+        retrofit = null; // force rebuild
+    }
+
+    public static String getBaseUrl() {
+        return baseUrl;
+    }
 
     public static DigiViewApi getApi() {
         if (retrofit == null) {
@@ -26,7 +36,7 @@ public class ApiClient {
                     .build();
 
             retrofit = new Retrofit.Builder()
-                    .baseUrl(BASE_URL)
+                    .baseUrl(baseUrl)
                     .client(client)
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();

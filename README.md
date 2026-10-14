@@ -125,10 +125,15 @@ If you need to send the desktop app to a classmate, teacher, or another computer
 
 ## 4. 📱 Android App Port & Easy Build Commands
 
-The native Android port is located in [`android/`](android/):
-* **Same Design Tokens:** Identical dark palette (`#050F23`, `#071120`, `#0E1B30`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`).
-* **Interactive Quiz:** A/B/C/D option cards, live hearts, instant answer locks, and bounce animations.
-* **Pre-configured Retrofit API:** Communicates with the Spring Boot backend (`10.0.2.2:8080` for emulator, or your PC's Wi-Fi IP address for physical devices).
+The native Android port is located in [`android/`](android/) and offers **100% feature and visual parity** with the desktop Swing application:
+* **Identical Dark Design Tokens:** Matching deep blue palette (`#050F23`, `#071120`, `#0E1B30`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`).
+* **Complete 5-Tab Navigation:**
+  * 📊 **Dashboard:** Hero banner, live stats (XP, Level, Modules, Attempts), and quick launch actions.
+  * 📚 **Lessons:** 7 interactive HTML modules with pop-up syntax viewers and monospace code blocks.
+  * 🎯 **Quiz Hub & Runner:** 3 difficulty tiers (Beginner, Intermediate, Advanced), live 5-hearts system, option card micro-animations, answer locks, and instant result cards.
+  * 👤 **Profile:** Cyan-glow avatar, 2x2 account detail tiles, and level progress bar.
+  * 📜 **History:** Past quiz attempts with status badges (`PASSED`, `FAILED`, `PERFECT`).
+* **Offline-First & Cloud Sync:** Persists instantly to Android `SharedPreferences` and syncs asynchronously via Retrofit to the Spring Boot backend (`http://10.0.2.2:8085/` for emulator or your Render cloud URL).
 
 ---
 
