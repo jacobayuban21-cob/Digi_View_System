@@ -552,8 +552,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
                 }
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Saved data could not be loaded. A new local data file will be used.",
-                "Digi-View", JOptionPane.WARNING_MESSAGE);
+            showThemedMessage("⚠️", "Digi-View", "Saved data could not be loaded. A new local data file will be used.");
         }
     }
 
@@ -561,8 +560,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
             out.writeObject(users);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Unable to save local data: " + ex.getMessage(),
-                "Save Error", JOptionPane.ERROR_MESSAGE);
+            showThemedMessage("❌", "Save Error", "Unable to save local data: " + ex.getMessage());
         }
     }
     
@@ -1343,11 +1341,11 @@ private JPanel authCard(String heading, String subtitle) {
         logout.setAlignmentX(Component.LEFT_ALIGNMENT);
         logout.addActionListener(e -> {
             playClickSound();
-            int answer = JOptionPane.showConfirmDialog(
-                this, "Are you sure you want to log out?", "Logout",
-                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE
+            boolean ok = showThemedConfirm(
+                "🚪", "Log Out", "Are you sure you want to log out of your DigiView account?",
+                "LOG OUT", "CANCEL"
             );
-            if (answer == JOptionPane.YES_OPTION) {
+            if (ok) {
                 currentUser = null;
                 showAuth();
             }
@@ -1743,7 +1741,7 @@ private JPanel authCard(String heading, String subtitle) {
         saveBtn.addActionListener(e -> {
             String newUrl = urlField.getText().trim();
             ApiClient.saveConfigUrl(newUrl);
-            JOptionPane.showMessageDialog(dlg, "Server URL configured and saved!\nConnected to: " + ApiClient.getBaseUrl(), "Connected", JOptionPane.INFORMATION_MESSAGE);
+            showThemedMessage("☁️", "Server Connected", "Server URL configured and saved!\nConnected to: " + ApiClient.getBaseUrl());
             dlg.dispose();
         });
 
@@ -2162,15 +2160,15 @@ private JPanel authCard(String heading, String subtitle) {
 
     
 
-    int choice = JOptionPane.showConfirmDialog(
-        this,
-        "Are you ready to take this quiz?",
-        "Start Quiz",
-        JOptionPane.YES_NO_OPTION,
-        JOptionPane.QUESTION_MESSAGE
+    boolean ready = showThemedConfirm(
+        "🚀",
+        "Start " + difficultyName(difficulty) + " Quiz",
+        "Are you ready to take this quiz?\nYou will have 5 hearts. Each wrong answer deducts 1 heart.",
+        "START QUIZ",
+        "CANCEL"
     );
 
-    if (choice != JOptionPane.YES_OPTION) {
+    if (!ready) {
         return;
     }
 
@@ -2264,16 +2262,15 @@ private JPanel authCard(String heading, String subtitle) {
         exitQuiz.setPreferredSize(new Dimension(130, 44));
         exitQuiz.addActionListener(e -> {
             playClickSound();
-            int choice = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to exit this quiz?\n"
-                    + "Your current attempt will not be saved.",
+            boolean exit = showThemedConfirm(
+                "⚠️",
                 "Exit Quiz",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
+                "Are you sure you want to exit this quiz?\nYour current attempt will not be saved.",
+                "EXIT",
+                "CANCEL"
             );
 
-            if (choice == JOptionPane.YES_OPTION) {
+            if (exit) {
                 String qName = difficultyName(difficulty) + " (Exited)";
                 currentUser.history.add(new QuizRecord(
                     qName,
@@ -3098,7 +3095,131 @@ card.add(label(resultMessage, 14, MUTED, false));
     content.revalidate();
     content.repaint();
 }
-    private void message(String text, int type) { JOptionPane.showMessageDialog(this, text, "Digi-View LMS", type); }
+    public boolean showThemedConfirm(String icon, String title, String message, String confirmText, String cancelText) {
+        playClickSound();
+        final boolean[] result = {false};
+        final JDialog dlg = new JDialog(this, true);
+        dlg.setUndecorated(true);
+        dlg.setBackground(new Color(0, 0, 0, 0));
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        RoundedPanel card = new RoundedPanel(28, new Color(13, 21, 36), new Color(33, 52, 80));
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(26, 30, 24, 30));
+
+        // Top Icon Badge
+        if (icon != null && !icon.isEmpty()) {
+            RoundedPanel iconBadge = new RoundedPanel(26, new Color(20, 37, 61), new Color(33, 52, 80));
+            iconBadge.setPreferredSize(new Dimension(54, 54));
+            iconBadge.setMaximumSize(new Dimension(54, 54));
+            iconBadge.setMinimumSize(new Dimension(54, 54));
+            iconBadge.setLayout(new GridBagLayout());
+            iconBadge.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+            iconBadge.add(iconLabel);
+
+            card.add(iconBadge);
+            card.add(Box.createVerticalStrut(14));
+        }
+
+        // Title
+        JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLabel.setForeground(TEXT);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(titleLabel);
+        card.add(Box.createVerticalStrut(10));
+
+        // Message
+        JTextArea msgArea = new JTextArea(message);
+        msgArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        msgArea.setForeground(MUTED);
+        msgArea.setOpaque(false);
+        msgArea.setEditable(false);
+        msgArea.setFocusable(false);
+        msgArea.setLineWrap(true);
+        msgArea.setWrapStyleWord(true);
+        msgArea.setColumns(24);
+        msgArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(msgArea);
+        card.add(Box.createVerticalStrut(22));
+
+        // Button row
+        JPanel btnRow = new JPanel();
+        btnRow.setLayout(new BoxLayout(btnRow, BoxLayout.X_AXIS));
+        btnRow.setOpaque(false);
+        btnRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        if (cancelText != null && !cancelText.isEmpty()) {
+            RoundedButton btnCancel = new RoundedButton(cancelText, false);
+            btnCancel.setFont(new Font("SansSerif", Font.BOLD, 13));
+            btnCancel.setPreferredSize(new Dimension(135, 46));
+            btnCancel.setMaximumSize(new Dimension(140, 46));
+            btnCancel.addActionListener(e -> {
+                playClickSound();
+                result[0] = false;
+                dlg.dispose();
+            });
+            btnRow.add(btnCancel);
+            btnRow.add(Box.createHorizontalStrut(12));
+        }
+
+        RoundedButton btnConfirm = new RoundedButton(confirmText != null ? confirmText : "OK", true);
+        btnConfirm.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnConfirm.setPreferredSize(new Dimension(cancelText != null ? 135 : 180, 46));
+        btnConfirm.setMaximumSize(new Dimension(cancelText != null ? 140 : 200, 46));
+        btnConfirm.addActionListener(e -> {
+            playClickSound();
+            result[0] = true;
+            dlg.dispose();
+        });
+        btnRow.add(btnConfirm);
+
+        card.add(btnRow);
+        wrapper.add(card, BorderLayout.CENTER);
+        dlg.setContentPane(wrapper);
+
+        dlg.getRootPane().registerKeyboardAction(e -> {
+            result[0] = false;
+            dlg.dispose();
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+        dlg.getRootPane().registerKeyboardAction(e -> {
+            result[0] = true;
+            dlg.dispose();
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+        dlg.pack();
+        dlg.setLocationRelativeTo(this.isVisible() ? this : null);
+        dlg.setVisible(true);
+
+        return result[0];
+    }
+
+    public void showThemedMessage(String icon, String title, String message) {
+        showThemedConfirm(icon, title, message, "OK", null);
+    }
+
+    private void message(String text, int type) {
+        String icon = "ℹ️";
+        String title = "Digi-View";
+        if (type == JOptionPane.ERROR_MESSAGE) {
+            icon = "❌";
+            title = "Error";
+        } else if (type == JOptionPane.WARNING_MESSAGE) {
+            icon = "⚠️";
+            title = "Notice";
+        } else if (type == JOptionPane.INFORMATION_MESSAGE) {
+            icon = "✨";
+            title = "Success";
+        }
+        showThemedMessage(icon, title, text);
+    }
 
     private String difficultyName(int d) {
         switch (d) {

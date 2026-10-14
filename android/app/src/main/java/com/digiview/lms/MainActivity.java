@@ -587,15 +587,15 @@ public class MainActivity extends AppCompatActivity {
         // Difficulty Selector Cards
         hub.findViewById(R.id.btnTierBeginner).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Beginner", 1);
+            promptStartQuiz("Beginner", 1);
         });
         hub.findViewById(R.id.btnTierIntermediate).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Intermediate", 2);
+            promptStartQuiz("Intermediate", 2);
         });
         hub.findViewById(R.id.btnTierAdvanced).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Advanced", 3);
+            promptStartQuiz("Advanced", 3);
         });
 
         // Active Quiz Controls
@@ -644,6 +644,17 @@ public class MainActivity extends AppCompatActivity {
             quizResultView.setVisibility(View.GONE);
             quizDifficultyView.setVisibility(View.VISIBLE);
         });
+    }
+
+    private void promptStartQuiz(String diffName, int diffLevel) {
+        showThemedConfirmDialog(
+                "🚀",
+                "Start " + diffName + " Quiz",
+                "Are you ready to take the " + diffName + " Quiz?\nYou will have 5 hearts. Each wrong answer deducts 1 heart.",
+                "START QUIZ",
+                "CANCEL",
+                () -> startQuiz(diffName, diffLevel)
+        );
     }
 
     private void startQuiz(String diffName, int diffLevel) {
@@ -751,16 +762,17 @@ public class MainActivity extends AppCompatActivity {
         updateHeartsText();
 
         if (activeHearts <= 0) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Out of Hearts")
-                    .setMessage("You ran out of hearts! Please review the lesson and try again.")
-                    .setPositiveButton("Try Again", (dialog, which) -> {
-                        recordQuizAttempt(activeDifficultyName + " (Failed)", activeScore, activeQuestions.size(), 0);
+            showThemedAlertDialog(
+                    "💔",
+                    "Out of Hearts",
+                    "You ran out of hearts! Review the lessons and try again.",
+                    "TRY AGAIN",
+                    () -> {
+                        recordQuizAttempt(activeDifficultyName + " Quiz (Failed)", activeScore, activeQuestions.size(), 0);
                         quizActiveView.setVisibility(View.GONE);
                         quizDifficultyView.setVisibility(View.VISIBLE);
-                    })
-                    .setCancelable(false)
-                    .show();
+                    }
+            );
             return;
         }
 
@@ -775,16 +787,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void exitQuizWithRecord() {
-        new AlertDialog.Builder(this)
-                .setTitle("Exit Quiz?")
-                .setMessage("Are you sure you want to exit? Your attempt will be recorded as exited.")
-                .setPositiveButton("Exit", (dialog, which) -> {
+        showThemedConfirmDialog(
+                "⚠️",
+                "Exit Quiz?",
+                "Are you sure you want to exit? Your attempt will be recorded as exited.",
+                "EXIT",
+                "CANCEL",
+                () -> {
                     recordQuizAttempt(activeDifficultyName + " Quiz (Exited)", activeScore, activeQuestions.size(), 0);
                     quizActiveView.setVisibility(View.GONE);
                     quizDifficultyView.setVisibility(View.VISIBLE);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                }
+        );
     }
 
     private void finishQuizSuccess() {
@@ -1226,20 +1240,12 @@ public class MainActivity extends AppCompatActivity {
         String cpw = etRegConfirmPassword != null ? etRegConfirmPassword.getText().toString().trim() : "";
 
         if (name.length() < 2 || gr.isEmpty() || sec.isEmpty() || genderIndex == 0 || pw.length() < 4) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Registration")
-                    .setMessage("Please complete all fields. Password must have at least 4 characters.")
-                    .setPositiveButton("OK", null)
-                    .show();
+            showThemedAlertDialog("⚠️", "Incomplete Form", "Please complete all fields. Password must have at least 4 characters.", "GOT IT", null);
             return;
         }
 
         if (!pw.equals(cpw)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Registration")
-                    .setMessage("Passwords do not match.")
-                    .setPositiveButton("OK", null)
-                    .show();
+            showThemedAlertDialog("⚠️", "Password Mismatch", "Passwords do not match. Please re-enter your passwords.", "TRY AGAIN", null);
             return;
         }
 
@@ -1280,28 +1286,110 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception ignored) {}
 
-        new AlertDialog.Builder(this)
-                .setTitle("Account Created")
-                .setMessage("Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.")
-                .setPositiveButton("Continue to App", (dialog, which) -> {
+        showThemedAlertDialog(
+                "🎉",
+                "Account Created",
+                "Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.",
+                "CONTINUE TO APP",
+                () -> {
                     hideAuthScreen();
                     switchPage(0);
-                })
-                .setCancelable(false)
-                .show();
+                }
+        );
     }
 
     private void performLogout() {
-        new AlertDialog.Builder(this)
-                .setTitle("Logout")
-                .setMessage("Are you sure you want to log out?")
-                .setPositiveButton("Logout", (dialog, which) -> {
-                    SoundManager.getInstance(this).playClick();
+        showThemedConfirmDialog(
+                "🚪",
+                "Log Out",
+                "Are you sure you want to log out of your DigiView account?",
+                "LOG OUT",
+                "CANCEL",
+                () -> {
                     isLoggedIn = false;
                     showAuthScreen();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                }
+        );
+    }
+
+    // =========================================================================
+    // THEMED CONFIRMATION & ALERT DIALOGS
+    // =========================================================================
+    public void showThemedConfirmDialog(String icon, String title, String message,
+                                         String confirmText, String cancelText,
+                                         Runnable onConfirm) {
+        showThemedDialogInternal(icon, title, message, confirmText, cancelText, onConfirm, true);
+    }
+
+    public void showThemedAlertDialog(String icon, String title, String message,
+                                       String buttonText, Runnable onDismiss) {
+        showThemedDialogInternal(icon, title, message, buttonText, null, onDismiss, false);
+    }
+
+    private void showThemedDialogInternal(String icon, String title, String message,
+                                          String confirmText, String cancelText,
+                                          Runnable onAction, boolean cancelable) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(cancelable)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvIcon = dialogView.findViewById(R.id.tvConfirmIcon);
+        TextView tvTitle = dialogView.findViewById(R.id.tvConfirmTitle);
+        TextView tvMsg = dialogView.findViewById(R.id.tvConfirmMessage);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnConfirmCancel);
+        MaterialButton btnOk = dialogView.findViewById(R.id.btnConfirmOk);
+
+        if (icon != null && !icon.isEmpty()) {
+            tvIcon.setText(icon);
+            tvIcon.setVisibility(View.VISIBLE);
+        } else {
+            tvIcon.setVisibility(View.GONE);
+        }
+
+        tvTitle.setText(title != null ? title : "DigiView");
+        tvMsg.setText(message != null ? message : "");
+
+        if (confirmText != null && !confirmText.isEmpty()) {
+            btnOk.setText(confirmText);
+        }
+
+        if (cancelText != null && !cancelText.isEmpty()) {
+            btnCancel.setVisibility(View.VISIBLE);
+            btnCancel.setText(cancelText);
+            btnCancel.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                dialog.dismiss();
+            });
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) btnOk.getLayoutParams();
+            if (lp != null) {
+                int marginPx = (int) (6 * getResources().getDisplayMetrics().density + 0.5f);
+                lp.setMarginStart(marginPx);
+                btnOk.setLayoutParams(lp);
+            }
+        } else {
+            btnCancel.setVisibility(View.GONE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) btnOk.getLayoutParams();
+            if (lp != null) {
+                lp.setMarginStart(0);
+                btnOk.setLayoutParams(lp);
+            }
+        }
+
+        btnOk.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            dialog.dismiss();
+            if (onAction != null) {
+                onAction.run();
+            }
+        });
+
+        dialog.show();
     }
 
     // =========================================================================
