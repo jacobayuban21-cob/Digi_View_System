@@ -2052,6 +2052,7 @@ private JPanel authCard(String heading, String subtitle) {
         titleBox.add(Box.createVerticalStrut(4));
         titleBox.add(progressLabel);
 
+        int[] liveScore = {score};
         RoundedButton exitQuiz = new RoundedButton("Exit Quiz", false);
         exitQuiz.setForeground(new Color(252, 165, 165));
         exitQuiz.setPreferredSize(new Dimension(130, 44));
@@ -2067,6 +2068,11 @@ private JPanel authCard(String heading, String subtitle) {
             );
 
             if (choice == JOptionPane.YES_OPTION) {
+                currentUser.history.add(new QuizRecord(
+                    difficultyName(difficulty) + " (Exited)",
+                    liveScore[0], questions.size(), 0, new Date().toString()
+                ));
+                saveData();
                 showPage("Quiz");
             }
         });
@@ -2160,6 +2166,8 @@ private JPanel authCard(String heading, String subtitle) {
             );
 
             boolean correct = chosen == q.answer;
+            
+            liveScore[0] = score + (correct ? 1 : 0);
 
             submit.setEnabled(false);
 
@@ -2396,44 +2404,339 @@ card.add(label(resultMessage, 14, MUTED, false));
     
     private void renderHistory() {
         JPanel p = verticalPanel();
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(0, 0, 10, 0));
         p.add(sectionHeading("Quiz History", "Your quiz results are saved locally on this computer."));
+        p.add(Box.createVerticalStrut(18));
+
         if (currentUser.history.isEmpty()) {
             p.add(emptyPanel("No quizzes completed yet. Start a quiz to see your results here."));
-        } else {
-            String[] cols = {"Date", "Quiz", "Score", "Percentage", "Result"};
-            Object[][] rows = new Object[currentUser.history.size()][5];
-            List<QuizRecord> records = new ArrayList<>(currentUser.history); Collections.reverse(records);
-            for (int i=0; i<records.size(); i++) {
-                QuizRecord r = records.get(i);
-                rows[i] = new Object[]{r.date, r.quiz, r.score + "/" + r.total, r.percent + "%", r.percent >= 70 ? "Passed" : "Needs Review"};
-            }
-            JTable table = new JTable(rows, cols); table.setBackground(PANEL); table.setForeground(TEXT); table.setGridColor(new Color(43, 65, 91));
-            table.setRowHeight(32); table.getTableHeader().setBackground(PANEL2); table.getTableHeader().setForeground(CYAN);
-            JScrollPane sp = new JScrollPane(table); sp.getViewport().setBackground(PANEL); sp.setBorder(new LineBorder(new Color(43,65,91)));
-            p.add(sp);
+            addToContent(p);
+            return;
         }
+
+        
+        List<QuizRecord> records = new ArrayList<>(currentUser.history);
+        Collections.reverse(records);
+
+        List<QuizRecord> finished = new ArrayList<>();
+        for (QuizRecord r : records) {
+            if (!r.quiz.endsWith("(Exited)")) finished.add(r);
+        }
+        long passed = finished.stream().filter(r -> r.percent >= 70).count();
+        int best = finished.stream().mapToInt(r -> r.percent).max().orElse(0);
+        int exited = records.size() - finished.size();
+
+        
+        String[][] summary = {
+            {"\uD83D\uDCDD", "Completed", String.valueOf(finished.size())},
+            {"\uD83C\uDFC6", "Passed", String.valueOf(passed)},
+            {"\uD83C\uDFAF", "Best Score", best + "%"},
+            {"\uD83D\uDEAA", "Exited", String.valueOf(exited)}
+        };
+
+        JPanel stats = new JPanel(new GridLayout(1, 4, 18, 0));
+        stats.setOpaque(false);
+
+        for (String[] item : summary) {
+            RoundedPanel card = new RoundedPanel(22, D_CARD, D_LINE);
+            card.setLayout(new BorderLayout(16, 0));
+            card.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+            JPanel iconWrap = new JPanel(new GridBagLayout());
+            iconWrap.setOpaque(false);
+            iconWrap.add(new IconBox(item[0]));
+
+            JLabel title = new JLabel(item[1]);
+            title.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            title.setForeground(MUTED);
+
+            JLabel value = new JLabel(item[2]);
+            value.setFont(new Font("SansSerif", Font.BOLD, 26));
+            value.setForeground(TEXT);
+
+            JPanel text = new JPanel();
+            text.setOpaque(false);
+            text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+            text.add(Box.createVerticalGlue());
+            text.add(title);
+            text.add(value);
+            text.add(Box.createVerticalGlue());
+
+            card.add(iconWrap, BorderLayout.WEST);
+            card.add(text, BorderLayout.CENTER);
+            stats.add(card);
+        }
+
+        p.add(fixHeight(stats, 96));
+        p.add(Box.createVerticalStrut(24));
+
+        
+        JLabel listTitle = new JLabel("All Attempts");
+        listTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
+        listTitle.setForeground(TEXT);
+        listTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(listTitle);
+        p.add(Box.createVerticalStrut(14));
+
+        for (QuizRecord r : records) {
+            p.add(fixHeight(buildHistoryRow(r), 88));
+            p.add(Box.createVerticalStrut(12));
+        }
+
         addToContent(p);
+    }
+
+    
+    private JPanel buildHistoryRow(QuizRecord r) {
+        boolean exited = r.quiz.endsWith("(Exited)");
+        String level = r.quiz.replace(" (Exited)", "");
+        String icon = level.startsWith("Easy") ? "\uD83C\uDF31"
+                    : level.startsWith("Medium") ? "\u26A1" : "\uD83D\uDD25";
+
+        RoundedPanel row = new RoundedPanel(22, D_CARD, D_LINE);
+        row.setLayout(new BorderLayout(18, 0));
+        row.setBorder(new EmptyBorder(14, 22, 14, 22));
+
+        
+        JPanel iconWrap = new JPanel(new GridBagLayout());
+        iconWrap.setOpaque(false);
+        iconWrap.add(new IconBox(icon));
+        row.add(iconWrap, BorderLayout.WEST);
+
+        
+        JLabel title = new JLabel(level + " Quiz");
+        title.setFont(new Font("SansSerif", Font.BOLD, 18));
+        title.setForeground(TEXT);
+
+        JLabel date = new JLabel(formatHistoryDate(r.date));
+        date.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        date.setForeground(MUTED);
+
+        JPanel info = new JPanel();
+        info.setOpaque(false);
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.add(Box.createVerticalGlue());
+        info.add(title);
+        info.add(Box.createVerticalStrut(4));
+        info.add(date);
+        info.add(Box.createVerticalGlue());
+        row.add(info, BorderLayout.CENTER);
+
+        
+        JLabel score = new JLabel(r.score + " / " + r.total);
+        score.setFont(new Font("SansSerif", Font.BOLD, 18));
+        score.setForeground(TEXT);
+
+        JLabel percent = new JLabel(exited ? "-" : r.percent + "%");
+        percent.setFont(new Font("SansSerif", Font.BOLD, 14));
+        percent.setForeground(MUTED);
+
+        JPanel scoreLine = new JPanel(new BorderLayout());
+        scoreLine.setOpaque(false);
+        scoreLine.add(score, BorderLayout.WEST);
+        scoreLine.add(percent, BorderLayout.EAST);
+
+        ProgressPill bar = new ProgressPill(exited ? 0 : r.percent);
+        bar.setPreferredSize(new Dimension(190, 8));
+
+        JPanel scoreBox = new JPanel(new BorderLayout(0, 6));
+        scoreBox.setOpaque(false);
+        scoreBox.add(scoreLine, BorderLayout.NORTH);
+        scoreBox.add(bar, BorderLayout.SOUTH);
+        scoreBox.setPreferredSize(new Dimension(190, 46));
+
+        
+        JComponent badge;
+        if (exited) {
+            badge = statusBadge("Exited", new Color(148, 163, 184));
+        } else if (r.percent >= 70) {
+            badge = statusBadge("Passed", GREEN);
+        } else {
+            badge = statusBadge("Needs Review", new Color(251, 191, 36));
+        }
+
+        JPanel right = new JPanel(new GridBagLayout());
+        right.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        right.add(scoreBox, gbc);
+        gbc.insets = new Insets(0, 24, 0, 0);
+        gbc.ipadx = 0;
+        right.add(badge, gbc);
+        row.add(right, BorderLayout.EAST);
+
+        return row;
+    }
+
+    
+    private JComponent statusBadge(String text, Color color) {
+        RoundedPanel badge = new RoundedPanel(16,
+            new Color(color.getRed(), color.getGreen(), color.getBlue(), 40),
+            new Color(color.getRed(), color.getGreen(), color.getBlue(), 150));
+        badge.setLayout(new GridBagLayout());
+        badge.setBorder(new EmptyBorder(7, 18, 7, 18));
+        badge.setPreferredSize(new Dimension(130, 34));
+
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.BOLD, 13));
+        label.setForeground(color);
+        badge.add(label);
+        return badge;
+    }
+
+    
+    private String formatHistoryDate(String raw) {
+        try {
+            java.util.Date d = new java.text.SimpleDateFormat(
+                "EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(raw);
+            return new java.text.SimpleDateFormat(
+                "MMM dd, yyyy  \u2022  h:mm a", Locale.ENGLISH).format(d);
+        } catch (Exception e) {
+            return raw;
+        }
     }
 
     private void renderProfile() {
         JPanel p = verticalPanel();
         p.setOpaque(false);
-        p.add(sectionHeading("My Profile", "Your registration information."));
+        p.setBorder(new EmptyBorder(0, 0, 10, 0));
         p.setAlignmentX(Component.LEFT_ALIGNMENT);
-        RoundedPanel card = new RoundedPanel(26, new Color(0, 0, 0, 0), D_LINE);
-        card.setLayout(new GridLayout(0, 2, 10, 14));
-        card.setBorder(new EmptyBorder(25, 25, 25, 25));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addProfileRow(card, "Full Name", currentUser.fullName); 
-        addProfileRow(card, "Username", currentUser.username);
-        addProfileRow(card, "Age", String.valueOf(currentUser.age)); 
-        addProfileRow(card, "Gender", currentUser.gender);
-        addProfileRow(card, "Strand", currentUser.strand); 
-        addProfileRow(card, "Grade & Section", currentUser.gradeSection);
-        addProfileRow(card, "Level", String.valueOf(currentUser.xp / 100 + 1));         addProfileRow(card, "Experience Points", String.valueOf(currentUser.xp));
-        p.add(fixHeight(card, 520));
+        p.add(sectionHeading("My Profile", "Your registration information."));
+        p.add(Box.createVerticalStrut(18));
+
+        int level = currentUser.xp / 100 + 1;
+        int progress = currentUser.xp % 100;
+
+        // ================= HEADER (avatar + pangalan) =================
+        HeroPanel hero = new HeroPanel();
+        hero.setBorder(new EmptyBorder(30, 40, 30, 40));
+
+        JPanel avatarWrap = new JPanel(new GridBagLayout());
+        avatarWrap.setOpaque(false);
+        avatarWrap.setBorder(new EmptyBorder(0, 0, 0, 30));
+        avatarWrap.add(new AvatarBadge(currentUser.username.substring(0, 1), 110));
+
+        JLabel name = new JLabel(currentUser.fullName);
+        name.setFont(new Font("SansSerif", Font.BOLD, 32));
+        name.setForeground(TEXT);
+        name.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel handle = new JLabel("@" + currentUser.username);
+        handle.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        handle.setForeground(new Color(34, 211, 238));
+        handle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        chips.setOpaque(false);
+        chips.setAlignmentX(Component.LEFT_ALIGNMENT);
+        chips.add(profileChip("\u2B50  Level " + level, new Color(56, 189, 248)));
+        chips.add(Box.createHorizontalStrut(10));
+        chips.add(profileChip("\u26A1  " + currentUser.xp + " XP", new Color(250, 204, 21)));
+        chips.add(Box.createHorizontalStrut(10));
+        chips.add(profileChip("\uD83C\uDFEB  " + currentUser.gradeSection, new Color(148, 163, 184)));
+
+        JPanel nameBox = new JPanel();
+        nameBox.setOpaque(false);
+        nameBox.setLayout(new BoxLayout(nameBox, BoxLayout.Y_AXIS));
+        nameBox.add(Box.createVerticalGlue());
+        nameBox.add(name);
+        nameBox.add(Box.createVerticalStrut(4));
+        nameBox.add(handle);
+        nameBox.add(Box.createVerticalStrut(16));
+        nameBox.add(chips);
+        nameBox.add(Box.createVerticalGlue());
+
+        hero.add(avatarWrap, BorderLayout.WEST);
+        hero.add(nameBox, BorderLayout.CENTER);
+        p.add(fixHeight(hero, 200));
+        p.add(Box.createVerticalStrut(22));
+
+        // ================= IMPORMASYON (outline lang) =================
+        JPanel grid = new JPanel(new GridLayout(2, 2, 18, 18));
+        grid.setOpaque(false);
+        grid.add(profileTile("\uD83D\uDC64", "Full Name", currentUser.fullName));
+        grid.add(profileTile("\uD83C\uDFF7", "Username", currentUser.username));
+        grid.add(profileTile("\u26A5", "Gender", currentUser.gender));
+        grid.add(profileTile("\uD83C\uDFEB", "Grade & Section", currentUser.gradeSection));
+        p.add(fixHeight(grid, 190));
+        p.add(Box.createVerticalStrut(22));
+
+        // ================= LEVEL PROGRESS =================
+        RoundedPanel levelCard = new RoundedPanel(22, new Color(0, 0, 0, 0), D_LINE);
+        levelCard.setLayout(new BorderLayout(0, 14));
+        levelCard.setBorder(new EmptyBorder(20, 26, 22, 26));
+
+        JLabel levelTitle = new JLabel("Progress to Level " + (level + 1));
+        levelTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
+        levelTitle.setForeground(TEXT);
+
+        JLabel levelXp = new JLabel(currentUser.xp + " / " + (level * 100) + " XP");
+        levelXp.setFont(new Font("SansSerif", Font.BOLD, 14));
+        levelXp.setForeground(MUTED);
+
+        JPanel levelTop = new JPanel(new BorderLayout());
+        levelTop.setOpaque(false);
+        levelTop.add(levelTitle, BorderLayout.WEST);
+        levelTop.add(levelXp, BorderLayout.EAST);
+
+        ProgressPill bar = new ProgressPill(progress);
+        bar.setPreferredSize(new Dimension(100, 12));
+
+        levelCard.add(levelTop, BorderLayout.NORTH);
+        levelCard.add(bar, BorderLayout.CENTER);
+        p.add(fixHeight(levelCard, 100));
+
         addToContent(p);
     }
+
+    /** Isang info tile: outline lang, may icon, label at value. */
+    private JPanel profileTile(String icon, String name, String value) {
+        RoundedPanel tile = new RoundedPanel(22, new Color(0, 0, 0, 0), D_LINE);
+        tile.setLayout(new BorderLayout(18, 0));
+        tile.setBorder(new EmptyBorder(16, 22, 16, 22));
+
+        JPanel iconWrap = new JPanel(new GridBagLayout());
+        iconWrap.setOpaque(false);
+        iconWrap.add(new IconBox(icon));
+
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        nameLabel.setForeground(MUTED);
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("SansSerif", Font.BOLD, 19));
+        valueLabel.setForeground(TEXT);
+
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        text.add(Box.createVerticalGlue());
+        text.add(nameLabel);
+        text.add(Box.createVerticalStrut(3));
+        text.add(valueLabel);
+        text.add(Box.createVerticalGlue());
+
+        tile.add(iconWrap, BorderLayout.WEST);
+        tile.add(text, BorderLayout.CENTER);
+        return tile;
+    }
+
+    /** Maliit na rounded na label sa profile header. */
+    private JComponent profileChip(String text, Color color) {
+        RoundedPanel chip = new RoundedPanel(16,
+            new Color(color.getRed(), color.getGreen(), color.getBlue(), 35),
+            new Color(color.getRed(), color.getGreen(), color.getBlue(), 140));
+        chip.setLayout(new GridBagLayout());
+        chip.setBorder(new EmptyBorder(6, 16, 6, 16));
+
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.BOLD, 13));
+        label.setForeground(new Color(235, 242, 252));
+        chip.add(label);
+        return chip;
+    }
+    
 
     private void addProfileRow(JPanel p, String name, String value) {
         p.add(label(name, 13, MUTED, true)); p.add(label(value, 14, TEXT, false));
