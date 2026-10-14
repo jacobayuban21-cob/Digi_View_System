@@ -297,7 +297,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private JTextField loginUsername;
     private JPasswordField loginPassword;
 
-    private final List<Lesson> lessons = List.of(
+    private final List<Lesson> lessons = Arrays.asList(
         new Lesson("HTML Basics", "🌐",
             "HTML stands for HyperText Markup Language. It is used to create and structure the content of webpages. A basic HTML document usually contains the &lt;html&gt;, &lt;head&gt;, &lt;title&gt;, and &lt;body&gt; elements.",
             "<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>My Page</title>\\n</head>\\n<body>\\n  <h1>Hello World</h1>\\n  <p>Welcome!</p>\\n</body>\\n</html>"),
@@ -324,7 +324,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             "<div>\\n  <h2>Profile</h2>\\n  <p>This is a block-level section.</p>\\n</div>")
     );
     
-   private final List<Question> easyQuestions = List.of(
+   private final List<Question> easyQuestions = Arrays.asList(
     q("What does HTML stand for?", "HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language", 0, 1),
         q("Which file extension is used for a webpage written in HTML?", ".java", ".html", ".docx", ".exe", 1, 1),
         q("Which program is used to open and view a webpage?", "A calculator", "A spreadsheet", "A web browser", "A compiler", 2, 1),
@@ -354,7 +354,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
 
     
 
-    private final List<Question> mediumQuestions = List.of(
+    private final List<Question> mediumQuestions = Arrays.asList(
     q("Which is the correct way to write a paragraph?", "<p>Hello<p>", "<p>Hello</p>", "</p>Hello<p>", "<p/>Hello", 1, 2),
         q("Which code creates a link to example.com?", "<a src=\"https://example.com\">Visit</a>", "<link>https://example.com</link>", "<a href=\"https://example.com\">Visit</a>", "<href=\"https://example.com\">Visit</href>", 2, 2),
         q("Which attribute tells <img> which picture file to show?", "href", "src", "alt", "link", 1, 2),
@@ -386,7 +386,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
 
 
 
-    private final List<Question> hardQuestions = List.of(
+    private final List<Question> hardQuestions = Arrays.asList(
     q("Complete the code: <a ____=\"https://example.com\">Visit</a>", "src", "link", "href", "url", 2, 3),
         q("Complete the code: <img ____=\"photo.jpg\" alt=\"Photo\">", "src", "href", "file", "path", 0, 3),
         q("Complete the code: <img src=\"photo.jpg\" ____=\"A photo\">", "title", "alt", "name", "text", 1, 3),
@@ -416,7 +416,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         hardQuestions
     )
     .flatMap(List::stream)
-    .toList();
+    .collect(java.util.stream.Collectors.toList());
     
     
     
@@ -522,9 +522,13 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         if (!DATA_FILE.exists()) return;
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE))) {
             Object data = in.readObject();
-            if (data instanceof Map<?, ?> map) {
+            if (data instanceof Map<?, ?>) {
+                Map<?, ?> map = (Map<?, ?>) data;
                 for (Object value : map.values()) {
-                    if (value instanceof User u) users.put(u.username.toLowerCase(Locale.ROOT), u);
+                    if (value instanceof User) {
+                        User u = (User) value;
+                        users.put(u.username.toLowerCase(Locale.ROOT), u);
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -1523,13 +1527,13 @@ private JPanel authCard(String heading, String subtitle) {
         navButtons.forEach((key, btn) -> btn.setActive(key.equals(page)));
 
         switch (page) {
-            case "Dashboard" -> renderDashboard();
-            case "Lessons" -> renderLessons();
-            case "Quiz" -> renderQuizSelection();
-            case "Achievements" -> renderAchievements();
-            case "History" -> renderHistory();
-            case "Profile" -> renderProfile();
-            default -> renderDashboard();
+            case "Dashboard": renderDashboard(); break;
+            case "Lessons": renderLessons(); break;
+            case "Quiz": renderQuizSelection(); break;
+            case "Achievements": renderAchievements(); break;
+            case "History": renderHistory(); break;
+            case "Profile": renderProfile(); break;
+            default: renderDashboard(); break;
         }
     }
 
@@ -1995,12 +1999,13 @@ private JPanel authCard(String heading, String subtitle) {
 
     Collections.shuffle(pool);
 
-    int limit = switch (difficulty) {
-        case 1 -> 25;   
-        case 2 -> 25; 
-        case 3 -> 20;   
-        default -> 10;
-    };
+    int limit;
+    switch (difficulty) {
+        case 1: limit = 25; break;   
+        case 2: limit = 25; break; 
+        case 3: limit = 20; break;   
+        default: limit = 10; break;
+    }
 
     if (pool.size() > limit) {
         pool = new ArrayList<>(pool.subList(0, limit));
@@ -2108,7 +2113,7 @@ private JPanel authCard(String heading, String subtitle) {
         p.add(Box.createVerticalStrut(20));
 
         
-        List<Integer> order = new ArrayList<>(List.of(0, 1, 2, 3));
+        List<Integer> order = new ArrayList<>(Arrays.asList(0, 1, 2, 3));
         Collections.shuffle(order);
 
         String[] letters = {"A", "B", "C", "D"};
@@ -2571,8 +2576,14 @@ card.add(label(resultMessage, 14, MUTED, false));
 }
     private void message(String text, int type) { JOptionPane.showMessageDialog(this, text, "Digi-View LMS", type); }
 
-    private String difficultyName(int d) 
-    { return switch (d) { case 1 -> "Easy"; case 2 -> "Medium"; case 3 -> "Hard"; default -> "Mixed"; }; }
+    private String difficultyName(int d) {
+        switch (d) {
+            case 1: return "Easy";
+            case 2: return "Medium";
+            case 3: return "Hard";
+            default: return "Mixed";
+        }
+    }
 
     private static class HeroPanel extends JPanel {
         HeroPanel() {
