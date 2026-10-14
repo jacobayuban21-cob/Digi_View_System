@@ -4,3 +4,10 @@ bin/
 *.log
 .gradle/
 */.gradle/
+
+# Secrets and environment files (NEVER commit credentials)
+.env
+*.env
+backend/.env
+*application-local.properties
+*application-secrets.properties

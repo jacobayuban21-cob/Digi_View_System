@@ -1,8 +1,21 @@
 @echo off
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
+
 echo ===================================================
 echo   DigiView - Spring Boot & Supabase Backend Server
 echo ===================================================
+
+rem Load variables from .env if present
+if exist ".env" (
+    echo [INFO] Loading database credentials from .env...
+    for /f "usebackq tokens=1* delims==" %%a in (".env") do (
+        set "key=%%a"
+        if not "!key:~0,1!"=="#" (
+            if not "%%a"=="" set "%%a=%%b"
+        )
+    )
+)
 
 set "GRADLE_BIN=C:\Users\131fgh\.gradle\wrapper\dists\gradle-8.13-bin\5xuhj0ry160q40clulazy9h7d\gradle-8.13\bin\gradle.bat"
 if not exist %GRADLE_BIN% (
