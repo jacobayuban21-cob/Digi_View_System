@@ -9,7 +9,7 @@ cd /d "%~dp0"
 
 echo [1/4] Compiling Java classes...
 if not exist "bin" mkdir bin
-javac -encoding UTF-8 -d bin src\System\DigiView.java
+javac -encoding UTF-8 -d bin src\System\*.java
 if %errorlevel% neq 0 (
     echo [ERROR] Compilation failed!
     pause

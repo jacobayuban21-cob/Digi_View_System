@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Theme.DigiView" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/blue</item>
+        <item name="colorPrimaryVariant">@color/blue_hover</item>
+        <item name="colorOnPrimary">@color/text_white</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/cyan</item>
+        <item name="colorSecondaryVariant">@color/cyan_glow</item>
+        <item name="colorOnSecondary">@color/d_sidebar</item>
+
+        <!-- Status bar and Navigation bar -->
+        <item name="android:statusBarColor">@color/d_top</item>
+        <item name="android:navigationBarColor">@color/d_sidebar</item>
+        <item name="android:windowBackground">@drawable/bg_gradient</item>
+    </style>
+</resources>
