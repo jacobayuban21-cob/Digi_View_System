@@ -15,9 +15,7 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.digiview.lms.api.ApiClient;
-import com.digiview.lms.model.ApiResponse;
-import com.digiview.lms.model.QuizRecord;
-import com.digiview.lms.model.RegisterRequest;
+import com.digiview.lms.model.*;
 import com.digiview.lms.util.SoundManager;
 import com.google.android.material.button.MaterialButton;
 
@@ -176,6 +174,66 @@ public class MainActivity extends AppCompatActivity {
 
         // Greet user with Desktop-matching Login screen initially
         showAuthScreen();
+
+        // Start study background music automatically
+        SoundManager.getInstance(this).startRelaxMusic(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SoundManager.getInstance(this).startRelaxMusic(this);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            SoundManager.getInstance(this).startRelaxMusic(this);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        SoundManager.getInstance(this).pauseMusic();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (ev.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+            View target = findClickableViewAt(getWindow().getDecorView(), (int) ev.getRawX(), (int) ev.getRawY());
+            if (target != null) {
+                SoundManager.getInstance(this).playClick();
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private View findClickableViewAt(View root, int rawX, int rawY) {
+        if (root == null || root.getVisibility() != View.VISIBLE) return null;
+        int[] loc = new int[2];
+        root.getLocationOnScreen(loc);
+        int x = loc[0], y = loc[1];
+        int w = root.getWidth(), h = root.getHeight();
+        if (rawX < x || rawX > x + w || rawY < y || rawY > y + h) {
+            return null;
+        }
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                View childTarget = findClickableViewAt(group.getChildAt(i), rawX, rawY);
+                if (childTarget != null) return childTarget;
+            }
+        }
+        if (root.isClickable() || root.isFocusable() || root.hasOnClickListeners()
+                || root instanceof android.widget.Checkable
+                || root instanceof android.widget.Button
+                || root instanceof android.widget.EditText
+                || root instanceof android.widget.Spinner) {
+            return root;
+        }
+        return null;
     }
 
     // =========================================================================
@@ -184,6 +242,10 @@ public class MainActivity extends AppCompatActivity {
     private void loadUserData() {
         SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String savedServer = sp.getString(KEY_SERVER_URL, ApiClient.DEFAULT_CLOUD_URL);
+        if (savedServer == null || savedServer.contains("digiview-backend.onrender.com")) {
+            savedServer = ApiClient.DEFAULT_CLOUD_URL;
+            sp.edit().putString(KEY_SERVER_URL, savedServer).apply();
+        }
         ApiClient.setBaseUrl(savedServer);
 
         currentUsername = sp.getString(KEY_USERNAME, "student");
@@ -307,15 +369,12 @@ public class MainActivity extends AppCompatActivity {
             SoundManager.getInstance(this).playClick();
             PopupMenu popup = new PopupMenu(this, topAvatar);
             popup.getMenu().add(0, 1, 0, "👤 View Profile");
-            popup.getMenu().add(0, 2, 1, "☁️ Server & Sync");
-            popup.getMenu().add(0, 3, 2, "🚪 Logout");
+            popup.getMenu().add(0, 2, 1, "🚪 Logout");
             popup.setOnMenuItemClickListener(item -> {
                 SoundManager.getInstance(this).playClick();
                 if (item.getItemId() == 1) {
                     switchPage(5);
                 } else if (item.getItemId() == 2) {
-                    showAuthModal();
-                } else if (item.getItemId() == 3) {
                     performLogout();
                 }
                 return true;
@@ -325,10 +384,7 @@ public class MainActivity extends AppCompatActivity {
 
         View topCloud = findViewById(R.id.topCloudPill);
         if (topCloud != null) {
-            topCloud.setOnClickListener(v -> {
-                SoundManager.getInstance(this).playClick();
-                showAuthModal();
-            });
+            topCloud.setVisibility(View.GONE);
         }
         updateTopBar();
     }
@@ -949,13 +1005,62 @@ public class MainActivity extends AppCompatActivity {
         historyRecords.add(0, r);
         saveUserData();
 
-        // Background Cloud Sync to Spring Boot Backend
+        // Automatic Server Submission and Authoritative Progress Sync
         try {
             ApiClient.getApi().saveQuizRecord(r).enqueue(new Callback<ApiResponse<QuizRecord>>() {
                 @Override
-                public void onResponse(Call<ApiResponse<QuizRecord>> call, Response<ApiResponse<QuizRecord>> response) {}
+                public void onResponse(Call<ApiResponse<QuizRecord>> call, Response<ApiResponse<QuizRecord>> response) {
+                    if (response.isSuccessful()) {
+                        syncUserFromServer(currentUsername);
+                    }
+                }
                 @Override
                 public void onFailure(Call<ApiResponse<QuizRecord>> call, Throwable t) {}
+            });
+        } catch (Exception ignored) {}
+    }
+
+    private void syncUserFromServer(String username) {
+        if (username == null || username.trim().isEmpty()) return;
+        try {
+            ApiClient.getApi().getProfile(username.trim()).enqueue(new Callback<ApiResponse<UserProfile>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<UserProfile>> call, Response<ApiResponse<UserProfile>> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().data != null) {
+                        UserProfile p = response.body().data;
+                        if (p.xp > currentXp) {
+                            currentXp = p.xp;
+                        }
+                        if (p.fullName != null && !p.fullName.isEmpty()) currentFullName = p.fullName;
+                        if (p.gradeSection != null && !p.gradeSection.isEmpty()) currentSection = p.gradeSection;
+                        if (p.gender != null && !p.gender.isEmpty()) currentGender = p.gender;
+
+                        if (p.history != null && !p.history.isEmpty()) {
+                            for (QuizRecord qr : p.history) {
+                                boolean exists = false;
+                                for (QuizRecord local : historyRecords) {
+                                    if (local.getQuiz().equals(qr.getQuiz()) && local.getDate().equals(qr.getDate())) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists) {
+                                    historyRecords.add(qr);
+                                }
+                            }
+                        }
+
+                        saveUserData();
+                        runOnUiThread(() -> {
+                            updateTopBar();
+                            if (activePageIndex == 4) refreshHistoryView();
+                            if (activePageIndex == 5) refreshProfileView();
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<UserProfile>> call, Throwable t) {}
             });
         } catch (Exception ignored) {}
     }
@@ -1015,10 +1120,10 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        viewProfile.findViewById(R.id.btnProfileAuth).setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            showAuthModal();
-        });
+        View btnProfileAuth = viewProfile.findViewById(R.id.btnProfileAuth);
+        if (btnProfileAuth != null) {
+            btnProfileAuth.setVisibility(View.GONE);
+        }
 
         View btnLogout = viewProfile.findViewById(R.id.btnProfileLogout);
         if (btnLogout != null) {
@@ -1202,10 +1307,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (btnLoginServerPill != null) {
-            btnLoginServerPill.setOnClickListener(v -> {
-                SoundManager.getInstance(this).playClick();
-                showAuthModal();
-            });
+            btnLoginServerPill.setVisibility(View.GONE);
         }
 
         if (btnDoLogin != null) {
@@ -1257,81 +1359,94 @@ public class MainActivity extends AppCompatActivity {
 
     private void performLogin(String username, String password) {
         if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please enter both username and password.", Toast.LENGTH_SHORT).show();
+            showThemedAlertDialog("⚠️", "Missing Information", "Please enter both username and password.", "OK", null);
             return;
         }
 
-        UserEntry entry = usersMap.get(username.toLowerCase(Locale.ROOT));
-        if (entry != null && entry.password.equals(password)) {
-            currentUsername = entry.username;
-            currentFullName = entry.fullName;
-            currentSection = entry.gradeSection;
-            currentGender = entry.gender;
-            currentXp = entry.xp;
-            isLoggedIn = true;
-            saveUserData();
-
-            hideAuthScreen();
-            switchPage(0);
-            Toast.makeText(this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
-
-            try {
-                ApiClient.getApi().login(new com.digiview.lms.model.AuthRequest(username, password))
-                        .enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
-                            @Override
-                            public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {
-                                if (response.code() == 401 || !response.isSuccessful() || response.body() == null || !response.body().success) {
-                                    RegisterRequest reg = new RegisterRequest(currentFullName, 16, currentGender, "General", currentSection, currentUsername, password);
-                                    ApiClient.getApi().register(reg).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
-                                        @Override
-                                        public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call2, Response<ApiResponse<com.digiview.lms.model.User>> response2) {}
-                                        @Override
-                                        public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call2, Throwable t) {}
-                                    });
-                                }
-                            }
-                            @Override
-                            public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
-                        });
-            } catch (Exception ignored) {}
-            return;
+        if (btnDoLogin != null) {
+            btnDoLogin.setEnabled(false);
+            btnDoLogin.setText("SIGNING IN...");
         }
 
-        Toast.makeText(this, "Authenticating with server...", Toast.LENGTH_SHORT).show();
-        try {
-            ApiClient.getApi().login(new com.digiview.lms.model.AuthRequest(username, password))
-                    .enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
-                        @Override
-                        public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {
-                            if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
-                                com.digiview.lms.model.User u = response.body().data;
-                                currentUsername = u.username != null ? u.username : username;
-                                currentFullName = u.fullName != null ? u.fullName : username;
-                                currentSection = u.gradeSection != null ? u.gradeSection : "Grade 11";
-                                currentGender = u.gender != null ? u.gender : "Not specified";
-                                currentXp = u.xp;
-                                isLoggedIn = true;
+        ApiClient.getApi().login(new AuthRequest(username, password))
+                .enqueue(new Callback<ApiResponse<User>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<User>> call, Response<ApiResponse<User>> response) {
+                        if (btnDoLogin != null) {
+                            btnDoLogin.setEnabled(true);
+                            btnDoLogin.setText("SIGN IN");
+                        }
 
-                                UserEntry newEntry = new UserEntry(currentUsername, password, currentFullName, currentSection, currentGender, currentXp);
-                                usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newEntry);
-                                saveUserData();
+                        if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
+                            User u = response.body().data;
+                            currentUsername = u.username != null ? u.username : username;
+                            currentFullName = u.fullName != null ? u.fullName : username;
+                            currentSection = u.gradeSection != null ? u.gradeSection : "Grade 11";
+                            currentGender = u.gender != null ? u.gender : "Not specified";
+                            currentXp = u.xp;
+                            isLoggedIn = true;
 
-                                hideAuthScreen();
-                                switchPage(0);
-                                Toast.makeText(MainActivity.this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(MainActivity.this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
+                            UserEntry newEntry = new UserEntry(currentUsername, password, currentFullName, currentSection, currentGender, currentXp);
+                            usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newEntry);
+                            saveUserData();
+
+                            // Automatically fetch latest profile & history from server
+                            syncUserFromServer(currentUsername);
+
+                            hideAuthScreen();
+                            switchPage(0);
+                            Toast.makeText(MainActivity.this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
+                        } else {
+                            String errorMsg = "Invalid username or password.";
+                            if (response.body() != null && response.body().message != null && !response.body().message.isEmpty()) {
+                                errorMsg = response.body().message;
+                            } else if (response.errorBody() != null) {
+                                try {
+                                    String errStr = response.errorBody().string();
+                                    int mIdx = errStr.indexOf("\"message\":\"");
+                                    if (mIdx != -1) {
+                                        int end = errStr.indexOf("\"", mIdx + 11);
+                                        if (end != -1) errorMsg = errStr.substring(mIdx + 11, end);
+                                    }
+                                } catch (Exception ignored) {}
                             }
+                            showThemedAlertDialog("❌", "Sign In Failed", errorMsg, "TRY AGAIN", null);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<User>> call, Throwable t) {
+                        if (btnDoLogin != null) {
+                            btnDoLogin.setEnabled(true);
+                            btnDoLogin.setText("SIGN IN");
                         }
 
-                        @Override
-                        public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {
-                            Toast.makeText(MainActivity.this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
+                        // Allow offline cached login if local credentials match
+                        UserEntry cached = usersMap.get(username.toLowerCase(Locale.ROOT));
+                        if (cached != null && cached.password.equals(password)) {
+                            currentUsername = cached.username;
+                            currentFullName = cached.fullName;
+                            currentSection = cached.gradeSection;
+                            currentGender = cached.gender;
+                            currentXp = cached.xp;
+                            isLoggedIn = true;
+                            saveUserData();
+
+                            hideAuthScreen();
+                            switchPage(0);
+                            Toast.makeText(MainActivity.this, "Signed in (Offline Mode).\nServer was unreachable.", Toast.LENGTH_LONG).show();
+                            return;
                         }
-                    });
-        } catch (Exception ex) {
-            Toast.makeText(this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
-        }
+
+                        showThemedAlertDialog(
+                                "⚠️",
+                                "Connection Failed",
+                                "Could not connect to DigiView server at " + ApiClient.getBaseUrl() + ".\nPlease check your connection.",
+                                "TRY AGAIN",
+                                null
+                        );
+                    }
+                });
     }
 
     private void performRegister() {
@@ -1356,50 +1471,80 @@ public class MainActivity extends AppCompatActivity {
         String baseUsername = name.replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
         if (baseUsername.isEmpty()) baseUsername = "student";
 
-        String un = baseUsername;
-        int suffix = 1;
-        while (usersMap.containsKey(un.toLowerCase(Locale.ROOT))) {
-            un = baseUsername + suffix;
-            suffix++;
+        String fullSec = gr + " - " + sec;
+
+        if (btnDoRegister != null) {
+            btnDoRegister.setEnabled(false);
+            btnDoRegister.setText("CREATING ACCOUNT...");
         }
 
-        String fullSec = gr + " - " + sec;
-        UserEntry newUser = new UserEntry(un, pw, name, fullSec, gender, 0);
-        usersMap.put(un.toLowerCase(Locale.ROOT), newUser);
+        attemptRegisterOnServer(baseUsername, 0, name, gender, fullSec, pw);
+    }
 
-        currentUsername = un;
-        currentFullName = name;
-        currentSection = fullSec;
-        currentGender = gender;
-        currentXp = 0;
-        isLoggedIn = true;
-        saveUserData();
+    private void attemptRegisterOnServer(String baseUsername, int suffix, String name, String gender, String fullSec, String pw) {
+        String un = (suffix == 0) ? baseUsername : (baseUsername + suffix);
+        RegisterRequest req = new RegisterRequest(name, 16, gender, "General", fullSec, un, pw);
+        ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<User>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<User>> call, Response<ApiResponse<User>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
+                    if (btnDoRegister != null) {
+                        btnDoRegister.setEnabled(true);
+                        btnDoRegister.setText("CREATE ACCOUNT");
+                    }
+                    User u = response.body().data;
+                    currentUsername = u.username != null ? u.username : un;
+                    currentFullName = u.fullName != null ? u.fullName : name;
+                    currentSection = u.gradeSection != null ? u.gradeSection : fullSec;
+                    currentGender = u.gender != null ? u.gender : gender;
+                    currentXp = u.xp;
+                    isLoggedIn = true;
 
-        final String regUn = un;
-        final String regPw = pw;
-        final String regName = name;
-        final String regGender = gender;
-        final String regSec = fullSec;
-        try {
-            RegisterRequest req = new RegisterRequest(regName, 16, regGender, "General", regSec, regUn, regPw);
-            ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
-                @Override
-                public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
-                @Override
-                public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
-            });
-        } catch (Exception ignored) {}
+                    UserEntry newUser = new UserEntry(currentUsername, pw, currentFullName, currentSection, currentGender, currentXp);
+                    usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newUser);
+                    saveUserData();
 
-        showThemedAlertDialog(
-                "🎉",
-                "Account Created",
-                "Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.",
-                "CONTINUE TO APP",
-                () -> {
-                    hideAuthScreen();
-                    switchPage(0);
+                    showThemedAlertDialog(
+                            "🎉",
+                            "Account Created",
+                            "Account created successfully on DigiView Server!\n\nYour username is: " + currentUsername + "\nPlease remember this username for login.",
+                            "CONTINUE TO APP",
+                            () -> {
+                                hideAuthScreen();
+                                switchPage(0);
+                            }
+                    );
+                } else if (response.code() == 400 && suffix < 25) {
+                    // Username already taken on server, auto-increment suffix and re-try
+                    attemptRegisterOnServer(baseUsername, suffix + 1, name, gender, fullSec, pw);
+                } else {
+                    if (btnDoRegister != null) {
+                        btnDoRegister.setEnabled(true);
+                        btnDoRegister.setText("CREATE ACCOUNT");
+                    }
+                    String err = "Registration failed.";
+                    if (response.body() != null && response.body().message != null) {
+                        err = response.body().message;
+                    }
+                    showThemedAlertDialog("⚠️", "Registration Failed", err, "TRY AGAIN", null);
                 }
-        );
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<User>> call, Throwable t) {
+                if (btnDoRegister != null) {
+                    btnDoRegister.setEnabled(true);
+                    btnDoRegister.setText("CREATE ACCOUNT");
+                }
+                showThemedAlertDialog(
+                        "⚠️",
+                        "Connection Error",
+                        "Could not connect to DigiView server at " + ApiClient.getBaseUrl() + ".\nPlease check your connection.",
+                        "OK",
+                        null
+                );
+            }
+        });
     }
 
     private void performLogout() {
@@ -1564,163 +1709,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // =========================================================================
-    // 8. AUTHENTICATION & SYNC MODAL
+    // LIFECYCLE
     // =========================================================================
-    private void showAuthModal() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_auth, null);
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .create();
-
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-
-        EditText etServerUrl = dialogView.findViewById(R.id.etServerUrl);
-        MaterialButton btnPresetRender = dialogView.findViewById(R.id.btnPresetRender);
-        MaterialButton btnPresetLocal = dialogView.findViewById(R.id.btnPresetLocal);
-        MaterialButton btnTest = dialogView.findViewById(R.id.btnTestConnection);
-        TextView tvStatus = dialogView.findViewById(R.id.tvConnectionStatus);
-
-        EditText etName = dialogView.findViewById(R.id.etAuthFullName);
-        EditText etSec = dialogView.findViewById(R.id.etAuthSection);
-        EditText etUser = dialogView.findViewById(R.id.etAuthUsername);
-        MaterialButton btnSave = dialogView.findViewById(R.id.btnAuthSave);
-        MaterialButton btnCancel = dialogView.findViewById(R.id.btnAuthCancel);
-
-        etServerUrl.setText(ApiClient.getBaseUrl());
-        etName.setText(currentFullName);
-        etSec.setText(currentSection);
-        etUser.setText(currentUsername);
-
-        btnPresetRender.setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            etServerUrl.setText(ApiClient.DEFAULT_CLOUD_URL);
-        });
-
-        btnPresetLocal.setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            etServerUrl.setText(ApiClient.DEFAULT_LOCAL_URL);
-        });
-
-        btnTest.setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            String testUrl = etServerUrl.getText().toString().trim();
-            if (testUrl.isEmpty()) {
-                tvStatus.setText("❌ Enter URL first");
-                tvStatus.setTextColor(getResources().getColor(R.color.red, getTheme()));
-                return;
-            }
-            tvStatus.setText("⏳ Testing server...");
-            tvStatus.setTextColor(getResources().getColor(R.color.cyan, getTheme()));
-
-            new Thread(() -> {
-                String normalized = testUrl;
-                if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
-                    normalized = "http://" + normalized;
-                }
-                if (!normalized.endsWith("/")) {
-                    normalized += "/";
-                }
-                final String finalUrl = normalized;
-                long start = System.currentTimeMillis();
-                try {
-                    okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
-                            .connectTimeout(5, TimeUnit.SECONDS)
-                            .readTimeout(5, TimeUnit.SECONDS)
-                            .build();
-                    okhttp3.Request req = new okhttp3.Request.Builder()
-                            .url(finalUrl + "api/health")
-                            .build();
-                    try (okhttp3.Response resp = client.newCall(req).execute()) {
-                        long latency = System.currentTimeMillis() - start;
-                        final String msg = "✅ Online (" + resp.code() + ", " + latency + "ms)";
-                        runOnUiThread(() -> {
-                            tvStatus.setText(msg);
-                            tvStatus.setTextColor(getResources().getColor(R.color.green, getTheme()));
-                        });
-                        return;
-                    }
-                } catch (Exception ex) {
-                    try {
-                        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
-                                .connectTimeout(5, TimeUnit.SECONDS)
-                                .readTimeout(5, TimeUnit.SECONDS)
-                                .build();
-                        okhttp3.Request req = new okhttp3.Request.Builder()
-                                .url(finalUrl)
-                                .build();
-                        try (okhttp3.Response resp = client.newCall(req).execute()) {
-                            long latency = System.currentTimeMillis() - start;
-                            final String msg = "✅ Online (" + resp.code() + ", " + latency + "ms)";
-                            runOnUiThread(() -> {
-                                tvStatus.setText(msg);
-                                tvStatus.setTextColor(getResources().getColor(R.color.green, getTheme()));
-                            });
-                            return;
-                        }
-                    } catch (Exception ignored) {}
-
-                    runOnUiThread(() -> {
-                        tvStatus.setText("❌ Server Unreachable");
-                        tvStatus.setTextColor(getResources().getColor(R.color.red, getTheme()));
-                    });
-                }
-            }).start();
-        });
-
-        btnSave.setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            String newServer = etServerUrl.getText().toString().trim();
-            if (!newServer.isEmpty()) {
-                ApiClient.setBaseUrl(newServer);
-                SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                sp.edit().putString(KEY_SERVER_URL, ApiClient.getBaseUrl()).apply();
-            }
-
-            String newName = etName.getText().toString().trim();
-            String newSec = etSec.getText().toString().trim();
-            String newUser = etUser.getText().toString().trim();
-
-            if (newName.isEmpty() || newUser.isEmpty()) {
-                Toast.makeText(this, "Name and username are required.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            currentFullName = newName;
-            if (!newSec.isEmpty()) currentSection = newSec;
-            currentUsername = newUser;
-            saveUserData();
-
-            // Background Registration Sync to Spring Boot & Supabase
-            try {
-                RegisterRequest req = new RegisterRequest(newName, 16, currentGender, "General", currentSection, newUser, "default123");
-                ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
-                    @Override
-                    public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
-                });
-            } catch (Exception ignored) {}
-
-            Toast.makeText(this, "Profile and server settings saved!", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-            switchPage(activePageIndex);
-        });
-
-        btnCancel.setOnClickListener(v -> {
-            SoundManager.getInstance(this).playClick();
-            dialog.dismiss();
-        });
-        dialog.show();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-            dialog.getWindow().setGravity(Gravity.CENTER);
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
-            int maxWidth = (int) (420 * getResources().getDisplayMetrics().density + 0.5f);
-            dialog.getWindow().setLayout(Math.min(width, maxWidth), ViewGroup.LayoutParams.WRAP_CONTENT);
-        }
-    }
 
     @Override
     protected void onDestroy() {

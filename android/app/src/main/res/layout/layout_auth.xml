@@ -40,15 +40,12 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="24dp">
 
-                <TextView
+                <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="@drawable/bg_dv_logo"
-                    android:gravity="center"
-                    android:text="DV"
-                    android:textColor="@color/text_white"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
+                    android:src="@drawable/ic_launcher_dv"
+                    android:contentDescription="DigiView Logo"
+                    android:scaleType="fitCenter"
                     android:layout_marginEnd="12dp" />
 
                 <TextView
@@ -118,11 +115,12 @@
                 android:layout_marginTop="14dp"
                 android:inputType="textPassword" />
 
-            <!-- Cloud Server Connection Quick Bar -->
+            <!-- Cloud Server Connection Quick Bar (Hidden for production) -->
             <LinearLayout
                 android:id="@+id/btnLoginServerPill"
                 android:layout_width="match_parent"
                 android:layout_height="36dp"
+                android:visibility="gone"
                 android:background="@drawable/bg_pill"
                 android:gravity="center"
                 android:orientation="horizontal"
@@ -216,15 +214,12 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="20dp">
 
-                <TextView
+                <ImageView
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    android:background="@drawable/bg_dv_logo"
-                    android:gravity="center"
-                    android:text="DV"
-                    android:textColor="@color/text_white"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
+                    android:src="@drawable/ic_launcher_dv"
+                    android:contentDescription="DigiView Logo"
+                    android:scaleType="fitCenter"
                     android:layout_marginEnd="12dp" />
 
                 <TextView

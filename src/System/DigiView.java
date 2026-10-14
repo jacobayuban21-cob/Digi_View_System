@@ -130,44 +130,248 @@ class DigiViewLMS extends JFrame {
     }
     
     
-        private Clip clickClip;
-        
-private void playClickSound() {
-    try {
-        if (clickClip == null) {
-            File soundFile = new File(
-                "src/System/sounds/mixkit-select-click-1109.wav"
-            );
+    private static DigiViewLMS activeInstance;
+    private static final int CLICK_POOL_SIZE = 6;
+    private Clip[] clickClips = new Clip[CLICK_POOL_SIZE];
+    private int currentClipIndex = 0;
+    private byte[] clickAudioBytes;
+    private Clip musicClip;
+    private boolean musicEnabled = true;
+    private long lastClickTime = 0;
 
-            if (!soundFile.exists()) {
-                System.out.println(
-                    "Sound file not found: "
-                    + soundFile.getAbsolutePath()
-                );
-                return;
+    /**
+     * Root Redirection & Path Resolver.
+     * Allows using any symbol alias (like "@", "~", "^", "$", "/") to redirect to the project root folder.
+     * Examples:
+     * - "@/public/sounds/mixkit-select-click-1109.wav"
+     * - "@/Icons/Splash-icon.png"
+     * - "~/public/sounds/..."
+     * - "@/sounds/..."
+     */
+    public static File resolveRoot(String path) {
+        if (path == null) return null;
+        String cleaned = redirectRootSymbol(path);
+        
+        File[] candidates = new File[] {
+            new File(cleaned),
+            new File("public/" + cleaned),
+            new File("../" + cleaned),
+            new File("../public/" + cleaned),
+            new File("src/System/" + cleaned),
+            new File("bin/" + cleaned)
+        };
+        for (File f : candidates) {
+            if (f.exists()) return f;
+        }
+        return new File(cleaned);
+    }
+
+    /**
+     * Strips leading root alias symbols like '@', '~', '^', '$' and leading slashes.
+     */
+    public static String redirectRootSymbol(String path) {
+        if (path == null) return "";
+        String p = path.trim();
+        while (p.startsWith("@") || p.startsWith("~") || p.startsWith("^") || p.startsWith("$")) {
+            p = p.substring(1).trim();
+        }
+        while (p.startsWith("/") || p.startsWith("\\")) {
+            p = p.substring(1).trim();
+        }
+        return p;
+    }
+
+    public static InputStream resolveRootStream(String path) {
+        try {
+            File f = resolveRoot(path);
+            if (f != null && f.exists() && f.isFile()) {
+                return new FileInputStream(f);
+            }
+            String cleaned = redirectRootSymbol(path);
+            InputStream is = DigiView.class.getResourceAsStream("/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getClassLoader().getResourceAsStream(cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/System/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/sounds/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/Icons/" + cleaned);
+            if (is != null) return is;
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private static InputStream getAudioResourceStream(String filename) {
+        try {
+            // Check with root alias symbols '@', '~', etc.
+            InputStream is = resolveRootStream("@/public/sounds/" + filename);
+            if (is != null) return is;
+            is = resolveRootStream("@/sounds/" + filename);
+            if (is != null) return is;
+            is = resolveRootStream("@/" + filename);
+            if (is != null) return is;
+
+            File f = resolveRoot("public/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = resolveRoot("public/Sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            is = DigiView.class.getResourceAsStream("/sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/System/sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getClassLoader().getResourceAsStream("System/sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getClassLoader().getResourceAsStream("sounds/" + filename);
+            if (is != null) return is;
+            f = resolveRoot("src/System/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = resolveRoot("bin/System/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = resolveRoot("sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private void initAudio() {
+        activeInstance = this;
+        new Thread(() -> {
+            // 1. Preload Click Sound into memory and pool of 6 clips
+            try {
+                InputStream is = getAudioResourceStream("mixkit-select-click-1109.wav");
+                if (is != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192];
+                    int r;
+                    while ((r = is.read(buf)) != -1) baos.write(buf, 0, r);
+                    is.close();
+                    clickAudioBytes = baos.toByteArray();
+
+                    for (int i = 0; i < CLICK_POOL_SIZE; i++) {
+                        try {
+                            ByteArrayInputStream bais = new ByteArrayInputStream(clickAudioBytes);
+                            AudioInputStream ais = AudioSystem.getAudioInputStream(bais);
+                            Clip clip = AudioSystem.getClip();
+                            clip.open(ais);
+                            clickClips[i] = clip;
+                        } catch (Exception e) {
+                            System.err.println("Click clip pool item " + i + " init failed: " + e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to preload click audio: " + e.getMessage());
             }
 
-            AudioInputStream audioStream =
-                AudioSystem.getAudioInputStream(soundFile);
+            // 2. Global AWT Event Listener for instant, 100% consistent click feedback
+            try {
+                Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+                    if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+                        Object src = event.getSource();
+                        if (src instanceof AbstractButton || src instanceof JComboBox || src instanceof JTabbedPane) {
+                            playClick();
+                        }
+                    }
+                }, AWTEvent.MOUSE_EVENT_MASK);
+            } catch (Exception ignored) {}
 
-            clickClip = AudioSystem.getClip();
-            clickClip.open(audioStream);
-            audioStream.close();
-        }
-
-        if (clickClip.isRunning()) {
-            clickClip.stop();
-        }
-
-        clickClip.setFramePosition(0);
-        clickClip.start();
-
-    } catch (Exception e) {
-        System.out.println(
-            "Hindi ma-play ang click sound: " + e.getMessage()
-        );
+            // 3. Start ambient background study music automatically
+            startBackgroundMusic();
+        }, "DigiView-AudioEngine").start();
     }
-}
+
+    public static void playClick() {
+        if (activeInstance != null) {
+            activeInstance.playClickSound();
+        }
+    }
+
+    public void playClickSound() {
+        long now = System.currentTimeMillis();
+        if (now - lastClickTime < 70) {
+            return; // Throttle to prevent duplicate sound on rapid events
+        }
+        lastClickTime = now;
+
+        try {
+            if (clickClips != null && clickClips.length > 0) {
+                synchronized (clickClips) {
+                    Clip c = clickClips[currentClipIndex];
+                    currentClipIndex = (currentClipIndex + 1) % clickClips.length;
+                    if (c != null) {
+                        if (c.isRunning()) c.stop();
+                        c.setFramePosition(0);
+                        c.start();
+                        return;
+                    }
+                }
+            }
+            // Fallback if pool not yet ready
+            if (clickAudioBytes != null) {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(new ByteArrayInputStream(clickAudioBytes));
+                Clip c = AudioSystem.getClip();
+                c.open(ais);
+                c.addLineListener(ev -> {
+                    if (ev.getType() == LineEvent.Type.STOP) c.close();
+                });
+                c.start();
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public synchronized void startBackgroundMusic() {
+        if (!musicEnabled) return;
+        try {
+            if (musicClip != null && musicClip.isRunning()) return;
+
+            if (musicClip == null) {
+                InputStream is = getAudioResourceStream("freesound_community-relax-32200.wav");
+                if (is == null) {
+                    System.out.println("Music file not found: freesound_community-relax-32200.wav");
+                    return;
+                }
+                AudioInputStream ais = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
+                musicClip = AudioSystem.getClip();
+                musicClip.open(ais);
+
+                try {
+                    if (musicClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                        FloatControl gain = (FloatControl) musicClip.getControl(FloatControl.Type.MASTER_GAIN);
+                        gain.setValue(-8.0f); // Pleasant background study music volume
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            musicClip.setFramePosition(0);
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+        } catch (Throwable t) {
+            System.err.println("Background music start failed: " + t.getMessage());
+        }
+    }
+
+    public synchronized void stopBackgroundMusic() {
+        try {
+            if (musicClip != null && musicClip.isRunning()) {
+                musicClip.stop();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public synchronized void toggleBackgroundMusic() {
+        musicEnabled = !musicEnabled;
+        if (musicEnabled) {
+            startBackgroundMusic();
+        } else {
+            stopBackgroundMusic();
+        }
+    }
+
+    public synchronized boolean isMusicPlaying() {
+        return musicEnabled && musicClip != null && musicClip.isRunning();
+    }
         
         private int quizHearts = 5;
 
@@ -420,9 +624,43 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     .collect(java.util.stream.Collectors.toList());
     
     
-    
+    private void loadAppIcon() {
+        try {
+            String[] symbolPaths = new String[] {
+                "@/public/Icons/Splash-icon.png",
+                "@/public/Icons/Icon.jpg",
+                "@/public/Icons/Icon.ico",
+                "@/Icons/Splash-icon.png",
+                "@/Icons/Icon.jpg",
+                "public/Icons/Splash-icon.png",
+                "Icons/Splash-icon.png"
+            };
+            for (String sp : symbolPaths) {
+                File f = resolveRoot(sp);
+                if (f != null && f.exists()) {
+                    Image img = javax.imageio.ImageIO.read(f);
+                    if (img != null) {
+                        setIconImage(img);
+                        return;
+                    }
+                }
+                InputStream is = resolveRootStream(sp);
+                if (is != null) {
+                    Image img = javax.imageio.ImageIO.read(is);
+                    if (img != null) {
+                        setIconImage(img);
+                        return;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
     public DigiViewLMS() {
+        setTitle("DigiView");
+        loadAppIcon();
         loadData();
+        initAudio();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(860, 600));
@@ -479,6 +717,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         boolean active) {
 
     JButton b = new JButton(icon + "   " + title);
+    b.addActionListener(e -> playClick());
 
     b.setUI(new BasicButtonUI());
     b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -972,6 +1211,7 @@ private JPanel authCard(String heading, String subtitle) {
             setMinimumSize(new Dimension(100, 52));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
             setAlignmentX(Component.CENTER_ALIGNMENT);
+            addActionListener(e -> playClick());
         }
 
         @Override
@@ -1117,21 +1357,34 @@ private JPanel authCard(String heading, String subtitle) {
                 suffix++;
             }
 
-            currentUser = new User(name, 0, g, "N/A", gr + " - " + sec, un, pw);
-            users.put(un.toLowerCase(Locale.ROOT), currentUser);
-            saveData();
             final String regUn = un;
             final String regPw = pw;
             final String regName = name;
             final String regG = g;
             final String regSec = gr + " - " + sec;
-            new Thread(() -> ApiClient.registerUser(regUn, regPw, regName, 16, regG, "General", regSec)).start();
-            showApp();
 
-            message("Account created successfully!\n\n"
-                    + "Your username is: " + un
-                    + "\nPlease remember this username for login.",
-                    JOptionPane.INFORMATION_MESSAGE);
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            register.setEnabled(false);
+            new Thread(() -> {
+                ApiClient.AuthResult res = ApiClient.register(regUn, regPw, regName, 16, regG, "General", regSec);
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    register.setEnabled(true);
+                    if (res.success) {
+                        String finalUser = res.username != null ? res.username : regUn;
+                        currentUser = new User(res.fullName != null ? res.fullName : regName, res.xp, res.gender != null ? res.gender : regG, "N/A", regSec, finalUser, regPw);
+                        users.put(finalUser.toLowerCase(Locale.ROOT), currentUser);
+                        saveData();
+                        showApp();
+                        message("Account created successfully on DigiView Server!\n\n"
+                                + "Your username is: " + finalUser
+                                + "\nPlease remember this username for login.",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        message(res.message, JOptionPane.WARNING_MESSAGE);
+                    }
+                });
+            }).start();
         });
         card.add(register);
         card.add(Box.createVerticalStrut(18));
@@ -1171,24 +1424,49 @@ private JPanel authCard(String heading, String subtitle) {
        private void login() {
         String username = loginUsername.getText().trim();
         String password = new String(loginPassword.getPassword());
-        User u = users.get(username.toLowerCase(Locale.ROOT));
-        if (u == null || !u.password.equals(password)) {
-            message("Invalid username or password.", JOptionPane.WARNING_MESSAGE);
+        if (username.isEmpty() || password.isEmpty()) {
+            message("Please enter both username and password.", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        currentUser = u;
 
-        // Auto-sync user to cloud Supabase backend so the user record is guaranteed to exist
-        final String syncUser = u.username;
-        final String syncPw = u.password;
-        final String syncName = u.fullName;
-        final String syncGender = u.gender;
-        final String syncSec = u.gradeSection;
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new Thread(() -> {
-            ApiClient.registerUser(syncUser, syncPw, syncName, 16, syncGender, "General", syncSec);
+            ApiClient.AuthResult res = ApiClient.login(username, password);
+            SwingUtilities.invokeLater(() -> {
+                setCursor(Cursor.getDefaultCursor());
+                if (res.success) {
+                    User existing = users.get(username.toLowerCase(Locale.ROOT));
+                    User u = existing != null ? existing : new User(
+                        res.fullName != null ? res.fullName : username,
+                        16,
+                        res.gender != null ? res.gender : "Not specified",
+                        "N/A",
+                        res.gradeSection != null ? res.gradeSection : "Grade 11",
+                        res.username != null ? res.username : username,
+                        password
+                    );
+                    u.fullName = res.fullName != null ? res.fullName : u.fullName;
+                    u.xp = res.xp;
+                    if (res.gender != null && !res.gender.isEmpty()) u.gender = res.gender;
+                    if (res.gradeSection != null && !res.gradeSection.isEmpty()) u.gradeSection = res.gradeSection;
+                    if (res.username != null && !res.username.isEmpty()) u.username = res.username;
+                    u.password = password;
+                    currentUser = u;
+                    users.put(u.username.toLowerCase(Locale.ROOT), u);
+                    saveData();
+                    showApp();
+                } else {
+                    User cached = users.get(username.toLowerCase(Locale.ROOT));
+                    if (cached != null && cached.password.equals(password) && res.message.contains("Could not connect")) {
+                        currentUser = cached;
+                        showApp();
+                        message("Signed in (Offline Mode).\nServer was unreachable.", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    message(res.message, JOptionPane.WARNING_MESSAGE);
+                }
+            });
         }).start();
-
-        showApp();
     }
 
     private void showApp() {
@@ -1331,8 +1609,17 @@ private JPanel authCard(String heading, String subtitle) {
         userCard.add(new AvatarBadge(currentUser.username.substring(0, 1), 42));
         userCard.add(info);
         sidebar.add(userCard);
-        sidebar.add(Box.createVerticalStrut(14));
-
+        RoundedButton musicBtn = new RoundedButton(isMusicPlaying() ? "🎵   Music: ON" : "🔇   Music: OFF", false);
+        musicBtn.setForeground(new Color(160, 185, 215));
+        musicBtn.setPreferredSize(new Dimension(200, 42));
+        musicBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        musicBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        musicBtn.addActionListener(e -> {
+            toggleBackgroundMusic();
+            musicBtn.setText(isMusicPlaying() ? "🎵   Music: ON" : "🔇   Music: OFF");
+        });
+        sidebar.add(musicBtn);
+        sidebar.add(Box.createVerticalStrut(8));
 
         RoundedButton logout = new RoundedButton("\uD83D\uDEAA   Logout", false);
         logout.setForeground(new Color(200, 212, 230));
@@ -1611,20 +1898,10 @@ private JPanel authCard(String heading, String subtitle) {
         topXp.setFont(new Font("SansSerif", Font.BOLD, 14));
         topXp.setForeground(TEXT);
 
-        RoundedButton serverBtn = new RoundedButton("☁️ Server Sync", false);
-        serverBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        serverBtn.setPreferredSize(new Dimension(135, 36));
-        serverBtn.setForeground(CYAN);
-        serverBtn.addActionListener(e -> {
-            playClickSound();
-            showServerConnectionDialog();
-        });
-
         AvatarBadge avatar = new AvatarBadge(currentUser.username.substring(0, 1), 44);
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
         right.setOpaque(false);
-        right.add(serverBtn);
         right.add(topXp);
         right.add(avatar);
 
@@ -3269,31 +3546,76 @@ card.add(label(resultMessage, 14, MUTED, false));
 
     
     private static class LogoBadge extends JComponent {
+        private static Image cachedLogo;
+        private static boolean logoChecked = false;
+
         LogoBadge(int size) {
             Dimension d = new Dimension(size, size);
             setPreferredSize(d);
             setMinimumSize(d);
             setMaximumSize(d);
+            ensureLogoLoaded();
+        }
+
+        private static synchronized void ensureLogoLoaded() {
+            if (logoChecked) return;
+            logoChecked = true;
+            try {
+                String[] candidates = new String[] {
+                    "@/public/Icons/Splash-icon.png",
+                    "@/public/Icons/Icon.jpg",
+                    "@/Icons/Splash-icon.png",
+                    "public/Icons/Splash-icon.png",
+                    "Icons/Splash-icon.png"
+                };
+                for (String c : candidates) {
+                    File f = resolveRoot(c);
+                    if (f != null && f.exists()) {
+                        Image img = javax.imageio.ImageIO.read(f);
+                        if (img != null) {
+                            cachedLogo = img;
+                            return;
+                        }
+                    }
+                    InputStream is = resolveRootStream(c);
+                    if (is != null) {
+                        Image img = javax.imageio.ImageIO.read(is);
+                        if (img != null) {
+                            cachedLogo = img;
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             int w = getWidth(), h = getHeight();
-            g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
-                    w, h, new Color(34, 190, 240)));
-            g2.fillRoundRect(0, 0, w, h, 20, 20);
 
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.34)));
-            FontMetrics fm = g2.getFontMetrics();
-            String s = "DV";
-            g2.drawString(s, (w - fm.stringWidth(s)) / 2,
-                    (h + fm.getAscent() - fm.getDescent()) / 2);
+            if (cachedLogo != null) {
+                java.awt.geom.RoundRectangle2D round = new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, 18, 18);
+                g2.setClip(round);
+                g2.drawImage(cachedLogo, 0, 0, w, h, null);
+                g2.setClip(null);
+                g2.setColor(new Color(56, 189, 248, 80));
+                g2.draw(round);
+            } else {
+                g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
+                        w, h, new Color(34, 190, 240)));
+                g2.fillRoundRect(0, 0, w, h, 20, 20);
+
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.34)));
+                FontMetrics fm = g2.getFontMetrics();
+                String s = "DV";
+                g2.drawString(s, (w - fm.stringWidth(s)) / 2,
+                        (h + fm.getAscent() - fm.getDescent()) / 2);
+            }
             g2.dispose();
         }
     }

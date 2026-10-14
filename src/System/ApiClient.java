@@ -13,7 +13,7 @@ import java.util.Properties;
  */
 public class ApiClient {
 
-    public static final String DEFAULT_CLOUD_URL = "https://digiview-backend.onrender.com";
+    public static final String DEFAULT_CLOUD_URL = "https://digi-view-system.onrender.com";
     public static final String DEFAULT_LOCAL_URL = "http://localhost:8085";
     private static final String CONFIG_FILE_NAME = "digiview-config.properties";
 
@@ -30,7 +30,13 @@ public class ApiClient {
 
         // 3. Check persistent config file in working dir or user home
         String fromFile = loadConfigUrl();
-        if (fromFile != null && !fromFile.trim().isEmpty()) return cleanUrl(fromFile);
+        if (fromFile != null && !fromFile.trim().isEmpty()) {
+            if (fromFile.contains("digiview-backend.onrender.com")) {
+                saveConfigUrl(DEFAULT_CLOUD_URL);
+                return DEFAULT_CLOUD_URL;
+            }
+            return cleanUrl(fromFile);
+        }
 
         // 4. Default to Render cloud URL (or local if explicitly developing locally)
         return DEFAULT_CLOUD_URL;
@@ -51,6 +57,28 @@ public class ApiClient {
 
     public static String getBaseUrl() {
         return baseUrl;
+    }
+
+    /**
+     * Resolves an endpoint path with root symbol redirection.
+     * Allows using any symbol alias (like "@", "~", "^", "/") to redirect to the root URL.
+     * Examples:
+     * - "@/api/auth/login" -> "https://digi-view-system.onrender.com/api/auth/login"
+     * - "@/health"         -> "https://digi-view-system.onrender.com/health"
+     * - "~/api/quiz"       -> "https://digi-view-system.onrender.com/api/quiz"
+     */
+    public static String redirectRootUrl(String endpoint) {
+        if (endpoint == null || endpoint.trim().isEmpty()) {
+            return getBaseUrl();
+        }
+        String p = endpoint.trim();
+        while (p.startsWith("@") || p.startsWith("~") || p.startsWith("^") || p.startsWith("$")) {
+            p = p.substring(1).trim();
+        }
+        while (p.startsWith("/") || p.startsWith("\\")) {
+            p = p.substring(1).trim();
+        }
+        return getBaseUrl() + "/" + p;
     }
 
     public static void saveConfigUrl(String url) {
@@ -153,15 +181,83 @@ public class ApiClient {
         return false;
     }
 
-    public static boolean registerUser(String username, String password, String fullName, int age, String gender, String strand, String gradeSection) {
+    public static class AuthResult {
+        public final boolean success;
+        public final String message;
+        public final String username;
+        public final String fullName;
+        public final String gradeSection;
+        public final String gender;
+        public final int xp;
+
+        public AuthResult(boolean success, String message, String username, String fullName, String gradeSection, String gender, int xp) {
+            this.success = success;
+            this.message = message;
+            this.username = username;
+            this.fullName = fullName;
+            this.gradeSection = gradeSection;
+            this.gender = gender;
+            this.xp = xp;
+        }
+
+        public static AuthResult failure(String message) {
+            return new AuthResult(false, message, null, null, null, null, 0);
+        }
+    }
+
+    public static AuthResult login(String username, String password) {
         try {
-            URL url = new URL(baseUrl + "/api/auth/register");
+            URL url = new URL(redirectRootUrl("/api/auth/login"));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
             conn.setDoOutput(true);
-            conn.setConnectTimeout(4000);
-            conn.setReadTimeout(4000);
+            conn.setConnectTimeout(6000);
+            conn.setReadTimeout(6000);
+
+            String json = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", escapeJson(username), escapeJson(password));
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = conn.getResponseCode();
+            InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+            String responseStr = readStream(is);
+
+            boolean success = code >= 200 && code < 300;
+            String msg = parseJsonString(responseStr, "message");
+            if (msg.isEmpty()) msg = success ? "Success" : "Invalid username or password.";
+
+            if (success) {
+                String u = parseJsonString(responseStr, "username");
+                if (u.isEmpty()) u = username;
+                String fn = parseJsonString(responseStr, "fullName");
+                if (fn.isEmpty()) fn = u;
+                String gs = parseJsonString(responseStr, "gradeSection");
+                if (gs.isEmpty()) gs = "Grade 11";
+                String gen = parseJsonString(responseStr, "gender");
+                if (gen.isEmpty()) gen = "Not specified";
+                int xp = parseJsonInt(responseStr, "xp", 0);
+                return new AuthResult(true, msg, u, fn, gs, gen, xp);
+            } else {
+                return AuthResult.failure(msg);
+            }
+        } catch (Exception e) {
+            return AuthResult.failure("Could not connect to DigiView server: " + e.getMessage());
+        }
+    }
+
+    public static AuthResult register(String username, String password, String fullName, int age, String gender, String strand, String gradeSection) {
+        try {
+            URL url = new URL(redirectRootUrl("/api/auth/register"));
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(6000);
+            conn.setReadTimeout(6000);
 
             String json = String.format(
                 "{\"username\":\"%s\",\"password\":\"%s\",\"fullName\":\"%s\",\"age\":%d,\"gender\":\"%s\",\"strand\":\"%s\",\"gradeSection\":\"%s\"}",
@@ -171,21 +267,48 @@ public class ApiClient {
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(json.getBytes(StandardCharsets.UTF_8));
             }
-            return conn.getResponseCode() >= 200 && conn.getResponseCode() < 300;
+
+            int code = conn.getResponseCode();
+            InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+            String responseStr = readStream(is);
+
+            boolean success = code >= 200 && code < 300;
+            String msg = parseJsonString(responseStr, "message");
+            if (msg.isEmpty()) msg = success ? "Success" : "Registration failed.";
+
+            if (success) {
+                String u = parseJsonString(responseStr, "username");
+                if (u.isEmpty()) u = username;
+                String fn = parseJsonString(responseStr, "fullName");
+                if (fn.isEmpty()) fn = fullName;
+                String gs = parseJsonString(responseStr, "gradeSection");
+                if (gs.isEmpty()) gs = gradeSection;
+                String gen = parseJsonString(responseStr, "gender");
+                if (gen.isEmpty()) gen = gender;
+                int xp = parseJsonInt(responseStr, "xp", 0);
+                return new AuthResult(true, msg, u, fn, gs, gen, xp);
+            } else {
+                return AuthResult.failure(msg);
+            }
         } catch (Exception e) {
-            return false;
+            return AuthResult.failure("Could not connect to DigiView server: " + e.getMessage());
         }
+    }
+
+    public static boolean registerUser(String username, String password, String fullName, int age, String gender, String strand, String gradeSection) {
+        AuthResult res = register(username, password, fullName, age, gender, strand, gradeSection);
+        return res.success;
     }
 
     public static boolean submitQuizRecord(String username, String quiz, int score, int total, int percent, String date) {
         try {
-            URL url = new URL(baseUrl + "/api/quiz/record");
+            URL url = new URL(redirectRootUrl("/api/quiz/record"));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
-            conn.setConnectTimeout(4000);
-            conn.setReadTimeout(4000);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
 
             String json = String.format(
                 "{\"username\":\"%s\",\"quiz\":\"%s\",\"score\":%d,\"total\":%d,\"percent\":%d,\"date\":\"%s\"}",
@@ -204,10 +327,10 @@ public class ApiClient {
 
     public static boolean syncXp(String username, int xpAmount) {
         try {
-            URL url = new URL(baseUrl + "/api/users/" + URLEncoder.encode(username, "UTF-8") + "/xp?amount=" + xpAmount);
+            URL url = new URL(redirectRootUrl("/api/users/" + URLEncoder.encode(username, "UTF-8") + "/xp?amount=" + xpAmount));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setConnectTimeout(3000);
+            conn.setConnectTimeout(4000);
             return conn.getResponseCode() == 200;
         } catch (Exception e) {
             return false;
@@ -216,13 +339,57 @@ public class ApiClient {
 
     public static boolean unlockAchievement(String username, String achievement) {
         try {
-            URL url = new URL(baseUrl + "/api/users/" + URLEncoder.encode(username, "UTF-8") + "/achievement?achievement=" + URLEncoder.encode(achievement, "UTF-8"));
+            URL url = new URL(redirectRootUrl("/api/users/" + URLEncoder.encode(username, "UTF-8") + "/achievement?achievement=" + URLEncoder.encode(achievement, "UTF-8")));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setConnectTimeout(3000);
+            conn.setConnectTimeout(4000);
             return conn.getResponseCode() == 200;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private static String readStream(InputStream is) {
+        if (is == null) return "";
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            reader.close();
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static String parseJsonString(String json, String key) {
+        if (json == null || key == null) return "";
+        String pattern = "\"" + key + "\":\"";
+        int start = json.indexOf(pattern);
+        if (start == -1) return "";
+        start += pattern.length();
+        int end = json.indexOf("\"", start);
+        if (end == -1) return "";
+        return json.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    public static int parseJsonInt(String json, String key, int defVal) {
+        if (json == null || key == null) return defVal;
+        String pattern = "\"" + key + "\":";
+        int start = json.indexOf(pattern);
+        if (start == -1) return defVal;
+        start += pattern.length();
+        while (start < json.length() && Character.isWhitespace(json.charAt(start))) start++;
+        int end = start;
+        while (end < json.length() && (Character.isDigit(json.charAt(end)) || json.charAt(end) == '-')) end++;
+        if (start == end) return defVal;
+        try {
+            return Integer.parseInt(json.substring(start, end));
+        } catch (Exception e) {
+            return defVal;
         }
     }
 

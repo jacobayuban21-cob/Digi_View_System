@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,11 +35,12 @@ public class HealthController {
     private DataSource dataSource;
 
     /**
-     * Default server landing page and health check.
+     * Default server landing page, root redirection, and health check.
+     * Accessible via '/', '/health', '/@', '/~', '/root'.
      * Content-negotiated: Serves the interactive HTML5 dashboard + Dino game to browsers,
      * or returns JSON telemetry to API monitors.
      */
-    @GetMapping({"/", "/health"})
+    @GetMapping({"/", "/health", "/@", "/~", "/root"})
     public Object healthCheck(HttpServletRequest request,
                               @RequestHeader(value = "Accept", required = false) String acceptHeader) {
         // If request is from a web browser or default curl without JSON preference, deliver the HTML dashboard
@@ -49,6 +51,37 @@ public class HealthController {
         }
         // If explicitly requesting JSON, return the telemetry payload
         return ResponseEntity.ok(buildHealthReport());
+    }
+
+    /**
+     * Root symbol redirection for sub-paths (e.g. /@/health -> /health, /@/api/health -> /api/health)
+     */
+    @GetMapping({"/@{subpath:[^.]*}", "/~{subpath:[^.]*}"})
+    public ResponseEntity<Void> redirectSymbolSubpath(@PathVariable(required = false) String subpath) {
+        String target = (subpath == null || subpath.trim().isEmpty() || subpath.equals("/")) ? "/" : subpath;
+        if (!target.startsWith("/")) target = "/" + target;
+        return ResponseEntity.status(org.springframework.http.HttpStatus.FOUND)
+                .location(java.net.URI.create(target))
+                .build();
+    }
+
+    /**
+     * Dedicated Favicon endpoint to serve the official DigiView favicon.
+     */
+    @GetMapping(value = {"/favicon.ico", "/Favicon.ico"})
+    public ResponseEntity<byte[]> favicon() {
+        try {
+            ClassPathResource resource = new ClassPathResource("static/favicon.ico");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    byte[] bytes = StreamUtils.copyToByteArray(is);
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType("image/x-icon"))
+                            .body(bytes);
+                }
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.notFound().build();
     }
 
     /**

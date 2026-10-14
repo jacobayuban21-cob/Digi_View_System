@@ -6,9 +6,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/bg_dv_logo"
+        android:icon="@drawable/ic_launcher_dv"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/bg_dv_logo"
+        android:roundIcon="@drawable/ic_launcher_dv"
         android:supportsRtl="true"
         android:theme="@style/Theme.DigiView"
         android:usesCleartextTraffic="true">

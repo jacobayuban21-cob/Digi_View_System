@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
 
-    public static final String DEFAULT_CLOUD_URL = "https://digiview-backend.onrender.com/";
+    public static final String DEFAULT_CLOUD_URL = "https://digi-view-system.onrender.com/";
     public static final String DEFAULT_LOCAL_URL = "http://10.0.2.2:8085/";
 
     private static String baseUrl = DEFAULT_CLOUD_URL;

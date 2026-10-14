@@ -28,15 +28,12 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <TextView
+            <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:background="@drawable/bg_dv_logo"
-                android:gravity="center"
-                android:text="DV"
-                android:textColor="@color/text_white"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:src="@drawable/ic_launcher_dv"
+                android:contentDescription="DigiView Logo"
+                android:scaleType="fitCenter"
                 android:layout_marginEnd="8dp" />
 
             <TextView
@@ -93,7 +90,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Cloud Server Status Pill -->
+        <!-- Cloud Server Status Pill (Hidden for release: automatic server sync) -->
         <LinearLayout
             android:id="@+id/topCloudPill"
             android:layout_width="wrap_content"
@@ -104,7 +101,8 @@
             android:paddingEnd="10dp"
             android:layout_marginEnd="6dp"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:visibility="gone">
 
             <TextView
                 android:id="@+id/tvTopCloud"

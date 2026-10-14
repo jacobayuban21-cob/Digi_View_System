@@ -18,6 +18,12 @@ if %errorlevel% neq 0 (
 
 echo [2/4] Packaging DigiViewSystem.jar...
 if not exist "dist" mkdir dist
+if not exist "bin\System\sounds" mkdir "bin\System\sounds"
+if not exist "bin\sounds" mkdir "bin\sounds"
+copy /y "public\sounds\*" "bin\System\sounds\" >nul 2>&1
+copy /y "public\sounds\*" "bin\sounds\" >nul 2>&1
+if not exist "bin\Icons" mkdir "bin\Icons"
+copy /y "public\Icons\*" "bin\Icons\" >nul 2>&1
 jar cfe "dist\DigiViewSystem.jar" System.DigiView -C bin .
 if %errorlevel% neq 0 (
     echo [ERROR] JAR creation failed!
@@ -29,9 +35,11 @@ echo [3/4] Creating trimmed portable Java runtime (jlink)...
 set "RELEASE_DIR=dist\DigiView-Portable"
 if exist "%RELEASE_DIR%" rmdir /s /q "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%"
-mkdir "%RELEASE_DIR%\src\System\sounds"
-
+mkdir "%RELEASE_DIR%\src\System\sounds" 2>nul
 copy /y "src\System\sounds\*" "%RELEASE_DIR%\src\System\sounds\" >nul 2>&1
+if exist "public" (
+    xcopy /s /e /y /i "public" "%RELEASE_DIR%\public\" >nul 2>&1
+)
 copy /y "dist\DigiViewSystem.jar" "%RELEASE_DIR%\" >nul
 
 jlink --add-modules java.base,java.desktop --strip-debug --no-man-pages --no-header-files --output "%RELEASE_DIR%\jre"
