@@ -1245,21 +1245,34 @@ private JPanel authCard(String heading, String subtitle) {
                 suffix++;
             }
 
-            currentUser = new User(name, 0, g, "N/A", gr + " - " + sec, un, pw);
-            users.put(un.toLowerCase(Locale.ROOT), currentUser);
-            saveData();
             final String regUn = un;
             final String regPw = pw;
             final String regName = name;
             final String regG = g;
             final String regSec = gr + " - " + sec;
-            new Thread(() -> ApiClient.registerUser(regUn, regPw, regName, 16, regG, "General", regSec)).start();
-            showApp();
 
-            message("Account created successfully!\n\n"
-                    + "Your username is: " + un
-                    + "\nPlease remember this username for login.",
-                    JOptionPane.INFORMATION_MESSAGE);
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            register.setEnabled(false);
+            new Thread(() -> {
+                ApiClient.AuthResult res = ApiClient.register(regUn, regPw, regName, 16, regG, "General", regSec);
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    register.setEnabled(true);
+                    if (res.success) {
+                        String finalUser = res.username != null ? res.username : regUn;
+                        currentUser = new User(res.fullName != null ? res.fullName : regName, res.xp, res.gender != null ? res.gender : regG, "N/A", regSec, finalUser, regPw);
+                        users.put(finalUser.toLowerCase(Locale.ROOT), currentUser);
+                        saveData();
+                        showApp();
+                        message("Account created successfully on DigiView Server!\n\n"
+                                + "Your username is: " + finalUser
+                                + "\nPlease remember this username for login.",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        message(res.message, JOptionPane.WARNING_MESSAGE);
+                    }
+                });
+            }).start();
         });
         card.add(register);
         card.add(Box.createVerticalStrut(18));
@@ -1299,24 +1312,49 @@ private JPanel authCard(String heading, String subtitle) {
        private void login() {
         String username = loginUsername.getText().trim();
         String password = new String(loginPassword.getPassword());
-        User u = users.get(username.toLowerCase(Locale.ROOT));
-        if (u == null || !u.password.equals(password)) {
-            message("Invalid username or password.", JOptionPane.WARNING_MESSAGE);
+        if (username.isEmpty() || password.isEmpty()) {
+            message("Please enter both username and password.", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        currentUser = u;
 
-        // Auto-sync user to cloud Supabase backend so the user record is guaranteed to exist
-        final String syncUser = u.username;
-        final String syncPw = u.password;
-        final String syncName = u.fullName;
-        final String syncGender = u.gender;
-        final String syncSec = u.gradeSection;
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new Thread(() -> {
-            ApiClient.registerUser(syncUser, syncPw, syncName, 16, syncGender, "General", syncSec);
+            ApiClient.AuthResult res = ApiClient.login(username, password);
+            SwingUtilities.invokeLater(() -> {
+                setCursor(Cursor.getDefaultCursor());
+                if (res.success) {
+                    User existing = users.get(username.toLowerCase(Locale.ROOT));
+                    User u = existing != null ? existing : new User(
+                        res.fullName != null ? res.fullName : username,
+                        16,
+                        res.gender != null ? res.gender : "Not specified",
+                        "N/A",
+                        res.gradeSection != null ? res.gradeSection : "Grade 11",
+                        res.username != null ? res.username : username,
+                        password
+                    );
+                    u.fullName = res.fullName != null ? res.fullName : u.fullName;
+                    u.xp = res.xp;
+                    if (res.gender != null && !res.gender.isEmpty()) u.gender = res.gender;
+                    if (res.gradeSection != null && !res.gradeSection.isEmpty()) u.gradeSection = res.gradeSection;
+                    if (res.username != null && !res.username.isEmpty()) u.username = res.username;
+                    u.password = password;
+                    currentUser = u;
+                    users.put(u.username.toLowerCase(Locale.ROOT), u);
+                    saveData();
+                    showApp();
+                } else {
+                    User cached = users.get(username.toLowerCase(Locale.ROOT));
+                    if (cached != null && cached.password.equals(password) && res.message.contains("Could not connect")) {
+                        currentUser = cached;
+                        showApp();
+                        message("Signed in (Offline Mode).\nServer was unreachable.", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    message(res.message, JOptionPane.WARNING_MESSAGE);
+                }
+            });
         }).start();
-
-        showApp();
     }
 
     private void showApp() {
@@ -1748,20 +1786,10 @@ private JPanel authCard(String heading, String subtitle) {
         topXp.setFont(new Font("SansSerif", Font.BOLD, 14));
         topXp.setForeground(TEXT);
 
-        RoundedButton serverBtn = new RoundedButton("☁️ Server Sync", false);
-        serverBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        serverBtn.setPreferredSize(new Dimension(135, 36));
-        serverBtn.setForeground(CYAN);
-        serverBtn.addActionListener(e -> {
-            playClickSound();
-            showServerConnectionDialog();
-        });
-
         AvatarBadge avatar = new AvatarBadge(currentUser.username.substring(0, 1), 44);
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
         right.setOpaque(false);
-        right.add(serverBtn);
         right.add(topXp);
         right.add(avatar);
 

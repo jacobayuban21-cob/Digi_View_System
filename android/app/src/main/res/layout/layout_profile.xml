@@ -337,11 +337,12 @@
             app:cornerRadius="24dp"
             android:layout_marginTop="20dp" />
 
-        <!-- Switch User / Sign In Button -->
+        <!-- Switch User / Sign In Button (Hidden for production) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnProfileAuth"
             android:layout_width="match_parent"
             android:layout_height="50dp"
+            android:visibility="gone"
             android:backgroundTint="@color/d_card"
             app:strokeColor="@color/d_line"
             app:strokeWidth="1.5dp"

@@ -118,11 +118,12 @@
                 android:layout_marginTop="14dp"
                 android:inputType="textPassword" />
 
-            <!-- Cloud Server Connection Quick Bar -->
+            <!-- Cloud Server Connection Quick Bar (Hidden for production) -->
             <LinearLayout
                 android:id="@+id/btnLoginServerPill"
                 android:layout_width="match_parent"
                 android:layout_height="36dp"
+                android:visibility="gone"
                 android:background="@drawable/bg_pill"
                 android:gravity="center"
                 android:orientation="horizontal"
