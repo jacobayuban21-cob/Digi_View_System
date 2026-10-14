@@ -13,7 +13,7 @@ import java.util.Properties;
  */
 public class ApiClient {
 
-    public static final String DEFAULT_CLOUD_URL = "https://digiview-backend.onrender.com";
+    public static final String DEFAULT_CLOUD_URL = "https://digi-view-system.onrender.com";
     public static final String DEFAULT_LOCAL_URL = "http://localhost:8085";
     private static final String CONFIG_FILE_NAME = "digiview-config.properties";
 
@@ -30,7 +30,13 @@ public class ApiClient {
 
         // 3. Check persistent config file in working dir or user home
         String fromFile = loadConfigUrl();
-        if (fromFile != null && !fromFile.trim().isEmpty()) return cleanUrl(fromFile);
+        if (fromFile != null && !fromFile.trim().isEmpty()) {
+            if (fromFile.contains("digiview-backend.onrender.com")) {
+                saveConfigUrl(DEFAULT_CLOUD_URL);
+                return DEFAULT_CLOUD_URL;
+            }
+            return cleanUrl(fromFile);
+        }
 
         // 4. Default to Render cloud URL (or local if explicitly developing locally)
         return DEFAULT_CLOUD_URL;

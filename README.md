@@ -128,7 +128,7 @@ The backend is pre-configured for **Render** via [`render.yaml`](render.yaml) an
    * `SUPABASE_DB_PASSWORD` &rarr; Your Supabase database password
 6. Click **Apply / Deploy**.
 7. Render will build the lightweight container and launch your backend with free SSL at:
-   🌐 `https://digiview-backend.onrender.com`
+   🌐 `https://digi-view-system.onrender.com`
 
 > 💡 **Tip:** Render monitors [`/health`](/health) automatically. When accessed in your web browser, `/` and `/health` deliver an interactive **Cyber Health Dashboard** featuring live JVM telemetry, database connection monitoring, and a retro **Cyber Dino Arcade Runner** minigame!
 

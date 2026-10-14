@@ -244,6 +244,10 @@ public class MainActivity extends AppCompatActivity {
     private void loadUserData() {
         SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String savedServer = sp.getString(KEY_SERVER_URL, ApiClient.DEFAULT_CLOUD_URL);
+        if (savedServer == null || savedServer.contains("digiview-backend.onrender.com")) {
+            savedServer = ApiClient.DEFAULT_CLOUD_URL;
+            sp.edit().putString(KEY_SERVER_URL, savedServer).apply();
+        }
         ApiClient.setBaseUrl(savedServer);
 
         currentUsername = sp.getString(KEY_USERNAME, "student");

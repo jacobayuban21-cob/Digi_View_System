@@ -251,7 +251,7 @@ Digi_View_System/
 2. Connect your GitHub repository.
 3. Render automatically detects [`render.yaml`](render.yaml) and builds via [`backend/Dockerfile`](backend/Dockerfile).
 4. Enter your 3 environment variables in Render (`SUPABASE_DB_URL`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`).
-5. Render deploys your backend live with automatic SSL (`https://digiview-backend.onrender.com`) and validates `/health`!
+5. Render deploys your backend live with automatic SSL (`https://digi-view-system.onrender.com`) and validates `/health`!
 
 ### D. Distribute Desktop App to Other PCs
 1. Run [`build-release.bat`](build-release.bat).
