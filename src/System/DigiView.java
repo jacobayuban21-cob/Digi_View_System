@@ -657,7 +657,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     public DigiViewLMS() {
-        setTitle("DigiView");
+        setTitle("DigiView - v1.0.0");
         loadAppIcon();
         loadData();
         initAudio();
@@ -1405,6 +1405,13 @@ private JPanel authCard(String heading, String subtitle) {
         });
         card.add(back);
 
+        card.add(Box.createVerticalStrut(14));
+        JLabel regVersion = new JLabel("V1.0.0");
+        regVersion.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        regVersion.setForeground(HINT);
+        regVersion.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(regVersion);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(20, 20, 20, 20);
         outer.add(card, gbc);
@@ -1638,6 +1645,14 @@ private JPanel authCard(String heading, String subtitle) {
             }
         });
         sidebar.add(logout);
+        sidebar.add(Box.createVerticalStrut(10));
+
+        JLabel verLabel = new JLabel("DigiView v1.0.0");
+        verLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        verLabel.setForeground(new Color(100, 116, 139));
+        verLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebar.add(verLabel);
+        sidebar.add(Box.createVerticalStrut(6));
 
         return sidebar;
     }
