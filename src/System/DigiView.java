@@ -32,6 +32,11 @@ public static void main(String[] args) {
         });
     }
 }
+
+
+
+
+
 class DigiViewLMS extends JFrame {
            
 
