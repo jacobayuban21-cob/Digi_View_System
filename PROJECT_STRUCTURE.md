@@ -44,12 +44,13 @@ graph TB
 ```text
 Digi_View_System/
 │
+├── 📜 README.md                  # Quick start guide & instructions for developers
 ├── 📜 build-release.bat          # Bundles self-contained zero-install ZIP with Java 17 runtime
 ├── 📜 build.xml                  # Apache Ant build script for NetBeans IDE
 ├── 📜 manifest.mf                # JAR Manifest defining main entry point System.DigiView
 ├── 📜 run.bat                    # One-click desktop launcher (compiles & runs via javaw)
 ├── 📜 PROJECT_STRUCTURE.md       # Complete repository architecture and documentation
-├── 🙈 .gitignore                 # Excludes build/, dist/, bin/, *.log, .gradle/
+├── 🙈 .gitignore                 # Excludes build/, dist/, bin/, *.log, .gradle/, .env
 │
 ├── 📁 .vscode/                   # IDE Run & Debug configurations
 │   ├── ⚙️ launch.json            # F5 one-key launcher config
@@ -70,6 +71,8 @@ Digi_View_System/
 │       └── 🔊 mixkit-single-key-type-2533.wav
 │
 ├── 📁 backend/                   # ⚙️ SPRING BOOT & SUPABASE BACKEND
+│   ├── 🔒 .env                   # Local secrets (gitignored, contains real Supabase password)
+│   ├── 📜 .env.example           # Safe template for credentials (committed to git)
 │   ├── 📜 build.gradle           # Spring Boot 3.3.4, JPA, PostgreSQL, Validation
 │   ├── 📜 settings.gradle        # Project naming (digiview-backend)
 │   ├── 📜 run-backend.bat        # One-click script to run the Spring Boot server
