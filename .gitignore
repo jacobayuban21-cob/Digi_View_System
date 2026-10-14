@@ -11,3 +11,12 @@ bin/
 backend/.env
 *application-local.properties
 *application-secrets.properties
+
+# Android local SDK and caches
+local.properties
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab

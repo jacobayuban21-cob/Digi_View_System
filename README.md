@@ -18,7 +18,9 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
  │ 🎮 Just play / test desktop  │ ➡️ Double-click run.bat      │
  │ 📦 Send app to another PC    │ ➡️ Run build-release.bat     │
  │ ⚙️ Run Backend + Database    │ ➡️ See Section 2 below       │
- │ 📱 Open Android app          │ ➡️ Open /android in Studio   │
+ │ 📱 Build Android APK (1-click)│ ➡️ Double-click build-android.bat│
+ │ 📱 Run on Phone / Emulator   │ ➡️ Run manage-android.bat    │
+ │ 🛠️ Open Android in Studio   │ ➡️ Open /android in Studio   │
  └──────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -101,14 +103,42 @@ If you need to send the desktop app to a classmate, teacher, or another computer
 
 ---
 
-## 4. 📱 Android App Port
+## 4. 📱 Android App Port & Easy Build Commands
 
 The native Android port is located in [`android/`](file:///c:/Users/131fgh/Desktop/Digi_View_System/android):
 * **Same Design Tokens:** Identical dark palette (`#050F23`, `#071120`, `#0E1B30`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`).
 * **Interactive Quiz:** A/B/C/D option cards, live hearts, instant answer locks, and bounce animations.
 * **Pre-configured Retrofit API:** Communicates with the Spring Boot backend (`10.0.2.2:8080` for emulator, or your PC's Wi-Fi IP address for physical devices).
 
-### To open the Android app:
+---
+
+### 🚀 Easy Android Commands (Zero Setup Required)
+
+We created high-level automated scripts so you never have to remember complex Gradle flags or ADB commands:
+
+#### 1. The One-Click APK Builder
+Double-click [`build-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-android.bat).
+* Automatically detects your Android SDK and Java installation.
+* Automatically generates `local.properties`.
+* Compiles the Android project with Gradle.
+* Packages the final APK into:
+  📁 **`dist\DigiView-Android.apk`**
+
+#### 2. The Android Management Toolkit
+Double-click [`manage-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manage-android.bat) (or run it in your terminal).
+
+It offers an interactive menu, or you can run single-word commands:
+
+| Command | What it does |
+| :--- | :--- |
+| `manage-android.bat build` | Compiles the Android app to `dist\DigiView-Android.apk` |
+| `manage-android.bat run` | Builds APK, installs it to your phone/emulator, and launches it automatically |
+| `manage-android.bat install` | Installs the existing `dist\DigiView-Android.apk` onto your connected device |
+| `manage-android.bat devices` | Shows all connected Android phones or active emulators (`adb devices -l`) |
+| `manage-android.bat logs` | Streams live app debug logs and crash diagnostics in real time (`adb logcat`) |
+| `manage-android.bat clean` | Cleans Android Gradle caches and temporary build folders |
+
+#### 3. Opening in Android Studio
 1. Open **Android Studio**.
 2. Select **Open an Existing Project** &rarr; select the `android/` folder inside `Digi_View_System`.
 3. Click **Run ▶** to launch in the emulator or on your phone!

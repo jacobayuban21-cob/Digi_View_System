@@ -45,6 +45,8 @@ graph TB
 Digi_View_System/
 │
 ├── 📜 README.md                  # Quick start guide & instructions for developers
+├── 📜 build-android.bat          # 📱 One-click Android APK compiler (auto-SDK detection)
+├── 📜 manage-android.bat         # 📱 Android management toolkit (build, run, install, logs, devices)
 ├── 📜 build-release.bat          # Bundles self-contained zero-install ZIP with Java 17 runtime
 ├── 📜 build.xml                  # Apache Ant build script for NetBeans IDE
 ├── 📜 manifest.mf                # JAR Manifest defining main entry point System.DigiView
@@ -148,6 +150,8 @@ Digi_View_System/
 | File | Description |
 | :--- | :--- |
 | [`run.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/run.bat) | One-click desktop launcher. Automatically compiles any changed Java files in `src/System/` and launches the Swing GUI using `javaw` without blocking the terminal. |
+| [`build-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, creates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
+| [`manage-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
 | [`build-release.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-release.bat) | Automated packaging pipeline. Compiles Java classes, packages `dist/DigiViewSystem.jar`, generates a minimal portable Java 17 runtime via `jlink`, and compresses everything into `dist/DigiView-Portable.zip` (~22 MB). |
 | [`build.xml`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
 | [`manifest.mf`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |
