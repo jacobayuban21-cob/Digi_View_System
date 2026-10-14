@@ -2619,7 +2619,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         int level = currentUser.xp / 100 + 1;
         int progress = currentUser.xp % 100;
 
-        // ================= HEADER (avatar + pangalan) =================
+        
         HeroPanel hero = new HeroPanel();
         hero.setBorder(new EmptyBorder(30, 40, 30, 40));
 
@@ -2663,7 +2663,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         p.add(fixHeight(hero, 200));
         p.add(Box.createVerticalStrut(22));
 
-        // ================= IMPORMASYON (outline lang) =================
+        
         JPanel grid = new JPanel(new GridLayout(2, 2, 18, 18));
         grid.setOpaque(false);
         grid.add(profileTile("\uD83D\uDC64", "Full Name", currentUser.fullName));
@@ -2673,7 +2673,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         p.add(fixHeight(grid, 190));
         p.add(Box.createVerticalStrut(22));
 
-        // ================= LEVEL PROGRESS =================
+        
         RoundedPanel levelCard = new RoundedPanel(22, new Color(0, 0, 0, 0), D_LINE);
         levelCard.setLayout(new BorderLayout(0, 14));
         levelCard.setBorder(new EmptyBorder(20, 26, 22, 26));
@@ -2701,7 +2701,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         addToContent(p);
     }
 
-    /** Isang info tile: outline lang, may icon, label at value. */
+    
     private JPanel profileTile(String icon, String name, String value) {
         RoundedPanel tile = new RoundedPanel(22, new Color(0, 0, 0, 0), D_LINE);
         tile.setLayout(new BorderLayout(18, 0));
@@ -2733,7 +2733,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         return tile;
     }
 
-    /** Maliit na rounded na label sa profile header. */
+    
     private JComponent profileChip(String text, Color color) {
         RoundedPanel chip = new RoundedPanel(16,
             new Color(color.getRed(), color.getGreen(), color.getBlue(), 35),
