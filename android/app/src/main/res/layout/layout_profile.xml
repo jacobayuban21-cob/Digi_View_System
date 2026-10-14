@@ -323,6 +323,20 @@
                 android:layout_marginTop="12dp" />
         </LinearLayout>
 
+        <!-- Ambient Relax Music Player Toggle (Asset from Desktop) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleRelaxMusic"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:backgroundTint="#0E1D33"
+            app:strokeColor="@color/cyan"
+            app:strokeWidth="1dp"
+            android:text="🎵 Play Relaxing Music: OFF"
+            android:textColor="@color/cyan"
+            android:textSize="13sp"
+            app:cornerRadius="24dp"
+            android:layout_marginTop="20dp" />
+
         <!-- Switch User / Sign In Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnProfileAuth"

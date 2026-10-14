@@ -16,6 +16,7 @@ import com.digiview.lms.api.ApiClient;
 import com.digiview.lms.model.ApiResponse;
 import com.digiview.lms.model.QuizRecord;
 import com.digiview.lms.model.RegisterRequest;
+import com.digiview.lms.util.SoundManager;
 import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONArray;
@@ -23,6 +24,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -37,6 +39,7 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "DigiViewPrefs";
+    private static final String KEY_SERVER_URL = "server_url";
     private static final String KEY_USERNAME = "username";
     private static final String KEY_FULL_NAME = "fullName";
     private static final String KEY_SECTION = "gradeSection";
@@ -137,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
     // =========================================================================
     private void loadUserData() {
         SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String savedServer = sp.getString(KEY_SERVER_URL, ApiClient.DEFAULT_CLOUD_URL);
+        ApiClient.setBaseUrl(savedServer);
+
         currentUsername = sp.getString(KEY_USERNAME, "student");
         currentFullName = sp.getString(KEY_FULL_NAME, "Student User");
         currentSection = sp.getString(KEY_SECTION, "Grade 11 - STEM A");
@@ -198,7 +204,18 @@ public class MainActivity extends AppCompatActivity {
         tvTopLevel = findViewById(R.id.tvTopLevel);
         topAvatar = findViewById(R.id.topAvatar);
 
-        topAvatar.setOnClickListener(v -> showAuthModal());
+        topAvatar.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            showAuthModal();
+        });
+
+        View topCloud = findViewById(R.id.topCloudPill);
+        if (topCloud != null) {
+            topCloud.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                showAuthModal();
+            });
+        }
         updateTopBar();
     }
 
@@ -239,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void switchPage(int index) {
+        SoundManager.getInstance(this).playClick();
         activePageIndex = index;
 
         // Highlight Active Tab
@@ -361,7 +379,10 @@ public class MainActivity extends AppCompatActivity {
             tvTitle.setText(item.title);
             tvSummary.setText(item.explanation);
 
-            card.setOnClickListener(v -> showLessonDetailModal(item));
+            card.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                showLessonDetailModal(item);
+            });
             container.addView(card);
         }
     }
@@ -387,7 +408,10 @@ public class MainActivity extends AppCompatActivity {
         tvExp.setText(item.explanation);
         tvCode.setText(item.code);
 
-        btnClose.setOnClickListener(v -> dialog.dismiss());
+        btnClose.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            dialog.dismiss();
+        });
         dialog.show();
     }
 
@@ -439,9 +463,18 @@ public class MainActivity extends AppCompatActivity {
         quizResultView = hub.findViewById(R.id.quizResultView);
 
         // Difficulty Selector Cards
-        hub.findViewById(R.id.btnTierBeginner).setOnClickListener(v -> startQuiz("Beginner", 1));
-        hub.findViewById(R.id.btnTierIntermediate).setOnClickListener(v -> startQuiz("Intermediate", 2));
-        hub.findViewById(R.id.btnTierAdvanced).setOnClickListener(v -> startQuiz("Advanced", 3));
+        hub.findViewById(R.id.btnTierBeginner).setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            startQuiz("Beginner", 1);
+        });
+        hub.findViewById(R.id.btnTierIntermediate).setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            startQuiz("Intermediate", 2);
+        });
+        hub.findViewById(R.id.btnTierAdvanced).setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            startQuiz("Advanced", 3);
+        });
 
         // Active Quiz Controls
         activeQuizTitle = hub.findViewById(R.id.activeQuizTitle);
@@ -470,12 +503,22 @@ public class MainActivity extends AppCompatActivity {
             activeOptionLayouts[i].setOnClickListener(v -> selectQuizOption(optIndex));
         }
 
-        btnActiveSubmit.setOnClickListener(v -> submitQuizAnswer());
-        btnActiveNext.setOnClickListener(v -> advanceQuizQuestion());
-        btnActiveExitQuiz.setOnClickListener(v -> exitQuizWithRecord());
+        btnActiveSubmit.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            submitQuizAnswer();
+        });
+        btnActiveNext.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            advanceQuizQuestion();
+        });
+        btnActiveExitQuiz.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            exitQuizWithRecord();
+        });
 
         // Result Button
         hub.findViewById(R.id.btnResultReturn).setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
             quizResultView.setVisibility(View.GONE);
             quizDifficultyView.setVisibility(View.VISIBLE);
         });
@@ -544,6 +587,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void selectQuizOption(int index) {
         if (isSubmitted) return;
+        SoundManager.getInstance(this).playClick();
         selectedOptionIndex = index;
 
         Animation pop = AnimationUtils.loadAnimation(this, R.anim.card_pop);
@@ -720,7 +764,21 @@ public class MainActivity extends AppCompatActivity {
         tvRatio.setText(currentXp + " / " + (level * 100) + " XP");
         pbLevel.setProgress(progress);
 
-        viewProfile.findViewById(R.id.btnProfileAuth).setOnClickListener(v -> showAuthModal());
+        MaterialButton btnMusic = viewProfile.findViewById(R.id.btnToggleRelaxMusic);
+        if (btnMusic != null) {
+            boolean isPlaying = SoundManager.getInstance(this).isMusicPlaying();
+            btnMusic.setText(isPlaying ? "🎵 Playing Relax Music: ON (Tap to Pause)" : "🎵 Play Relaxing Music: OFF");
+            btnMusic.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                boolean nowPlaying = SoundManager.getInstance(this).toggleRelaxMusic(this);
+                btnMusic.setText(nowPlaying ? "🎵 Playing Relax Music: ON (Tap to Pause)" : "🎵 Play Relaxing Music: OFF");
+            });
+        }
+
+        viewProfile.findViewById(R.id.btnProfileAuth).setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            showAuthModal();
+        });
     }
 
     // =========================================================================
@@ -796,17 +854,108 @@ public class MainActivity extends AppCompatActivity {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
 
+        EditText etServerUrl = dialogView.findViewById(R.id.etServerUrl);
+        MaterialButton btnPresetRender = dialogView.findViewById(R.id.btnPresetRender);
+        MaterialButton btnPresetLocal = dialogView.findViewById(R.id.btnPresetLocal);
+        MaterialButton btnTest = dialogView.findViewById(R.id.btnTestConnection);
+        TextView tvStatus = dialogView.findViewById(R.id.tvConnectionStatus);
+
         EditText etName = dialogView.findViewById(R.id.etAuthFullName);
         EditText etSec = dialogView.findViewById(R.id.etAuthSection);
         EditText etUser = dialogView.findViewById(R.id.etAuthUsername);
         MaterialButton btnSave = dialogView.findViewById(R.id.btnAuthSave);
         MaterialButton btnCancel = dialogView.findViewById(R.id.btnAuthCancel);
 
+        etServerUrl.setText(ApiClient.getBaseUrl());
         etName.setText(currentFullName);
         etSec.setText(currentSection);
         etUser.setText(currentUsername);
 
+        btnPresetRender.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            etServerUrl.setText(ApiClient.DEFAULT_CLOUD_URL);
+        });
+
+        btnPresetLocal.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            etServerUrl.setText(ApiClient.DEFAULT_LOCAL_URL);
+        });
+
+        btnTest.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            String testUrl = etServerUrl.getText().toString().trim();
+            if (testUrl.isEmpty()) {
+                tvStatus.setText("❌ Enter URL first");
+                tvStatus.setTextColor(getResources().getColor(R.color.red, getTheme()));
+                return;
+            }
+            tvStatus.setText("⏳ Testing server...");
+            tvStatus.setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+
+            new Thread(() -> {
+                String normalized = testUrl;
+                if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+                    normalized = "http://" + normalized;
+                }
+                if (!normalized.endsWith("/")) {
+                    normalized += "/";
+                }
+                final String finalUrl = normalized;
+                long start = System.currentTimeMillis();
+                try {
+                    okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                            .connectTimeout(5, TimeUnit.SECONDS)
+                            .readTimeout(5, TimeUnit.SECONDS)
+                            .build();
+                    okhttp3.Request req = new okhttp3.Request.Builder()
+                            .url(finalUrl + "api/health")
+                            .build();
+                    try (okhttp3.Response resp = client.newCall(req).execute()) {
+                        long latency = System.currentTimeMillis() - start;
+                        final String msg = "✅ Online (" + resp.code() + ", " + latency + "ms)";
+                        runOnUiThread(() -> {
+                            tvStatus.setText(msg);
+                            tvStatus.setTextColor(getResources().getColor(R.color.green, getTheme()));
+                        });
+                        return;
+                    }
+                } catch (Exception ex) {
+                    try {
+                        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                                .connectTimeout(5, TimeUnit.SECONDS)
+                                .readTimeout(5, TimeUnit.SECONDS)
+                                .build();
+                        okhttp3.Request req = new okhttp3.Request.Builder()
+                                .url(finalUrl)
+                                .build();
+                        try (okhttp3.Response resp = client.newCall(req).execute()) {
+                            long latency = System.currentTimeMillis() - start;
+                            final String msg = "✅ Online (" + resp.code() + ", " + latency + "ms)";
+                            runOnUiThread(() -> {
+                                tvStatus.setText(msg);
+                                tvStatus.setTextColor(getResources().getColor(R.color.green, getTheme()));
+                            });
+                            return;
+                        }
+                    } catch (Exception ignored) {}
+
+                    runOnUiThread(() -> {
+                        tvStatus.setText("❌ Server Unreachable");
+                        tvStatus.setTextColor(getResources().getColor(R.color.red, getTheme()));
+                    });
+                }
+            }).start();
+        });
+
         btnSave.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            String newServer = etServerUrl.getText().toString().trim();
+            if (!newServer.isEmpty()) {
+                ApiClient.setBaseUrl(newServer);
+                SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                sp.edit().putString(KEY_SERVER_URL, ApiClient.getBaseUrl()).apply();
+            }
+
             String newName = etName.getText().toString().trim();
             String newSec = etSec.getText().toString().trim();
             String newUser = etUser.getText().toString().trim();
@@ -832,12 +981,21 @@ public class MainActivity extends AppCompatActivity {
                 });
             } catch (Exception ignored) {}
 
-            Toast.makeText(this, "Profile saved and synced!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Profile and server settings saved!", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
             switchPage(activePageIndex);
         });
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnCancel.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            dialog.dismiss();
+        });
         dialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        SoundManager.getInstance(this).pauseMusic();
     }
 }

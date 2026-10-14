@@ -286,7 +286,8 @@ private void updateHeartsLabel(JLabel heartsLabel) {
 
     private final Map<String, User> users = new LinkedHashMap<>();
     private User currentUser;
-
+    private String currentPage = "Dashboard";
+    private int lastResponsiveWidth = -1;
 
     private JPanel root;
     private JPanel content;
@@ -423,15 +424,34 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     public DigiViewLMS() {
         loadData();
 
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setMinimumSize(new Dimension(590, 700));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setMinimumSize(new Dimension(860, 600));
+        setSize(1280, 800);
+        setLocationRelativeTo(null);
+        getContentPane().setBackground(PANEL);
 
-    setLocationRelativeTo(null);
-    getContentPane().setBackground(PANEL);
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                if (currentUser != null && content != null) {
+                    int w = content.getWidth();
+                    if (w <= 0) w = getWidth() - 280;
+                    if (lastResponsiveWidth > 0 && Math.abs(w - lastResponsiveWidth) > 60) {
+                        lastResponsiveWidth = w;
+                        if ("Dashboard".equals(currentPage) || "Lessons".equals(currentPage)
+                                || "Quiz".equals(currentPage) || "Profile".equals(currentPage)
+                                || "Achievements".equals(currentPage) || "History".equals(currentPage)) {
+                            showPage(currentPage);
+                        }
+                    } else if (lastResponsiveWidth <= 0) {
+                        lastResponsiveWidth = w;
+                    }
+                }
+            }
+        });
 
-
-    showAuth();
-}
+        showAuth();
+    }
     
    
 
@@ -1328,6 +1348,13 @@ private JPanel authCard(String heading, String subtitle) {
         
 
 
+    private int getEffectiveContentWidth() {
+        if (content != null && content.getWidth() > 100) {
+            return content.getWidth();
+        }
+        return Math.max(500, getWidth() - 280);
+    }
+
     private <T extends JComponent> T fixHeight(T c, int h) {
         c.setAlignmentX(Component.LEFT_ALIGNMENT);
         c.setPreferredSize(new Dimension(100, h));
@@ -1341,13 +1368,14 @@ private JPanel authCard(String heading, String subtitle) {
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(0, 0, 10, 0));
 
+        int effW = getEffectiveContentWidth();
 
         HeroPanel hero = new HeroPanel();
 
         JPanel heroContent = new JPanel();
         heroContent.setOpaque(false);
         heroContent.setLayout(new BoxLayout(heroContent, BoxLayout.Y_AXIS));
-        heroContent.setBorder(new EmptyBorder(38, 46, 38, 46));
+        heroContent.setBorder(new EmptyBorder(34, 40, 34, 40));
 
         JLabel welcome = new JLabel(
             "<html>Welcome, <font color='#22d3ee'>" + currentUser.username.toUpperCase()
@@ -1356,8 +1384,9 @@ private JPanel authCard(String heading, String subtitle) {
         welcome.setForeground(TEXT);
         welcome.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        int descW = Math.max(280, effW - 140);
         JLabel desc = new JLabel(
-            "<html><div style='width:640px'>Keep learning, complete your HTML lessons, "
+            "<html><div style='width:" + descW + "px'>Keep learning, complete your HTML lessons, "
             + "and challenge yourself with the quiz. Your goal is not just to memorize "
             + "HTML\u2014it's to understand how it works.</div></html>");
         desc.setFont(new Font("SansSerif", Font.PLAIN, 15));
@@ -1394,7 +1423,8 @@ private JPanel authCard(String heading, String subtitle) {
         heroContent.add(actions);
 
         hero.add(heroContent, BorderLayout.CENTER);
-        p.add(fixHeight(hero, 290));
+        int heroH = effW < 750 ? 320 : 280;
+        p.add(fixHeight(hero, heroH));
         p.add(Box.createVerticalStrut(24));
 
 
@@ -1413,13 +1443,15 @@ private JPanel authCard(String heading, String subtitle) {
             {"\uD83C\uDFC6", "Quizzes Passed", String.valueOf(quizzesPassed)}
         };
 
-        JPanel stats = new JPanel(new GridLayout(1, 4, 18, 0));
+        int statCols = (effW >= 960) ? 4 : (effW >= 560 ? 2 : 1);
+        int statRows = (values.length + statCols - 1) / statCols;
+        JPanel stats = new JPanel(new GridLayout(statRows, statCols, 16, 16));
         stats.setOpaque(false);
 
         for (String[] item : values) {
             RoundedPanel card = new RoundedPanel(26, D_CARD, D_LINE);
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-            card.setBorder(new EmptyBorder(22, 26, 22, 26));
+            card.setBorder(new EmptyBorder(20, 24, 20, 24));
 
             IconBox icon = new IconBox(item[0]);
             icon.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1435,13 +1467,14 @@ private JPanel authCard(String heading, String subtitle) {
             value.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             card.add(icon);
-            card.add(Box.createVerticalStrut(16));
+            card.add(Box.createVerticalStrut(14));
             card.add(title);
             card.add(Box.createVerticalStrut(4));
             card.add(value);
             stats.add(card);
         }
-        p.add(fixHeight(stats, 180));
+        int cardH = statCols == 1 ? 140 : 175;
+        p.add(fixHeight(stats, statRows * cardH + (statRows - 1) * 16));
         p.add(Box.createVerticalStrut(32));
 
         
@@ -1501,7 +1534,8 @@ private JPanel authCard(String heading, String subtitle) {
         p.add(continueDesc);
         p.add(Box.createVerticalStrut(16));
 
-        JPanel cards = new JPanel(new GridLayout(0, 3, 16, 16));
+        int lessonCols = (effW >= 920) ? 3 : (effW >= 580 ? 2 : 1);
+        JPanel cards = new JPanel(new GridLayout(0, lessonCols, 16, 16));
         cards.setOpaque(false);
 
         for (final Lesson lesson : lessons) {
@@ -1517,7 +1551,7 @@ private JPanel authCard(String heading, String subtitle) {
             cards.add(b);
         }
 
-        int rows = (lessons.size() + 2) / 3;
+        int rows = (lessons.size() + lessonCols - 1) / lessonCols;
         p.add(fixHeight(cards, rows * 84 + (rows - 1) * 16));
 
         addToContent(p);
@@ -1528,6 +1562,7 @@ private JPanel authCard(String heading, String subtitle) {
             showAuth();
             return;
         }
+        currentPage = page;
         if (pageTitle != null) pageTitle.setText(page);
         refreshHeaderStats();
         navButtons.forEach((key, btn) -> btn.setActive(key.equals(page)));
@@ -1567,18 +1602,149 @@ private JPanel authCard(String heading, String subtitle) {
         topXp.setFont(new Font("SansSerif", Font.BOLD, 14));
         topXp.setForeground(TEXT);
 
-        
+        RoundedButton serverBtn = new RoundedButton("☁️ Server Sync", false);
+        serverBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        serverBtn.setPreferredSize(new Dimension(135, 36));
+        serverBtn.setForeground(CYAN);
+        serverBtn.addActionListener(e -> {
+            playClickSound();
+            showServerConnectionDialog();
+        });
 
         AvatarBadge avatar = new AvatarBadge(currentUser.username.substring(0, 1), 44);
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 22, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
         right.setOpaque(false);
+        right.add(serverBtn);
         right.add(topXp);
         right.add(avatar);
 
         top.add(pageTitle, BorderLayout.WEST);
         top.add(right, BorderLayout.EAST);
         return top;
+    }
+
+    private void showServerConnectionDialog() {
+        JDialog dlg = new JDialog(this, "Cloud Server Connection Settings", true);
+        dlg.getContentPane().setBackground(D_TOP);
+        dlg.setLayout(new BorderLayout());
+
+        JPanel p = new JPanel();
+        p.setOpaque(false);
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBorder(new EmptyBorder(24, 28, 24, 28));
+
+        JLabel title = new JLabel("Cloud Backend Settings");
+        title.setFont(new Font("SansSerif", Font.BOLD, 20));
+        title.setForeground(TEXT);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel sub = new JLabel("Configure your deployed Render or local Spring Boot server.");
+        sub.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        sub.setForeground(MUTED);
+        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        p.add(title);
+        p.add(Box.createVerticalStrut(4));
+        p.add(sub);
+        p.add(Box.createVerticalStrut(18));
+
+        JLabel urlLabel = new JLabel("Server Base URL:");
+        urlLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        urlLabel.setForeground(CYAN);
+        urlLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(urlLabel);
+        p.add(Box.createVerticalStrut(6));
+
+        final JTextField urlField = new JTextField(ApiClient.getBaseUrl());
+        urlField.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        urlField.setBackground(new Color(14, 27, 48));
+        urlField.setForeground(TEXT);
+        urlField.setCaretColor(CYAN);
+        urlField.setBorder(new CompoundBorder(new LineBorder(D_LINE, 1, true), new EmptyBorder(8, 12, 8, 12)));
+        urlField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        urlField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(urlField);
+        p.add(Box.createVerticalStrut(10));
+
+        JPanel presetRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        presetRow.setOpaque(false);
+        presetRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton renderPreset = new JButton("☁️ Render Cloud");
+        renderPreset.setBackground(new Color(24, 42, 68));
+        renderPreset.setForeground(CYAN);
+        renderPreset.setFocusPainted(false);
+        renderPreset.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        renderPreset.addActionListener(e -> urlField.setText(ApiClient.DEFAULT_CLOUD_URL));
+
+        JButton localPreset = new JButton("💻 Localhost (:8085)");
+        localPreset.setBackground(new Color(24, 42, 68));
+        localPreset.setForeground(TEXT);
+        localPreset.setFocusPainted(false);
+        localPreset.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        localPreset.addActionListener(e -> urlField.setText(ApiClient.DEFAULT_LOCAL_URL));
+
+        presetRow.add(renderPreset);
+        presetRow.add(localPreset);
+        p.add(presetRow);
+        p.add(Box.createVerticalStrut(16));
+
+        final JLabel statusFeedback = new JLabel("Status: Ready to test connection.");
+        statusFeedback.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        statusFeedback.setForeground(MUTED);
+        statusFeedback.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(statusFeedback);
+        p.add(Box.createVerticalStrut(18));
+
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        btnRow.setOpaque(false);
+        btnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton testBtn = new JButton("⚡ Test Connection");
+        testBtn.setBackground(new Color(30, 50, 80));
+        testBtn.setForeground(CYAN);
+        testBtn.setFocusPainted(false);
+        testBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        testBtn.addActionListener(e -> {
+            final String testUrl = urlField.getText().trim();
+            statusFeedback.setText("Testing " + testUrl + "...");
+            statusFeedback.setForeground(CYAN);
+            new Thread(() -> {
+                final ApiClient.ConnectionTestResult res = ApiClient.testConnection(testUrl);
+                SwingUtilities.invokeLater(() -> {
+                    if (res.success) {
+                        statusFeedback.setText("✅ Online! HTTP " + res.httpCode + " (" + res.latencyMs + "ms latency)");
+                        statusFeedback.setForeground(GREEN);
+                    } else {
+                        statusFeedback.setText("❌ " + res.message);
+                        statusFeedback.setForeground(RED);
+                    }
+                });
+            }).start();
+        });
+
+        JButton saveBtn = new JButton("Save & Connect");
+        saveBtn.setBackground(BLUE);
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFocusPainted(false);
+        saveBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        saveBtn.addActionListener(e -> {
+            String newUrl = urlField.getText().trim();
+            ApiClient.saveConfigUrl(newUrl);
+            JOptionPane.showMessageDialog(dlg, "Server URL configured and saved!\nConnected to: " + ApiClient.getBaseUrl(), "Connected", JOptionPane.INFORMATION_MESSAGE);
+            dlg.dispose();
+        });
+
+        btnRow.add(testBtn);
+        btnRow.add(saveBtn);
+        p.add(btnRow);
+
+        dlg.getContentPane().add(p, BorderLayout.CENTER);
+        dlg.pack();
+        dlg.setSize(560, 360);
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
     }
     
     private void makeFullWidth(JComponent component) {
@@ -1629,7 +1795,9 @@ private JPanel authCard(String heading, String subtitle) {
         };
 
         
-        JPanel grid = new JPanel(new GridLayout(0, 3, 18, 18));
+        int effW = getEffectiveContentWidth();
+        int lCols = (effW >= 960) ? 3 : (effW >= 600 ? 2 : 1);
+        JPanel grid = new JPanel(new GridLayout(0, lCols, 18, 18));
         grid.setOpaque(false);
 
         for (int i = 0; i < lessons.size(); i++) {
@@ -1709,7 +1877,7 @@ private JPanel authCard(String heading, String subtitle) {
             grid.add(card);
         }
 
-        int rows = (lessons.size() + 2) / 3;
+        int rows = (lessons.size() + lCols - 1) / lCols;
         p.add(fixHeight(grid, rows * 340 + (rows - 1) * 18));
 
         addToContent(p);
@@ -1732,6 +1900,7 @@ private JPanel authCard(String heading, String subtitle) {
         p.add(back);
         p.add(Box.createVerticalStrut(18));
 
+        int effW = getEffectiveContentWidth();
         
         RoundedPanel card = new RoundedPanel(26, D_CARD, D_LINE);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -1748,8 +1917,9 @@ private JPanel authCard(String heading, String subtitle) {
         sub.setForeground(MUTED);
         sub.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        int descW = Math.max(280, effW - 100);
         JLabel explanation = new JLabel(
-            "<html><div style='width:700px'>" + l.explanation + "</div></html>");
+            "<html><div style='width:" + descW + "px'>" + l.explanation + "</div></html>");
         explanation.setFont(new Font("SansSerif", Font.PLAIN, 16));
         explanation.setForeground(new Color(215, 225, 240));
         explanation.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1771,7 +1941,8 @@ private JPanel authCard(String heading, String subtitle) {
 
         int lines = l.code.split("\n").length;
         int boxHeight = lines * 20 + 44;
-        Dimension boxSize = new Dimension(720, boxHeight);
+        int boxW = Math.max(280, Math.min(760, effW - 100));
+        Dimension boxSize = new Dimension(boxW, boxHeight);
         codeBox.setPreferredSize(boxSize);
         codeBox.setMaximumSize(boxSize);
         codeBox.setMinimumSize(new Dimension(200, boxHeight));
@@ -1822,8 +1993,11 @@ private JPanel authCard(String heading, String subtitle) {
         heroTitle.setForeground(TEXT);
         heroTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        int effW = getEffectiveContentWidth();
+        int heroDescW = Math.max(280, effW - 120);
+
         JLabel heroDesc = new JLabel(
-            "<html><div style='width:700px'>Choose a difficulty and test your knowledge. "
+            "<html><div style='width:" + heroDescW + "px'>Choose a difficulty and test your knowledge. "
             + "Be careful\u2014wrong answers cost one heart.</div></html>");
         heroDesc.setFont(new Font("SansSerif", Font.PLAIN, 16));
         heroDesc.setForeground(new Color(190, 205, 225));
@@ -1834,7 +2008,8 @@ private JPanel authCard(String heading, String subtitle) {
         heroContent.add(heroDesc);
 
         hero.add(heroContent, BorderLayout.CENTER);
-        p.add(fixHeight(hero, 200));
+        int heroH = effW < 700 ? 230 : 190;
+        p.add(fixHeight(hero, heroH));
         p.add(Box.createVerticalStrut(24));
 
 
@@ -1846,7 +2021,9 @@ private JPanel authCard(String heading, String subtitle) {
 
         boolean easyPassed = hasPassed("Easy");
 
-        JPanel grid = new JPanel(new GridLayout(1, 3, 18, 0));
+        int qCols = (effW >= 860) ? 3 : (effW >= 560 ? 2 : 1);
+        int qRows = (names.length + qCols - 1) / qCols;
+        JPanel grid = new JPanel(new GridLayout(qRows, qCols, 18, 18));
         grid.setOpaque(false);
 
         for (int i = 0; i < names.length; i++) {
@@ -1930,7 +2107,7 @@ private JPanel authCard(String heading, String subtitle) {
             grid.add(card);
         }
 
-        p.add(fixHeight(grid, 270));
+        p.add(fixHeight(grid, qRows * 265 + (qRows - 1) * 18));
         p.add(Box.createVerticalStrut(24));
 
 
@@ -2358,7 +2535,10 @@ card.add(label(resultMessage, 14, MUTED, false));
         p.add(Box.createVerticalStrut(24));
 
 
-        JPanel grid = new JPanel(new GridLayout(0, 3, 18, 18));
+        int effW = getEffectiveContentWidth();
+        int aCols = (effW >= 960) ? 3 : (effW >= 600 ? 2 : 1);
+        int aRows = (items.length + aCols - 1) / aCols;
+        JPanel grid = new JPanel(new GridLayout(0, aCols, 18, 18));
         grid.setOpaque(false);
 
         for (Object[] it : items) {
@@ -2419,8 +2599,7 @@ card.add(label(resultMessage, 14, MUTED, false));
             grid.add(card);
         }
 
-        int rows = (items.length + 2) / 3;
-        p.add(fixHeight(grid, rows * 230 + (rows - 1) * 18));
+        p.add(fixHeight(grid, aRows * 230 + (aRows - 1) * 18));
 
         addToContent(p);
     }
@@ -2458,7 +2637,10 @@ card.add(label(resultMessage, 14, MUTED, false));
             {"\uD83D\uDEAA", "Exited", String.valueOf(exited)}
         };
 
-        JPanel stats = new JPanel(new GridLayout(1, 4, 18, 0));
+        int effW = getEffectiveContentWidth();
+        int hCols = (effW >= 920) ? 4 : (effW >= 540 ? 2 : 1);
+        int hRows = (summary.length + hCols - 1) / hCols;
+        JPanel stats = new JPanel(new GridLayout(hRows, hCols, 18, 18));
         stats.setOpaque(false);
 
         for (String[] item : summary) {
@@ -2491,7 +2673,7 @@ card.add(label(resultMessage, 14, MUTED, false));
             stats.add(card);
         }
 
-        p.add(fixHeight(stats, 96));
+        p.add(fixHeight(stats, hRows * 96 + (hRows - 1) * 18));
         p.add(Box.createVerticalStrut(24));
 
         
@@ -2670,19 +2852,24 @@ card.add(label(resultMessage, 14, MUTED, false));
         nameBox.add(chips);
         nameBox.add(Box.createVerticalGlue());
 
+        int effW = getEffectiveContentWidth();
+
         hero.add(avatarWrap, BorderLayout.WEST);
         hero.add(nameBox, BorderLayout.CENTER);
-        p.add(fixHeight(hero, 200));
+        int heroH = effW < 650 ? 250 : 200;
+        p.add(fixHeight(hero, heroH));
         p.add(Box.createVerticalStrut(22));
 
         
-        JPanel grid = new JPanel(new GridLayout(2, 2, 18, 18));
+        int pCols = (effW >= 650) ? 2 : 1;
+        int pRows = (4 + pCols - 1) / pCols;
+        JPanel grid = new JPanel(new GridLayout(pRows, pCols, 18, 18));
         grid.setOpaque(false);
         grid.add(profileTile("\uD83D\uDC64", "Full Name", currentUser.fullName));
         grid.add(profileTile("\uD83C\uDFF7", "Username", currentUser.username));
         grid.add(profileTile("\u26A5", "Gender", currentUser.gender));
         grid.add(profileTile("\uD83C\uDFEB", "Grade & Section", currentUser.gradeSection));
-        p.add(fixHeight(grid, 190));
+        p.add(fixHeight(grid, pRows * 86 + (pRows - 1) * 18));
         p.add(Box.createVerticalStrut(22));
 
         

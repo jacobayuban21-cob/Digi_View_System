@@ -8,11 +8,17 @@ import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
 
-    // Default to port 8085 (or 8080 / Render URL)
-    private static String baseUrl = "http://10.0.2.2:8085/";
+    public static final String DEFAULT_CLOUD_URL = "https://digiview-backend.onrender.com/";
+    public static final String DEFAULT_LOCAL_URL = "http://10.0.2.2:8085/";
+
+    private static String baseUrl = DEFAULT_CLOUD_URL;
     private static Retrofit retrofit = null;
 
     public static void setBaseUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            url = DEFAULT_CLOUD_URL;
+        }
+        url = url.trim();
         if (!url.endsWith("/")) {
             url += "/";
         }

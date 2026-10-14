@@ -60,9 +60,9 @@
             android:layout_height="34dp"
             android:background="@drawable/bg_pill"
             android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:layout_marginEnd="10dp">
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginEnd="8dp">
 
             <TextView
                 android:id="@+id/tvTopLevel"
@@ -72,6 +72,27 @@
                 android:textColor="@color/cyan"
                 android:textSize="12sp"
                 android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Cloud Server Status Pill -->
+        <LinearLayout
+            android:id="@+id/topCloudPill"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_pill"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/tvTopCloud"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☁️"
+                android:textSize="13sp" />
         </LinearLayout>
 
         <!-- User Initials Avatar -->
