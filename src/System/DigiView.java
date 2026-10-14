@@ -3546,31 +3546,76 @@ card.add(label(resultMessage, 14, MUTED, false));
 
     
     private static class LogoBadge extends JComponent {
+        private static Image cachedLogo;
+        private static boolean logoChecked = false;
+
         LogoBadge(int size) {
             Dimension d = new Dimension(size, size);
             setPreferredSize(d);
             setMinimumSize(d);
             setMaximumSize(d);
+            ensureLogoLoaded();
+        }
+
+        private static synchronized void ensureLogoLoaded() {
+            if (logoChecked) return;
+            logoChecked = true;
+            try {
+                String[] candidates = new String[] {
+                    "@/public/Icons/Splash-icon.png",
+                    "@/public/Icons/Icon.jpg",
+                    "@/Icons/Splash-icon.png",
+                    "public/Icons/Splash-icon.png",
+                    "Icons/Splash-icon.png"
+                };
+                for (String c : candidates) {
+                    File f = resolveRoot(c);
+                    if (f != null && f.exists()) {
+                        Image img = javax.imageio.ImageIO.read(f);
+                        if (img != null) {
+                            cachedLogo = img;
+                            return;
+                        }
+                    }
+                    InputStream is = resolveRootStream(c);
+                    if (is != null) {
+                        Image img = javax.imageio.ImageIO.read(is);
+                        if (img != null) {
+                            cachedLogo = img;
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             int w = getWidth(), h = getHeight();
-            g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
-                    w, h, new Color(34, 190, 240)));
-            g2.fillRoundRect(0, 0, w, h, 20, 20);
 
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.34)));
-            FontMetrics fm = g2.getFontMetrics();
-            String s = "DV";
-            g2.drawString(s, (w - fm.stringWidth(s)) / 2,
-                    (h + fm.getAscent() - fm.getDescent()) / 2);
+            if (cachedLogo != null) {
+                java.awt.geom.RoundRectangle2D round = new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, 18, 18);
+                g2.setClip(round);
+                g2.drawImage(cachedLogo, 0, 0, w, h, null);
+                g2.setClip(null);
+                g2.setColor(new Color(56, 189, 248, 80));
+                g2.draw(round);
+            } else {
+                g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
+                        w, h, new Color(34, 190, 240)));
+                g2.fillRoundRect(0, 0, w, h, 20, 20);
+
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.34)));
+                FontMetrics fm = g2.getFontMetrics();
+                String s = "DV";
+                g2.drawString(s, (w - fm.stringWidth(s)) / 2,
+                        (h + fm.getAscent() - fm.getDescent()) / 2);
+            }
             g2.dispose();
         }
     }
