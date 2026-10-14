@@ -33,6 +33,23 @@ public class SoundManager {
     private final Context appContext;
     private long lastClickTime = 0;
 
+    /**
+     * Root symbol redirection for Android asset and resource paths.
+     * Allows using "@" or other symbols to point to the root resource/asset folder:
+     * e.g. "@/sounds/mixkit_select_click_1109" -> "sounds/mixkit_select_click_1109"
+     */
+    public static String redirectRootPath(String path) {
+        if (path == null) return "";
+        String p = path.trim();
+        while (p.startsWith("@") || p.startsWith("~") || p.startsWith("^") || p.startsWith("$")) {
+            p = p.substring(1).trim();
+        }
+        while (p.startsWith("/") || p.startsWith("\\")) {
+            p = p.substring(1).trim();
+        }
+        return p;
+    }
+
     private SoundManager(Context context) {
         this.appContext = context.getApplicationContext();
         initSoundPool();

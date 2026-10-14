@@ -20,6 +20,14 @@ if %ERRORLEVEL% neq 0 (
 :: =========================================================================
 :: DIRECT CLI ARGUMENT ROUTING
 :: =========================================================================
+:: Root Redirection Symbols (@, ~, /@, root)
+if "%~1"=="@"          goto :interactive_menu
+if "%~1"=="~"          goto :interactive_menu
+if "%~1"=="/@"         goto :interactive_menu
+if "%~1"=="root"       goto :interactive_menu
+if "%~1"=="/"          goto :interactive_menu
+if "%~1"==".\"         goto :interactive_menu
+
 if /i "%~1"=="run"         goto :cmd_run_desktop
 if /i "%~1"=="desktop"     goto :cmd_run_desktop
 if /i "%~1"=="gui"         goto :cmd_run_desktop

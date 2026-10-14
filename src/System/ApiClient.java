@@ -59,6 +59,28 @@ public class ApiClient {
         return baseUrl;
     }
 
+    /**
+     * Resolves an endpoint path with root symbol redirection.
+     * Allows using any symbol alias (like "@", "~", "^", "/") to redirect to the root URL.
+     * Examples:
+     * - "@/api/auth/login" -> "https://digi-view-system.onrender.com/api/auth/login"
+     * - "@/health"         -> "https://digi-view-system.onrender.com/health"
+     * - "~/api/quiz"       -> "https://digi-view-system.onrender.com/api/quiz"
+     */
+    public static String redirectRootUrl(String endpoint) {
+        if (endpoint == null || endpoint.trim().isEmpty()) {
+            return getBaseUrl();
+        }
+        String p = endpoint.trim();
+        while (p.startsWith("@") || p.startsWith("~") || p.startsWith("^") || p.startsWith("$")) {
+            p = p.substring(1).trim();
+        }
+        while (p.startsWith("/") || p.startsWith("\\")) {
+            p = p.substring(1).trim();
+        }
+        return getBaseUrl() + "/" + p;
+    }
+
     public static void saveConfigUrl(String url) {
         String cleaned = cleanUrl(url);
         baseUrl = cleaned;
@@ -185,7 +207,7 @@ public class ApiClient {
 
     public static AuthResult login(String username, String password) {
         try {
-            URL url = new URL(baseUrl + "/api/auth/login");
+            URL url = new URL(redirectRootUrl("/api/auth/login"));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -228,7 +250,7 @@ public class ApiClient {
 
     public static AuthResult register(String username, String password, String fullName, int age, String gender, String strand, String gradeSection) {
         try {
-            URL url = new URL(baseUrl + "/api/auth/register");
+            URL url = new URL(redirectRootUrl("/api/auth/register"));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -280,7 +302,7 @@ public class ApiClient {
 
     public static boolean submitQuizRecord(String username, String quiz, int score, int total, int percent, String date) {
         try {
-            URL url = new URL(baseUrl + "/api/quiz/record");
+            URL url = new URL(redirectRootUrl("/api/quiz/record"));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -305,7 +327,7 @@ public class ApiClient {
 
     public static boolean syncXp(String username, int xpAmount) {
         try {
-            URL url = new URL(baseUrl + "/api/users/" + URLEncoder.encode(username, "UTF-8") + "/xp?amount=" + xpAmount);
+            URL url = new URL(redirectRootUrl("/api/users/" + URLEncoder.encode(username, "UTF-8") + "/xp?amount=" + xpAmount));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(4000);
@@ -317,7 +339,7 @@ public class ApiClient {
 
     public static boolean unlockAchievement(String username, String achievement) {
         try {
-            URL url = new URL(baseUrl + "/api/users/" + URLEncoder.encode(username, "UTF-8") + "/achievement?achievement=" + URLEncoder.encode(achievement, "UTF-8"));
+            URL url = new URL(redirectRootUrl("/api/users/" + URLEncoder.encode(username, "UTF-8") + "/achievement?achievement=" + URLEncoder.encode(achievement, "UTF-8")));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(4000);

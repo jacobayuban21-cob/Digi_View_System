@@ -139,13 +139,84 @@ class DigiViewLMS extends JFrame {
     private boolean musicEnabled = true;
     private long lastClickTime = 0;
 
+    /**
+     * Root Redirection & Path Resolver.
+     * Allows using any symbol alias (like "@", "~", "^", "$", "/") to redirect to the project root folder.
+     * Examples:
+     * - "@/public/sounds/mixkit-select-click-1109.wav"
+     * - "@/Icons/Splash-icon.png"
+     * - "~/public/sounds/..."
+     * - "@/sounds/..."
+     */
+    public static File resolveRoot(String path) {
+        if (path == null) return null;
+        String cleaned = redirectRootSymbol(path);
+        
+        File[] candidates = new File[] {
+            new File(cleaned),
+            new File("public/" + cleaned),
+            new File("../" + cleaned),
+            new File("../public/" + cleaned),
+            new File("src/System/" + cleaned),
+            new File("bin/" + cleaned)
+        };
+        for (File f : candidates) {
+            if (f.exists()) return f;
+        }
+        return new File(cleaned);
+    }
+
+    /**
+     * Strips leading root alias symbols like '@', '~', '^', '$' and leading slashes.
+     */
+    public static String redirectRootSymbol(String path) {
+        if (path == null) return "";
+        String p = path.trim();
+        while (p.startsWith("@") || p.startsWith("~") || p.startsWith("^") || p.startsWith("$")) {
+            p = p.substring(1).trim();
+        }
+        while (p.startsWith("/") || p.startsWith("\\")) {
+            p = p.substring(1).trim();
+        }
+        return p;
+    }
+
+    public static InputStream resolveRootStream(String path) {
+        try {
+            File f = resolveRoot(path);
+            if (f != null && f.exists() && f.isFile()) {
+                return new FileInputStream(f);
+            }
+            String cleaned = redirectRootSymbol(path);
+            InputStream is = DigiView.class.getResourceAsStream("/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getClassLoader().getResourceAsStream(cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/System/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/sounds/" + cleaned);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("/Icons/" + cleaned);
+            if (is != null) return is;
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     private static InputStream getAudioResourceStream(String filename) {
         try {
-            File f = new File("public/sounds/" + filename);
+            // Check with root alias symbols '@', '~', etc.
+            InputStream is = resolveRootStream("@/public/sounds/" + filename);
+            if (is != null) return is;
+            is = resolveRootStream("@/sounds/" + filename);
+            if (is != null) return is;
+            is = resolveRootStream("@/" + filename);
+            if (is != null) return is;
+
+            File f = resolveRoot("public/sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
-            f = new File("public/Sounds/" + filename);
+            f = resolveRoot("public/Sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
-            InputStream is = DigiView.class.getResourceAsStream("/sounds/" + filename);
+            is = DigiView.class.getResourceAsStream("/sounds/" + filename);
             if (is != null) return is;
             is = DigiView.class.getResourceAsStream("/System/sounds/" + filename);
             if (is != null) return is;
@@ -155,11 +226,11 @@ class DigiViewLMS extends JFrame {
             if (is != null) return is;
             is = DigiView.class.getClassLoader().getResourceAsStream("sounds/" + filename);
             if (is != null) return is;
-            f = new File("src/System/sounds/" + filename);
+            f = resolveRoot("src/System/sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
-            f = new File("bin/System/sounds/" + filename);
+            f = resolveRoot("bin/System/sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
-            f = new File("sounds/" + filename);
+            f = resolveRoot("sounds/" + filename);
             if (f.exists()) return new FileInputStream(f);
         } catch (Exception ignored) {}
         return null;
@@ -555,26 +626,32 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     
     private void loadAppIcon() {
         try {
-            File[] candidates = new File[] {
-                new File("public/Icons/Splash-icon.png"),
-                new File("public/Icons/Icon.jpg"),
-                new File("public/Icons/Icon.ico"),
-                new File("Icons/Splash-icon.png"),
-                new File("Icons/Icon.jpg")
+            String[] symbolPaths = new String[] {
+                "@/public/Icons/Splash-icon.png",
+                "@/public/Icons/Icon.jpg",
+                "@/public/Icons/Icon.ico",
+                "@/Icons/Splash-icon.png",
+                "@/Icons/Icon.jpg",
+                "public/Icons/Splash-icon.png",
+                "Icons/Splash-icon.png"
             };
-            for (File f : candidates) {
-                if (f.exists()) {
+            for (String sp : symbolPaths) {
+                File f = resolveRoot(sp);
+                if (f != null && f.exists()) {
                     Image img = javax.imageio.ImageIO.read(f);
                     if (img != null) {
                         setIconImage(img);
                         return;
                     }
                 }
-            }
-            InputStream is = DigiView.class.getResourceAsStream("/Icons/Splash-icon.png");
-            if (is != null) {
-                Image img = javax.imageio.ImageIO.read(is);
-                if (img != null) setIconImage(img);
+                InputStream is = resolveRootStream(sp);
+                if (is != null) {
+                    Image img = javax.imageio.ImageIO.read(is);
+                    if (img != null) {
+                        setIconImage(img);
+                        return;
+                    }
+                }
             }
         } catch (Exception ignored) {}
     }
