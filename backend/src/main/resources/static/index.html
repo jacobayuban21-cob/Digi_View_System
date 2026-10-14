@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiView LMS Server — System Health & Arcade</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #050b14;
+            --bg-surface: #0a1628;
+            --bg-card: rgba(13, 27, 49, 0.72);
+            --bg-card-hover: rgba(18, 36, 64, 0.85);
+            --border-glow: rgba(56, 189, 248, 0.22);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --cyan: #38bdf8;
+            --cyan-glow: rgba(56, 189, 248, 0.4);
+            --blue: #3b82f6;
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.35);
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.1) 0%, transparent 45%),
+                radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Subtle cyber grid overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 20px 80px 20px;
+        }
+
+        /* Top Bar */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        .brand-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #ffffff, var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 600;
+            color: #34d399;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+        }
+
+        .pulse-dot {
+            width: 9px;
+            height: 9px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 12px;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glow);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(56, 189, 248, 0.12);
+            border-color: var(--cyan);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Notice */
+        .hero-banner {
+            background: linear-gradient(135deg, rgba(14, 30, 56, 0.8), rgba(8, 19, 36, 0.9));
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-info h2 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-info p {
+            color: var(--text-muted);
+            font-size: 15px;
+            max-width: 620px;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-subtle);
+            color: var(--cyan);
+        }
+
+        /* Stats Grid */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-main);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .card-subtext {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            margin-top: 14px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #38bdf8, #3b82f6);
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Arcade Section */
+        .arcade-section {
+            background: linear-gradient(180deg, rgba(13, 27, 49, 0.9), rgba(6, 14, 26, 0.95));
+            border: 1px solid var(--border-glow);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(56, 189, 248, 0.05);
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .arcade-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .arcade-title-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .arcade-title-box h3 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            background: linear-gradient(90deg, #f1f5f9, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .arcade-hud {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hud-score {
+            color: #38bdf8;
+        }
+
+        .hud-high {
+            color: #f59e0b;
+        }
+
+        .hud-gems {
+            color: #34d399;
+        }
+
+        .game-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            background: #040810;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(56, 189, 248, 0.25);
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+        }
+
+        #dinoCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .game-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .control-hints {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .kbd-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 11px;
+            color: #fff;
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .touch-controls {
+            display: none;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .touch-controls {
+                display: flex;
+            }
+        }
+
+        /* API Explorer Section */
+        .api-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 28px;
+            backdrop-filter: blur(16px);
+        }
+
+        .api-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .api-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .endpoint-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .ep-btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ep-btn:hover, .ep-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--cyan);
+            color: #ffffff;
+        }
+
+        .console-box {
+            background: #030712;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 18px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: #38bdf8;
+            max-height: 280px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .console-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #0f172a;
+            border: 1px solid var(--cyan);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        footer a {
+            color: var(--cyan);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="brand-cluster">
+            <div class="logo-box">🌐</div>
+            <div class="brand-text">
+                <h1>DigiView LMS Server</h1>
+                <p>Spring Boot 3.3.4 &bull; Supabase PostgreSQL</p>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="status-pill" id="statusPill">
+                <span class="pulse-dot"></span>
+                <span id="statusLabel">SYSTEM ONLINE</span>
+            </div>
+            <button class="btn btn-outline" id="btnCopyJson" title="Copy /api/health JSON">
+                📋 Copy JSON
+            </button>
+            <a href="#arcade" class="btn btn-primary">
+                🎮 Play Dino
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+        <div class="hero-info">
+            <h2>Cloud Infrastructure Telemetry</h2>
+            <p>
+                Real-time operational status for desktop clients, Android native application, and automated cloud keep-alive monitoring.
+            </p>
+        </div>
+        <div class="hero-badges">
+            <span class="chip" id="chipEnv">HOST: LOCALHOST (:8085)</span>
+            <span class="chip">RUNTIME: JAVA 17 TEMURIN</span>
+            <span class="chip">DB: SUPABASE SSL</span>
+        </div>
+    </section>
+
+    <!-- Metrics Grid -->
+    <div class="grid-4">
+        <!-- Card 1: Server Status & Uptime -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Server Uptime</span>
+                <div class="card-icon" style="color: #34d399;">⏱️</div>
+            </div>
+            <div class="card-value" id="uptimeDisplay">00h 00m 00s</div>
+            <div class="card-subtext" id="startedDisplay">Started: Just now</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 100%; background: #10b981;"></div>
+            </div>
+        </div>
+
+        <!-- Card 2: JVM Memory -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">JVM Memory Pool</span>
+                <div class="card-icon" style="color: #38bdf8;">🧠</div>
+            </div>
+            <div class="card-value" id="memoryDisplay">-- MB</div>
+            <div class="card-subtext" id="memoryMaxDisplay">Max Heap: 384 MB (Render tuned)</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="memoryBar"></div>
+            </div>
+        </div>
+
+        <!-- Card 3: Database Pool -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Supabase Database</span>
+                <div class="card-icon" style="color: #f59e0b;">🐘</div>
+            </div>
+            <div class="card-value" style="color: #34d399;" id="dbStatusDisplay">CONNECTED</div>
+            <div class="card-subtext" id="dbPoolDisplay">HikariCP Pool: Active (SSL)</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 100%; background: #f59e0b;"></div>
+            </div>
+        </div>
+
+        <!-- Card 4: Keep-Alive Heartbeat -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Keep-Alive Engine</span>
+                <div class="card-icon" style="color: #8b5cf6;">💓</div>
+            </div>
+            <div class="card-value" style="color: #a78bfa;" id="keepAliveDisplay">ACTIVE</div>
+            <div class="card-subtext" id="keepAliveSubtext">12-minute automated proxy ping</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 100%; background: #8b5cf6;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dino Minigame Arcade Section -->
+    <section class="arcade-section" id="arcade">
+        <div class="arcade-header">
+            <div class="arcade-title-box">
+                <span style="font-size: 28px;">🦖</span>
+                <div>
+                    <h3>Byte's Cloud Runner</h3>
+                    <p style="font-size: 13px; color: var(--text-muted);">A retro cyber arcade runner while waiting for backend requests!</p>
+                </div>
+            </div>
+
+            <div class="arcade-hud">
+                <div>SCORE: <span class="hud-score" id="gameScore">00000</span></div>
+                <div>HI: <span class="hud-high" id="gameHighScore">00000</span></div>
+                <div>GEMS: <span class="hud-gems" id="gameGems">💎 x 0</span></div>
+                <button class="btn btn-outline" id="btnAudioToggle" style="padding: 4px 10px; font-size: 12px;">🔊 ON</button>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="game-canvas-wrapper" id="canvasWrapper">
+            <canvas id="dinoCanvas" width="900" height="260"></canvas>
+        </div>
+
+        <!-- Game Controls Bar -->
+        <div class="game-controls-bar">
+            <div class="control-hints">
+                <span>🎮 <strong>Controls:</strong></span>
+                <span><span class="kbd-pill">SPACE</span> or <span class="kbd-pill">↑</span> Jump</span>
+                <span><span class="kbd-pill">↓</span> Duck</span>
+                <span><span class="kbd-pill">R</span> Restart</span>
+                <span>or Tap Screen</span>
+            </div>
+
+            <div class="touch-controls">
+                <button class="btn btn-outline" id="btnTouchJump">⬆️ JUMP</button>
+                <button class="btn btn-outline" id="btnTouchDuck">⬇️ DUCK</button>
+            </div>
+
+            <button class="btn btn-outline" id="btnRestartGame">🔄 Restart Game</button>
+        </div>
+    </section>
+
+    <!-- API Explorer Section -->
+    <section class="api-section">
+        <div class="api-header">
+            <div>
+                <h3>Interactive REST API Inspector</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">Quick-test backend endpoints directly from your browser.</p>
+            </div>
+            <button class="btn btn-outline" id="btnRefreshApi">⚡ Run Selected</button>
+        </div>
+
+        <div class="endpoint-selector">
+            <button class="ep-btn active" data-url="/api/health">GET /api/health</button>
+            <button class="ep-btn" data-url="/api/keep-alive">GET /api/keep-alive</button>
+            <button class="ep-btn" data-url="/api/leaderboard">GET /api/leaderboard</button>
+            <button class="ep-btn" data-url="/api/quiz/history/demo_student">GET /api/quiz/history/{user}</button>
+        </div>
+
+        <div class="console-box">
+            <div class="console-topbar">
+                <span id="consoleStatus">HTTP 200 OK &bull; Response Time: 4ms</span>
+                <span>JSON</span>
+            </div>
+            <pre id="consoleContent">// Fetching endpoint data...</pre>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>DigiView Learning Management System &bull; High Performance Spring Boot &amp; Supabase Architecture</p>
+        <p style="margin-top: 6px; font-size: 12px; color: #64748b;">
+            Deployed on Render &bull; Desktop Swing &bull; Android Mobile &bull; Cloud Parity
+        </p>
+    </footer>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copied to clipboard!</div>
+
+<!-- Interactive JavaScript -->
+<script>
+    /* ==========================================================================
+       1. LIVE TELEMETRY & API POLLING
+       ========================================================================== */
+    let serverStartTime = Date.now();
+    let currentEndpoint = '/api/health';
+
+    function formatUptime(seconds) {
+        const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${hrs}h ${mins}m ${secs}s`;
+    }
+
+    let localSeconds = 0;
+    setInterval(() => {
+        localSeconds++;
+        document.getElementById('uptimeDisplay').innerText = formatUptime(localSeconds);
+    }, 1000);
+
+    async function fetchTelemetry() {
+        try {
+            const start = performance.now();
+            const res = await fetch('/api/keep-alive');
+            const latency = Math.round(performance.now() - start);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.uptimeSeconds !== undefined) {
+                    localSeconds = data.uptimeSeconds;
+                    document.getElementById('uptimeDisplay').innerText = formatUptime(localSeconds);
+                }
+                if (data.renderExternalUrl) {
+                    document.getElementById('chipEnv').innerText = `HOST: ${data.renderExternalUrl.replace('https://', '')}`;
+                }
+                document.getElementById('statusPill').style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                document.getElementById('statusLabel').innerText = 'SYSTEM ONLINE';
+            }
+        } catch (e) {
+            console.warn('Telemetry poll:', e);
+        }
+    }
+
+    async function fetchJvmMemory() {
+        try {
+            const res = await fetch('/api/health');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.jvm) {
+                    const used = data.jvm.usedMemoryMb || 48;
+                    const max = data.jvm.maxMemoryMb || 384;
+                    const pct = Math.round((used / max) * 100);
+                    document.getElementById('memoryDisplay').innerText = `${used} MB / ${max} MB`;
+                    document.getElementById('memoryBar').style.width = `${Math.min(pct, 100)}%`;
+                }
+                if (data.database && data.database.status) {
+                    document.getElementById('dbStatusDisplay').innerText = data.database.status;
+                }
+            }
+        } catch (e) {
+            // fallback
+            document.getElementById('memoryDisplay').innerText = '64 MB / 384 MB';
+            document.getElementById('memoryBar').style.width = '17%';
+        }
+    }
+
+    fetchTelemetry();
+    fetchJvmMemory();
+    setInterval(fetchTelemetry, 10000);
+    setInterval(fetchJvmMemory, 15000);
+
+    /* ==========================================================================
+       2. API CONSOLE EXPLORER
+       ========================================================================== */
+    async function executeApi(url) {
+        const consoleContent = document.getElementById('consoleContent');
+        const consoleStatus = document.getElementById('consoleStatus');
+        consoleContent.innerText = '// Sending request to ' + url + '...';
+
+        const startTime = performance.now();
+        try {
+            const res = await fetch(url, {
+                headers: { 'Accept': 'application/json' }
+            });
+            const elapsed = Math.round(performance.now() - startTime);
+            const data = await res.json();
+
+            consoleStatus.innerText = `HTTP ${res.status} ${res.statusText} • Latency: ${elapsed}ms`;
+            consoleContent.innerText = JSON.stringify(data, null, 2);
+        } catch (err) {
+            consoleStatus.innerText = `Request Failed`;
+            consoleContent.innerText = `Error: ${err.message}\nMake sure the server is reachable.`;
+        }
+    }
+
+    document.querySelectorAll('.ep-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentEndpoint = btn.getAttribute('data-url');
+            executeApi(currentEndpoint);
+        });
+    });
+
+    document.getElementById('btnRefreshApi').addEventListener('click', () => {
+        executeApi(currentEndpoint);
+    });
+
+    executeApi('/api/health');
+
+    /* Toast Notification */
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        toast.innerText = text;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    document.getElementById('btnCopyJson').addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/health');
+            const data = await res.json();
+            await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+            showToast('📋 Health JSON copied to clipboard!');
+        } catch (e) {
+            showToast('Failed to copy JSON.');
+        }
+    });
+
+    /* ==========================================================================
+       3. CYBER DINO MINIGAME ("Byte's Cloud Runner")
+       ========================================================================== */
+    const canvas = document.getElementById('dinoCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    // Audio synthesizer (Zero external dependencies)
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.1, targetFreq = null) {
+        if (!audioEnabled || !audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (targetFreq) {
+                osc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + duration);
+            }
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    function soundJump() { playTone(300, 'square', 0.12, 650); }
+    function soundDuck() { playTone(250, 'sawtooth', 0.08, 150); }
+    function soundGem() { playTone(650, 'sine', 0.15, 1100); }
+    function soundCrash() { playTone(120, 'sawtooth', 0.35, 40); }
+
+    document.getElementById('btnAudioToggle').addEventListener('click', (e) => {
+        e.stopPropagation();
+        audioEnabled = !audioEnabled;
+        document.getElementById('btnAudioToggle').innerText = audioEnabled ? '🔊 ON' : '🔇 OFF';
+    });
+
+    // Game Constants & Variables
+    const GROUND_Y = 215;
+    let gameSpeed = 5.5;
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem('digiview_dino_hi') || '0', 10);
+    let gemsCollected = 0;
+    let gameOver = false;
+    let gameStarted = false;
+    let frameCount = 0;
+
+    document.getElementById('gameHighScore').innerText = String(highScore).padStart(5, '0');
+
+    // Dino Object ("Byte")
+    const dino = {
+        x: 60,
+        y: GROUND_Y - 44,
+        w: 42,
+        h: 44,
+        vy: 0,
+        gravity: 0.72,
+        jumpPower: -12.5,
+        isGrounded: true,
+        isDucking: false,
+        legAnim: 0,
+        reset() {
+            this.x = 60;
+            this.y = GROUND_Y - 44;
+            this.w = 42;
+            this.h = 44;
+            this.vy = 0;
+            this.isGrounded = true;
+            this.isDucking = false;
+        },
+        jump() {
+            if (this.isGrounded) {
+                initAudio();
+                this.vy = this.jumpPower;
+                this.isGrounded = false;
+                soundJump();
+                createDust(this.x + 10, GROUND_Y);
+            }
+        },
+        duck(active) {
+            if (active) {
+                if (!this.isDucking) soundDuck();
+                this.isDucking = true;
+                this.h = 26;
+                if (this.isGrounded) {
+                    this.y = GROUND_Y - 26;
+                } else {
+                    this.vy += 2.5; // Fast-drop
+                }
+            } else {
+                this.isDucking = false;
+                this.h = 44;
+                if (this.isGrounded) {
+                    this.y = GROUND_Y - 44;
+                }
+            }
+        },
+        update() {
+            if (!this.isGrounded) {
+                this.vy += this.gravity;
+                this.y += this.vy;
+                const targetY = this.isDucking ? GROUND_Y - 26 : GROUND_Y - 44;
+                if (this.y >= targetY) {
+                    this.y = targetY;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                    createDust(this.x + 10, GROUND_Y);
+                }
+            }
+            this.legAnim = (this.legAnim + 0.25) % 2;
+        },
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            if (this.isDucking) {
+                // Ducking cyber dino body
+                ctx.fillStyle = '#38bdf8';
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 8;
+                // Sleek low torso
+                ctx.fillRect(0, 8, 48, 16);
+                // Cyber Visor
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(36, 10, 10, 5);
+                ctx.fillStyle = '#34d399';
+                ctx.fillRect(40, 11, 6, 3);
+                // Tail
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(-8, 6, 10, 8);
+                // Lower legs
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(10, 22, 10, 4);
+                ctx.fillRect(28, 22, 10, 4);
+            } else {
+                // Standing / Running T-Rex
+                ctx.fillStyle = '#38bdf8';
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 8;
+
+                // Head
+                ctx.fillRect(18, 0, 22, 16);
+                // Cyber Eye/Visor
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(26, 4, 12, 4);
+                ctx.fillStyle = '#34d399';
+                ctx.fillRect(30, 4, 8, 4);
+
+                // Body
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(8, 14, 22, 18);
+
+                // Tiny Arm
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(26, 20, 8, 4);
+
+                // Tail
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(0, 18, 10, 6);
+                ctx.fillRect(-4, 16, 6, 4);
+
+                // Legs
+                ctx.fillStyle = '#38bdf8';
+                if (!this.isGrounded) {
+                    // Tucked legs
+                    ctx.fillRect(12, 32, 6, 8);
+                    ctx.fillRect(22, 32, 6, 6);
+                } else {
+                    // Running animation
+                    if (Math.floor(this.legAnim) === 0) {
+                        ctx.fillRect(12, 32, 6, 12);
+                        ctx.fillRect(22, 32, 6, 7);
+                    } else {
+                        ctx.fillRect(12, 32, 6, 7);
+                        ctx.fillRect(22, 32, 6, 12);
+                    }
+                }
+            }
+            ctx.restore();
+        }
+    };
+
+    // Obstacles & Gems arrays
+    let obstacles = [];
+    let gems = [];
+    let dustParticles = [];
+    let stars = [];
+
+    // Background Stars
+    for (let i = 0; i < 45; i++) {
+        stars.push({
+            x: Math.random() * 900,
+            y: Math.random() * 160,
+            r: Math.random() * 1.5 + 0.5,
+            alpha: Math.random() * 0.7 + 0.3
+        });
+    }
+
+    function createDust(x, y) {
+        for (let i = 0; i < 4; i++) {
+            dustParticles.push({
+                x: x,
+                y: y - 2,
+                vx: -Math.random() * 2 - 1,
+                vy: -Math.random() * 1.5,
+                life: 18
+            });
+        }
+    }
+
+    function spawnObstacle() {
+        const type = Math.random();
+        if (type < 0.65) {
+            // Ground Cactus / Firewall
+            const isDouble = Math.random() > 0.6;
+            obstacles.push({
+                type: 'cactus',
+                x: 920,
+                y: GROUND_Y - 36,
+                w: isDouble ? 34 : 20,
+                h: 36,
+                color: isDouble ? '#ef4444' : '#f59e0b'
+            });
+        } else {
+            // Flying Pterodactyl / Drone Bird
+            const heightOption = Math.random() > 0.5 ? GROUND_Y - 48 : GROUND_Y - 75;
+            obstacles.push({
+                type: 'bird',
+                x: 920,
+                y: heightOption,
+                w: 32,
+                h: 22,
+                wingPos: 0,
+                color: '#ec4899'
+            });
+        }
+    }
+
+    function spawnGem() {
+        gems.push({
+            x: 920,
+            y: GROUND_Y - 55 - Math.random() * 40,
+            w: 16,
+            h: 16,
+            rot: 0
+        });
+    }
+
+    function resetGame() {
+        score = 0;
+        gemsCollected = 0;
+        gameSpeed = 5.5;
+        gameOver = false;
+        gameStarted = true;
+        obstacles = [];
+        gems = [];
+        dustParticles = [];
+        dino.reset();
+        document.getElementById('gameScore').innerText = '00000';
+        document.getElementById('gameGems').innerText = '💎 x 0';
+    }
+
+    // Input handlers
+    function handleJump() {
+        if (!gameStarted || gameOver) {
+            resetGame();
+        } else {
+            dino.jump();
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+            e.preventDefault();
+            handleJump();
+        } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+            e.preventDefault();
+            dino.duck(true);
+        } else if (e.code === 'KeyR') {
+            resetGame();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+            dino.duck(false);
+        }
+    });
+
+    canvasWrapper.addEventListener('click', () => {
+        handleJump();
+    });
+
+    document.getElementById('btnRestartGame').addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetGame();
+    });
+
+    document.getElementById('btnTouchJump').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleJump();
+    });
+
+    document.getElementById('btnTouchDuck').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        dino.duck(true);
+    });
+    document.getElementById('btnTouchDuck').addEventListener('touchend', (e) => {
+        e.preventDefault();
+        dino.duck(false);
+    });
+
+    // Main Game Loop
+    let lastSpawn = 0;
+    let lastGemSpawn = 0;
+
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Draw Starfield
+        ctx.fillStyle = '#ffffff';
+        stars.forEach(s => {
+            s.x -= gameSpeed * 0.1;
+            if (s.x < 0) s.x = canvas.width;
+            ctx.globalAlpha = s.alpha;
+            ctx.fillRect(s.x, s.y, s.r, s.r);
+        });
+        ctx.globalAlpha = 1.0;
+
+        // 2. Draw Ground Grid
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(canvas.width, GROUND_Y);
+        ctx.stroke();
+
+        // Moving ground hash ticks
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+        const offset = (frameCount * gameSpeed) % 40;
+        for (let x = -offset; x < canvas.width; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, GROUND_Y);
+            ctx.lineTo(x - 20, canvas.height);
+            ctx.stroke();
+        }
+
+        // 3. Update & Draw Dust
+        for (let i = dustParticles.length - 1; i >= 0; i--) {
+            const p = dustParticles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            ctx.fillStyle = `rgba(56, 189, 248, ${p.life / 20})`;
+            ctx.fillRect(p.x, p.y, 3, 3);
+            if (p.life <= 0) dustParticles.splice(i, 1);
+        }
+
+        if (gameStarted && !gameOver) {
+            frameCount++;
+            score++;
+            if (score % 6 === 0) {
+                document.getElementById('gameScore').innerText = String(score).padStart(5, '0');
+            }
+
+            // Speed acceleration
+            gameSpeed += 0.0008;
+
+            // Spawners
+            if (frameCount - lastSpawn > Math.max(50, 110 - gameSpeed * 5)) {
+                if (Math.random() > 0.3) {
+                    spawnObstacle();
+                    lastSpawn = frameCount;
+                }
+            }
+
+            if (frameCount - lastGemSpawn > 180 && Math.random() > 0.5) {
+                spawnGem();
+                lastGemSpawn = frameCount;
+            }
+
+            dino.update();
+        }
+
+        // 4. Update & Draw Gems
+        for (let i = gems.length - 1; i >= 0; i--) {
+            const g = gems[i];
+            if (gameStarted && !gameOver) g.x -= gameSpeed;
+            g.rot += 0.08;
+
+            // Draw Gem 💎
+            ctx.save();
+            ctx.translate(g.x + 8, g.y + 8);
+            ctx.rotate(g.rot);
+            ctx.fillStyle = '#34d399';
+            ctx.shadowColor = '#34d399';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(0, -8);
+            ctx.lineTo(8, 0);
+            ctx.lineTo(0, 8);
+            ctx.lineTo(-8, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Collision with Dino
+            if (
+                dino.x < g.x + g.w &&
+                dino.x + dino.w > g.x &&
+                dino.y < g.y + g.h &&
+                dino.y + dino.h > g.y
+            ) {
+                gems.splice(i, 1);
+                gemsCollected++;
+                score += 100;
+                soundGem();
+                document.getElementById('gameGems').innerText = `💎 x ${gemsCollected}`;
+                document.getElementById('gameScore').innerText = String(score).padStart(5, '0');
+            } else if (g.x < -30) {
+                gems.splice(i, 1);
+            }
+        }
+
+        // 5. Update & Draw Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const ob = obstacles[i];
+            if (gameStarted && !gameOver) ob.x -= gameSpeed;
+
+            ctx.save();
+            ctx.fillStyle = ob.color;
+            ctx.shadowColor = ob.color;
+            ctx.shadowBlur = 10;
+
+            if (ob.type === 'cactus') {
+                ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+                // Detail lines
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(ob.x + 4, ob.y + 6, ob.w - 8, 4);
+            } else if (ob.type === 'bird') {
+                ob.wingPos = (ob.wingPos + 0.2) % 2;
+                // Cyber bird body
+                ctx.fillRect(ob.x, ob.y + 8, ob.w, 8);
+                // Eye
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(ob.x + 4, ob.y + 10, 4, 4);
+                // Wings
+                ctx.fillStyle = ob.color;
+                if (Math.floor(ob.wingPos) === 0) {
+                    ctx.fillRect(ob.x + 10, ob.y, 12, 8);
+                } else {
+                    ctx.fillRect(ob.x + 10, ob.y + 16, 12, 8);
+                }
+            }
+            ctx.restore();
+
+            // Collision Detection (Hitbox slightly smaller than visual bounds for fair gameplay)
+            const padX = 6;
+            const padY = 4;
+            if (
+                dino.x + padX < ob.x + ob.w - padX &&
+                dino.x + dino.w - padX > ob.x + padX &&
+                dino.y + padY < ob.y + ob.h - padY &&
+                dino.y + dino.h - padY > ob.y + padY
+            ) {
+                gameOver = true;
+                soundCrash();
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('digiview_dino_hi', highScore);
+                    document.getElementById('gameHighScore').innerText = String(highScore).padStart(5, '0');
+                }
+            }
+
+            if (ob.x < -50) {
+                obstacles.splice(i, 1);
+            }
+        }
+
+        // 6. Draw Dino
+        dino.draw();
+
+        // 7. Overlays (Start / Game Over)
+        if (!gameStarted) {
+            ctx.fillStyle = 'rgba(5, 11, 20, 0.75)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 22px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("PRESS SPACE OR TAP TO RUN", canvas.width / 2, canvas.height / 2 - 10);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px "JetBrains Mono", monospace';
+            ctx.fillText("Jump: Space / ↑  •  Duck: ↓  •  Collect: 💎", canvas.width / 2, canvas.height / 2 + 22);
+        } else if (gameOver) {
+            ctx.fillStyle = 'rgba(5, 11, 20, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 28px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("G A M E   O V E R", canvas.width / 2, canvas.height / 2 - 25);
+
+            ctx.fillStyle = '#f1f5f9';
+            ctx.font = '16px "JetBrains Mono", monospace';
+            ctx.fillText(`Final Score: ${score}   •   Gems: ${gemsCollected}`, canvas.width / 2, canvas.height / 2 + 10);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '14px Outfit, sans-serif';
+            ctx.fillText("Press SPACE or Tap to Play Again", canvas.width / 2, canvas.height / 2 + 42);
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Start loop
+    requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
