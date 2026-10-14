@@ -15,13 +15,38 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
  ┌─────────────────────────────────────────────────────────────┐
  │                    WHAT DO YOU WANT TO DO?                  │
  ├──────────────────────────────┬──────────────────────────────┤
- │ 🎮 Just play / test desktop  │ ➡️ Double-click run.bat      │
- │ 📦 Send app to another PC    │ ➡️ Run build-release.bat     │
- │ ⚙️ Run Backend + Database    │ ➡️ See Section 2 below       │
- │ 📱 Build Android APK (1-click)│ ➡️ Double-click build-android.bat│
- │ 📱 Run on Phone / Emulator   │ ➡️ Run manage-android.bat    │
- │ 🛠️ Open Android in Studio   │ ➡️ Open /android in Studio   │
+ │ 👑 ALL COMMANDS & MENU       │ ➡️ Run digiview.bat          │
+ │ 🎮 Just play / test desktop  │ ➡️ digiview run (or run.bat) │
+ │ ⚙️ Run Backend + Database    │ ➡️ digiview server           │
+ │ 📱 Build Android APK         │ ➡️ digiview apk              │
+ │ 📲 Install on Android Phone  │ ➡️ digiview install          │
+ │ 📦 Package All Releases      │ ➡️ digiview dist             │
+ │ 🩺 Check Server Health       │ ➡️ digiview health           │
  └──────────────────────────────┴──────────────────────────────┘
+```
+
+---
+
+## 👑 The Unified Master CLI (`digiview`)
+
+Manage the entire project, launch desktop & backend servers, compile APKs, and install to connected devices using a single unified command:
+
+```cmd
+:: Run with no arguments to open the interactive menu:
+digiview
+
+:: Or run direct one-liners from anywhere in the project:
+digiview run        # Launch Desktop Swing GUI
+digiview server     # Start Spring Boot Backend Server (:8085)
+digiview apk        # Build Android APK to dist\DigiView-Android.apk
+digiview install    # Install APK onto connected Android phone or emulator
+digiview mobile     # Build, install, and launch on Android device
+digiview dist       # Package ALL distributions (JAR, Portable ZIP, Android APK)
+digiview health     # Check live server health, memory, and database status
+digiview devices    # List connected Android devices and active emulators
+digiview logs       # Stream live Android logcat output
+digiview clean      # Clean temporary build caches (bin, dist, gradle)
+digiview exit       # Exit CLI
 ```
 
 ---
