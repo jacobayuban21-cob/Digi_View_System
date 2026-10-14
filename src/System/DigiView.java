@@ -1102,6 +1102,12 @@ private JPanel authCard(String heading, String subtitle) {
             currentUser = new User(name, 0, g, "N/A", gr + " - " + sec, un, pw);
             users.put(un.toLowerCase(Locale.ROOT), currentUser);
             saveData();
+            final String regUn = un;
+            final String regPw = pw;
+            final String regName = name;
+            final String regG = g;
+            final String regSec = gr + " - " + sec;
+            new Thread(() -> ApiClient.registerUser(regUn, regPw, regName, 16, regG, "General", regSec)).start();
             showApp();
 
             message("Account created successfully!\n\n"
@@ -2021,10 +2027,22 @@ private JPanel authCard(String heading, String subtitle) {
         if (index >= questions.size()) {
             int percent = (int)Math.round(score * 100.0 / questions.size());
             currentUser.xp += score * 5;
-            currentUser.history.add(new QuizRecord(difficultyName(difficulty), score, questions.size(), percent, new Date().toString()));
-            if (percent >= 70) currentUser.achievements.add("HTML Quiz Pass");
-            if (percent == 100) currentUser.achievements.add("Perfect Score");
+            String qName = difficultyName(difficulty);
+            currentUser.history.add(new QuizRecord(qName, score, questions.size(), percent, new Date().toString()));
+            final String uName = currentUser.username;
+            if (percent >= 70) {
+                currentUser.achievements.add("HTML Quiz Pass");
+                new Thread(() -> ApiClient.unlockAchievement(uName, "HTML Quiz Pass")).start();
+            }
+            if (percent == 100) {
+                currentUser.achievements.add("Perfect Score");
+                new Thread(() -> ApiClient.unlockAchievement(uName, "Perfect Score")).start();
+            }
             saveData();
+            final int sScore = score;
+            final int tTotal = questions.size();
+            final int pPercent = percent;
+            new Thread(() -> ApiClient.submitQuizRecord(uName, qName, sScore, tTotal, pPercent, new Date().toString())).start();
             showQuizResult(score, questions.size(), percent, difficulty);
             return;
         }
@@ -2068,11 +2086,16 @@ private JPanel authCard(String heading, String subtitle) {
             );
 
             if (choice == JOptionPane.YES_OPTION) {
+                String qName = difficultyName(difficulty) + " (Exited)";
                 currentUser.history.add(new QuizRecord(
-                    difficultyName(difficulty) + " (Exited)",
+                    qName,
                     liveScore[0], questions.size(), 0, new Date().toString()
                 ));
                 saveData();
+                final String uName = currentUser.username;
+                final int lScore = liveScore[0];
+                final int tTotal = questions.size();
+                new Thread(() -> ApiClient.submitQuizRecord(uName, qName, lScore, tTotal, 0, new Date().toString())).start();
                 showPage("Quiz");
             }
         });

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DigiView Exact Desktop Color Palette -->
+    <color name="d_bg_start">#050F23</color>
+    <color name="d_bg_end">#124182</color>
+    <color name="d_sidebar">#060F1E</color>
+    <color name="d_top">#071120</color>
+    <color name="d_card">#0E1B30</color>
+    <color name="d_line">#1E304C</color>
+    <color name="panel2">#142943</color>
+
+    <color name="blue">#2563EB</color>
+    <color name="blue_hover">#1D4ED8</color>
+    <color name="cyan">#38BDF8</color>
+    <color name="cyan_glow">#22D3EE</color>
+    <color name="text_white">#F8FAFC</color>
+    <color name="muted">#94A3B8</color>
+    <color name="green">#22C55E</color>
+    <color name="red">#EF4444</color>
+    <color name="amber">#FBBF24</color>
+    <color name="gold">#FACC15</color>
+</resources>
