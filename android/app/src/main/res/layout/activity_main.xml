@@ -46,6 +46,20 @@
                 android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.05"
                 android:singleLine="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="v1.0.0"
+                android:textColor="@color/cyan"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_pill"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
         </LinearLayout>
 
         <!-- Live XP Pill -->

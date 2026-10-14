@@ -381,6 +381,16 @@
                 android:layout_marginTop="16dp"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <!-- Version Footer -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="V1.0.0"
+                android:textColor="@color/auth_hint"
+                android:textSize="11sp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="14dp" />
         </LinearLayout>
 
     </LinearLayout>
