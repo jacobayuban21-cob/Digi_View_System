@@ -31,11 +31,11 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
 The desktop app works completely offline out-of-the-box!
 
 ### Option A: The One-Click Launcher (Easiest)
-1. Double-click [`run.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/run.bat) in the project folder.
+1. Double-click [`run.bat`](run.bat) in the project folder.
 2. The Swing window will open immediately!
 
 ### Option B: In VS Code / Antigravity IDE
-1. Open [`src/System/DigiView.java`](file:///c:/Users/131fgh/Desktop/Digi_View_System/src/System/DigiView.java).
+1. Open [`src/System/DigiView.java`](src/System/DigiView.java).
 2. Press **`F5`** on your keyboard (or click the **Run** button above line 29).
 
 ### Option C: In Apache NetBeans
@@ -54,15 +54,15 @@ Follow these 3 simple steps to connect the app to the cloud database:
 2. Click **New Project** and name it `digiview`.
 3. Copy your database password (you will need it in Step 2).
 4. Once the project is ready, click **SQL Editor** on the left menu.
-5. Open [`backend/schema.sql`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/schema.sql) from this project, copy all the SQL code, paste it into Supabase, and click **Run**.
+5. Open [`backend/schema.sql`](backend/schema.sql) from this project, copy all the SQL code, paste it into Supabase, and click **Run**.
    *(This creates the `users`, `quiz_records`, and `user_achievements` tables automatically!)*
 
 ---
 
 ### Step 2: Configure Your Credentials Securely
 1. In the `backend/` folder, find the file:
-   [`backend/.env.example`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/.env.example)
-2. We already created [`backend/.env`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/.env) for you. Open it and replace:
+   [`backend/.env.example`](backend/.env.example)
+2. We already created [`backend/.env`](backend/.env) for you. Open it and replace:
    ```env
    SUPABASE_DB_URL=jdbc:postgresql://db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require
    SUPABASE_DB_USER=postgres
@@ -74,7 +74,7 @@ Follow these 3 simple steps to connect the app to the cloud database:
 ---
 
 ### Step 3: Start the Backend Server
-Double-click [`backend/run-backend.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/run-backend.bat).
+Double-click [`backend/run-backend.bat`](backend/run-backend.bat).
 
 You will see:
 ```text
@@ -93,7 +93,7 @@ Your backend is now live at `http://localhost:8080`!
 
 If you need to send the desktop app to a classmate, teacher, or another computer that **does not have Java installed** (or has an outdated Java version like Java 8):
 
-1. Double-click [`build-release.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-release.bat).
+1. Double-click [`build-release.bat`](build-release.bat).
 2. It generates a self-contained bundle at:
    📁 **`dist\DigiView-Portable.zip`** *(~22 MB)*
 3. Send this ZIP file to anyone.
@@ -105,7 +105,7 @@ If you need to send the desktop app to a classmate, teacher, or another computer
 
 ## 4. 📱 Android App Port & Easy Build Commands
 
-The native Android port is located in [`android/`](file:///c:/Users/131fgh/Desktop/Digi_View_System/android):
+The native Android port is located in [`android/`](android/):
 * **Same Design Tokens:** Identical dark palette (`#050F23`, `#071120`, `#0E1B30`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`).
 * **Interactive Quiz:** A/B/C/D option cards, live hearts, instant answer locks, and bounce animations.
 * **Pre-configured Retrofit API:** Communicates with the Spring Boot backend (`10.0.2.2:8080` for emulator, or your PC's Wi-Fi IP address for physical devices).
@@ -117,7 +117,7 @@ The native Android port is located in [`android/`](file:///c:/Users/131fgh/Deskt
 We created high-level automated scripts so you never have to remember complex Gradle flags or ADB commands:
 
 #### 1. The One-Click APK Builder
-Double-click [`build-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-android.bat).
+Double-click [`build-android.bat`](build-android.bat).
 * Automatically detects your Android SDK and Java installation.
 * Automatically generates `local.properties`.
 * Compiles the Android project with Gradle.
@@ -125,7 +125,7 @@ Double-click [`build-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_Sys
   📁 **`dist\DigiView-Android.apk`**
 
 #### 2. The Android Management Toolkit
-Double-click [`manage-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manage-android.bat) (or run it in your terminal).
+Double-click [`manage-android.bat`](manage-android.bat) (or run it in your terminal).
 
 It offers an interactive menu, or you can run single-word commands:
 
@@ -169,4 +169,4 @@ When the Spring Boot backend is running, these endpoints are available:
 * **No.** The desktop application has an **offline-first** design. If the server is offline, it automatically saves everything locally to `digiview-data.ser`. When the server is online, it syncs in the background with zero lag.
 
 ### "Where do I see full documentation on every file?"
-* Check out the [PROJECT_STRUCTURE.md](file:///c:/Users/131fgh/Desktop/Digi_View_System/PROJECT_STRUCTURE.md) file for a detailed diagram and file-by-file guide.
+* Check out the [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) file for a detailed diagram and file-by-file guide.

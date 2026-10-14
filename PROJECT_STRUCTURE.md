@@ -149,21 +149,21 @@ Digi_View_System/
 ### 1. Root Configuration & Launchers
 | File | Description |
 | :--- | :--- |
-| [`run.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/run.bat) | One-click desktop launcher. Automatically compiles any changed Java files in `src/System/` and launches the Swing GUI using `javaw` without blocking the terminal. |
-| [`build-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, creates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
-| [`manage-android.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
-| [`build-release.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-release.bat) | Automated packaging pipeline. Compiles Java classes, packages `dist/DigiViewSystem.jar`, generates a minimal portable Java 17 runtime via `jlink`, and compresses everything into `dist/DigiView-Portable.zip` (~22 MB). |
-| [`build.xml`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
-| [`manifest.mf`](file:///c:/Users/131fgh/Desktop/Digi_View_System/manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |
-| [`.gitignore`](file:///c:/Users/131fgh/Desktop/Digi_View_System/.gitignore) | Configured to ignore compiled bytecode (`bin/`, `build/`, `dist/`), temporary logs (`*.log`), and build cache directories (`.gradle/`). |
+| [`run.bat`](run.bat) | One-click desktop launcher. Automatically compiles any changed Java files in `src/System/` and launches the Swing GUI using `javaw` without blocking the terminal. |
+| [`build-android.bat`](build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, creates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
+| [`manage-android.bat`](manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
+| [`build-release.bat`](build-release.bat) | Automated packaging pipeline. Compiles Java classes, packages `dist/DigiViewSystem.jar`, generates a minimal portable Java 17 runtime via `jlink`, and compresses everything into `dist/DigiView-Portable.zip` (~22 MB). |
+| [`build.xml`](build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
+| [`manifest.mf`](manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |
+| [`.gitignore`](.gitignore) | Configured to ignore compiled bytecode (`bin/`, `build/`, `dist/`), temporary logs (`*.log`), and build cache directories (`.gradle/`). |
 
 ---
 
 ### 2. Desktop Application (`src/System/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
-| [`DigiView.java`](file:///c:/Users/131fgh/Desktop/Digi_View_System/src/System/DigiView.java) | The central desktop application file (~2800 lines). Implements the complete Dark-themed Learning Management System using Java Swing: Dashboard, interactive Lessons with syntax blocks, interactive HTML Quiz with hearts and score locks, History attempt cards with progress bars and badges, and student Profile with 2x2 grid and Level XP progress. |
-| [`ApiClient.java`](file:///c:/Users/131fgh/Desktop/Digi_View_System/src/System/ApiClient.java) | Pure Java HTTP networking client using `java.net.HttpURLConnection` (0 third-party dependencies, Java 8–21+ compatible). Asynchronously transmits quiz attempts to the Spring Boot backend in a background daemon thread while preserving local file persistence (`digiview-data.ser`) as an offline fallback. |
+| [`DigiView.java`](src/System/DigiView.java) | The central desktop application file (~2800 lines). Implements the complete Dark-themed Learning Management System using Java Swing: Dashboard, interactive Lessons with syntax blocks, interactive HTML Quiz with hearts and score locks, History attempt cards with progress bars and badges, and student Profile with 2x2 grid and Level XP progress. |
+| [`ApiClient.java`](src/System/ApiClient.java) | Pure Java HTTP networking client using `java.net.HttpURLConnection` (0 third-party dependencies, Java 8–21+ compatible). Asynchronously transmits quiz attempts to the Spring Boot backend in a background daemon thread while preserving local file persistence (`digiview-data.ser`) as an offline fallback. |
 | `sounds/` | Audio resources for UI interaction (`mixkit-select-click-1109.wav` on buttons and quiz options, background music, typing sounds). |
 
 ---
@@ -171,9 +171,9 @@ Digi_View_System/
 ### 3. Backend Service (`backend/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
-| [`schema.sql`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/schema.sql) | Supabase PostgreSQL database definition. Creates `users`, `quiz_records`, and `user_achievements` tables with foreign keys and performance indexes. |
-| [`application.properties`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/src/main/resources/application.properties) | Database connectivity configurations (JDBC SSL URL for Supabase, Hikari connection pool limits, port 8080). |
-| [`run-backend.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/run-backend.bat) | Batch script to start the Spring Boot server using Gradle. |
+| [`schema.sql`](backend/schema.sql) | Supabase PostgreSQL database definition. Creates `users`, `quiz_records`, and `user_achievements` tables with foreign keys and performance indexes. |
+| [`application.properties`](backend/src/main/resources/application.properties) | Database connectivity configurations (JDBC SSL URL for Supabase, Hikari connection pool limits, port 8080). |
+| [`run-backend.bat`](backend/run-backend.bat) | Batch script to start the Spring Boot server using Gradle. |
 | `controller/` | REST API layer handling HTTP requests: registration, authentication, quiz submissions, history queries, and leaderboard rankings. |
 | `entity/` | JPA mapping classes representing persistent database rows. |
 | `repository/` | Spring Data JPA interfaces providing automated CRUD and queries (`findByUsernameIgnoreCase`, `findTop50ByOrderByXpDesc`). |
@@ -197,13 +197,13 @@ Digi_View_System/
 ### A. Run Desktop App
 * **In Antigravity / VS Code:** Press **`F5`** or click **Run** above line 29 in `src/System/DigiView.java`.
 * **In NetBeans:** Press **`F6`** (Source/Binary level is set to universal `1.8`).
-* **From Windows:** Double-click [`run.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/run.bat).
+* **From Windows:** Double-click [`run.bat`](run.bat).
 
 ### B. Run Backend Server
-1. Run [`backend/schema.sql`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/schema.sql) in your [Supabase SQL Editor](https://supabase.com).
-2. Put your database password in [backend/src/main/resources/application.properties](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/src/main/resources/application.properties).
-3. Double-click [`backend/run-backend.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/backend/run-backend.bat).
+1. Run [`backend/schema.sql`](backend/schema.sql) in your [Supabase SQL Editor](https://supabase.com).
+2. Put your database password in [backend/src/main/resources/application.properties](backend/src/main/resources/application.properties).
+3. Double-click [`backend/run-backend.bat`](backend/run-backend.bat).
 
 ### C. Distribute to Other PCs (Zero Java Installation Required)
-* Run [`build-release.bat`](file:///c:/Users/131fgh/Desktop/Digi_View_System/build-release.bat).
+* Run [`build-release.bat`](build-release.bat).
 * Share `dist/DigiView-Portable.zip`. Users simply unzip and run `DigiView.bat`.

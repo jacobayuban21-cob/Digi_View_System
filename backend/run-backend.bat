@@ -17,12 +17,23 @@ if exist ".env" (
     )
 )
 
-set "GRADLE_BIN=C:\Users\131fgh\.gradle\wrapper\dists\gradle-8.13-bin\5xuhj0ry160q40clulazy9h7d\gradle-8.13\bin\gradle.bat"
-if not exist %GRADLE_BIN% (
-    set "GRADLE_BIN=C:\Users\131fgh\.gradle\wrapper\dists\gradle-8.14.3-bin\cv11ve7ro1n3o1j4so8xd9n66\gradle-8.14.3\bin\gradle.bat"
-)
+set "GRADLE_BIN="
+where gradle >nul 2>&1
+if %ERRORLEVEL% equ 0 set "GRADLE_BIN=gradle"
 
-if exist %GRADLE_BIN% (
+if not defined GRADLE_BIN (
+    if exist "%USERPROFILE%\.gradle\wrapper\dists" (
+        for /r "%USERPROFILE%\.gradle\wrapper\dists" %%G in (gradle.bat) do (
+            if exist "%%G" (
+                set "GRADLE_BIN="%%G""
+                goto :gradle_found
+            )
+        )
+    )
+)
+:gradle_found
+
+if defined GRADLE_BIN (
     call %GRADLE_BIN% bootRun
 ) else (
     where gradle >nul 2>nul
