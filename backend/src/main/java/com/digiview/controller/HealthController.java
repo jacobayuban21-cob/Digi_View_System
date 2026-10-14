@@ -65,24 +65,6 @@ public class HealthController {
                 .build();
     }
 
-    /**
-     * Dedicated Favicon endpoint to serve the official DigiView favicon.
-     */
-    @GetMapping(value = {"/favicon.ico", "/Favicon.ico"})
-    public ResponseEntity<byte[]> favicon() {
-        try {
-            ClassPathResource resource = new ClassPathResource("static/favicon.ico");
-            if (resource.exists()) {
-                try (InputStream is = resource.getInputStream()) {
-                    byte[] bytes = StreamUtils.copyToByteArray(is);
-                    return ResponseEntity.ok()
-                            .contentType(MediaType.parseMediaType("image/x-icon"))
-                            .body(bytes);
-                }
-            }
-        } catch (Exception ignored) {}
-        return ResponseEntity.notFound().build();
-    }
 
     /**
      * Dedicated REST API health endpoint (always returns JSON).

@@ -34,14 +34,55 @@ public class CorsConfig {
 
             @Override
             public void addResourceHandlers(ResourceHandlerRegistry registry) {
-                // Root folder mapping for public assets and symbol-based paths (@/public, @/Icons, @/sounds)
-                registry.addResourceHandler("/@/**", "/public/**", "/Icons/**", "/sounds/**")
+                // Static resources at root (e.g., /favicon.ico, /Splash-icon.png, /Icon.jpg)
+                registry.addResourceHandler("/**")
                         .addResourceLocations(
-                                "file:public/",
-                                "file:../public/",
-                                "file:../../public/",
                                 "classpath:/static/",
-                                "classpath:/public/"
+                                "classpath:/public/",
+                                "file:public/",
+                                "file:../public/"
+                        );
+
+                // Dedicated Icons mapping
+                registry.addResourceHandler("/Icons/**", "/icons/**")
+                        .addResourceLocations(
+                                "classpath:/static/Icons/",
+                                "classpath:/static/icons/",
+                                "classpath:/static/",
+                                "file:public/Icons/",
+                                "file:public/icons/",
+                                "file:../public/Icons/",
+                                "file:../public/icons/"
+                        );
+
+                // Dedicated Sounds mapping
+                registry.addResourceHandler("/sounds/**", "/Sounds/**")
+                        .addResourceLocations(
+                                "classpath:/static/sounds/",
+                                "classpath:/static/Sounds/",
+                                "classpath:/static/",
+                                "file:public/sounds/",
+                                "file:public/Sounds/",
+                                "file:../public/sounds/",
+                                "file:../public/Sounds/"
+                        );
+
+                // Public prefix mapping
+                registry.addResourceHandler("/public/**")
+                        .addResourceLocations(
+                                "classpath:/static/",
+                                "file:public/",
+                                "file:../public/"
+                        );
+
+                // Symbol '@' root mapping
+                registry.addResourceHandler("/@/**")
+                        .addResourceLocations(
+                                "classpath:/static/",
+                                "classpath:/static/Icons/",
+                                "classpath:/static/sounds/",
+                                "file:public/",
+                                "file:../public/"
                         );
             }
         };
