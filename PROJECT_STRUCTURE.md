@@ -51,6 +51,7 @@ Digi_View_System/
 ├── 📜 build.xml                  # Apache Ant build script for NetBeans IDE
 ├── 📜 manifest.mf                # JAR Manifest defining main entry point System.DigiView
 ├── 📜 run.bat                    # One-click desktop launcher (compiles & runs via javaw)
+├── ⚙️ render.yaml               # ☁️ Render Cloud Blueprint specification (Infrastructure as Code)
 ├── 📜 PROJECT_STRUCTURE.md       # Complete repository architecture and documentation
 ├── 🙈 .gitignore                 # Excludes build/, dist/, bin/, *.log, .gradle/, .env
 │
@@ -73,6 +74,8 @@ Digi_View_System/
 │       └── 🔊 mixkit-single-key-type-2533.wav
 │
 ├── 📁 backend/                   # ⚙️ SPRING BOOT & SUPABASE BACKEND
+│   ├── 🐳 Dockerfile             # Multi-stage production container for Render deployment
+│   ├── 📄 .dockerignore          # Excludes build caches and secrets from container image
 │   ├── 🔒 .env                   # Local secrets (gitignored, contains real Supabase password)
 │   ├── 📜 .env.example           # Safe template for credentials (committed to git)
 │   ├── 📜 build.gradle           # Spring Boot 3.3.4, JPA, PostgreSQL, Validation
@@ -93,19 +96,11 @@ Digi_View_System/
 │           ├── 📁 repository/               # Spring Data JPA Repositories
 │           │   ├── ☕ UserRepository.java
 │           │   ├── ☕ QuizRecordRepository.java
-│           │   └── ☕ AchievementRepository.java
-│           ├── 📁 dto/                      # Data Transfer Objects
-│           │   ├── ☕ ApiResponse.java      # Standard unified JSON response envelope
-│           │   ├── ☕ AuthRequest.java      # Login credentials
-│           │   ├── ☕ RegisterRequest.java  # Registration form payload
-│           │   ├── ☕ UserProfileDto.java   # Full profile with history & badges
-│           │   ├── ☕ QuizRecordDto.java    # Quiz attempt payload
-│           │   └── ☕ LeaderboardEntryDto.java # Student XP rankings
-│           └── 📁 controller/               # REST Endpoints
-│               ├── ☕ AuthController.java   # /api/auth/register, /api/auth/login
+│           │   └── ☕ Achieve│               ├── ☕ AuthController.java   # /api/auth/register, /api/auth/login
 │               ├── ☕ UserController.java   # /api/users/{username}, /api/users/{username}/xp
 │               ├── ☕ QuizController.java   # /api/quiz/record, /api/quiz/history/{username}
-│               └── ☕ LeaderboardController.java # /api/leaderboard
+│               ├── ☕ LeaderboardController.java # /api/leaderboard
+│               └── ☕ HealthController.java # /health, /, /api/health for Render uptime monitoring
 │
 ├── 📁 android/                   # 📱 ANDROID NATIVE PORT
 │   ├── 📜 build.gradle           # Root Gradle build file with Google & Maven repositories
@@ -134,13 +129,14 @@ Digi_View_System/
 │           │   └── 📁 layout/
 │           │       └── 📱 activity_quiz.xml # Exact layout replica of the interactive quiz
 │           └── 📁 java/com/digiview/lms/
+│               ├── ☕ MainActivity.java # Complete quiz activity with animations & backend sync
 │               ├── 📁 model/        # Android POJO models (User, QuizRecord, UserProfile, etc.)
 │               └── 📁 api/          # Retrofit API interface & client connecting to Spring Boot
 │
 └── 📁 dist/                      # 📦 PACKAGED BINARIES & RUNTIME
     ├── ☕ DigiViewSystem.jar     # Standalone runnable JAR
+    ├── 📱 DigiView-Android.apk   # Compiled Android mobile app
     └── 🗜️ DigiView-Portable.zip  # Zero-dependency Windows bundle with embedded Java 17 JRE
-```
 
 ---
 
@@ -153,6 +149,7 @@ Digi_View_System/
 | [`build-android.bat`](build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, creates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
 | [`manage-android.bat`](manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
 | [`build-release.bat`](build-release.bat) | Automated packaging pipeline. Compiles Java classes, packages `dist/DigiViewSystem.jar`, generates a minimal portable Java 17 runtime via `jlink`, and compresses everything into `dist/DigiView-Portable.zip` (~22 MB). |
+| [`render.yaml`](render.yaml) | Infrastructure as Code (IaC) blueprint for one-click deployment to Render. Configures Docker runtime, health check path, and environment variables. |
 | [`build.xml`](build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
 | [`manifest.mf`](manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |
 | [`.gitignore`](.gitignore) | Configured to ignore compiled bytecode (`bin/`, `build/`, `dist/`), temporary logs (`*.log`), and build cache directories (`.gradle/`). |
@@ -171,10 +168,12 @@ Digi_View_System/
 ### 3. Backend Service (`backend/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
+| [`Dockerfile`](backend/Dockerfile) | Production multi-stage Docker build. Compiles the Spring Boot JAR with Temurin 17 and packages a lightweight JRE image with tuned memory parameters (`-Xmx384m`) optimized for Render's 512MB RAM free tier. |
+| [`.dockerignore`](backend/.dockerignore) | Excludes build directories, caches, and `.env` credentials from the Docker build context. |
 | [`schema.sql`](backend/schema.sql) | Supabase PostgreSQL database definition. Creates `users`, `quiz_records`, and `user_achievements` tables with foreign keys and performance indexes. |
-| [`application.properties`](backend/src/main/resources/application.properties) | Database connectivity configurations (JDBC SSL URL for Supabase, Hikari connection pool limits, port 8080). |
+| [`application.properties`](backend/src/main/resources/application.properties) | Database connectivity configurations (JDBC SSL URL for Supabase, Hikari connection pool limits, dynamic `${PORT:8080}`). |
 | [`run-backend.bat`](backend/run-backend.bat) | Batch script to start the Spring Boot server using Gradle. |
-| `controller/` | REST API layer handling HTTP requests: registration, authentication, quiz submissions, history queries, and leaderboard rankings. |
+| `controller/` | REST API layer handling HTTP requests: registration, authentication, quiz submissions, history queries, leaderboard rankings, and `/health` uptime monitoring. |
 | `entity/` | JPA mapping classes representing persistent database rows. |
 | `repository/` | Spring Data JPA interfaces providing automated CRUD and queries (`findByUsernameIgnoreCase`, `findTop50ByOrderByXpDesc`). |
 | `dto/` | Request and response data transfer objects including a unified `ApiResponse<T>` wrapper. |
@@ -188,6 +187,7 @@ Digi_View_System/
 | `res/drawable/` | Custom XML shapes and selectors reproducing Swing custom painting: gradients (`GradientPanel`), 22dp rounded containers (`RoundedPanel`), and quiz option state changes (Normal, Selected, Correct, Wrong). |
 | `res/anim/` | Micro-animations including `card_pop.xml` (overshoot scale bounce on selection) and smooth alpha transitions (`fade_in.xml`, `slide_up.xml`). |
 | `res/layout/activity_quiz.xml` | XML layout mirroring the desktop quiz interface: Title header, live hearts counter, exit button, question card, A/B/C/D option cards, feedback text, and action buttons. |
+| [`MainActivity.java`](android/app/src/main/java/com/digiview/lms/MainActivity.java) | Complete native quiz controller matching desktop behavior, hearts system, score calculation, and background Spring Boot synchronization. |
 | `api/` & `model/` | Type-safe Retrofit 2 networking client connecting directly to the Spring Boot REST endpoints. |
 
 ---
@@ -199,11 +199,18 @@ Digi_View_System/
 * **In NetBeans:** Press **`F6`** (Source/Binary level is set to universal `1.8`).
 * **From Windows:** Double-click [`run.bat`](run.bat).
 
-### B. Run Backend Server
+### B. Run Backend Server (Locally)
 1. Run [`backend/schema.sql`](backend/schema.sql) in your [Supabase SQL Editor](https://supabase.com).
-2. Put your database password in [backend/src/main/resources/application.properties](backend/src/main/resources/application.properties).
+2. Configure your credentials in `backend/.env`.
 3. Double-click [`backend/run-backend.bat`](backend/run-backend.bat).
 
-### C. Distribute to Other PCs (Zero Java Installation Required)
+### C. Deploy Backend to Render (Cloud Hosting)
+1. In your [Render Dashboard](https://dashboard.render.com), click **New** &rarr; **Blueprint** (or **Web Service**).
+2. Connect your GitHub repository.
+3. Render automatically detects [`render.yaml`](render.yaml) and builds via [`backend/Dockerfile`](backend/Dockerfile).
+4. Enter your 3 environment variables in Render (`SUPABASE_DB_URL`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`).
+5. Render deploys your backend live with automatic SSL (`https://digiview-backend.onrender.com`) and validates `/health`!
+
+### D. Distribute Desktop App to Other PCs
 * Run [`build-release.bat`](build-release.bat).
 * Share `dist/DigiView-Portable.zip`. Users simply unzip and run `DigiView.bat`.

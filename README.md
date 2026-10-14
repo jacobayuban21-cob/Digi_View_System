@@ -73,7 +73,7 @@ Follow these 3 simple steps to connect the app to the cloud database:
 
 ---
 
-### Step 3: Start the Backend Server
+### Step 3: Start the Backend Server Locally
 Double-click [`backend/run-backend.bat`](backend/run-backend.bat).
 
 You will see:
@@ -86,6 +86,26 @@ You will see:
 Started DigiViewApplication in 2.5 seconds (process running at port 8080)
 ```
 Your backend is now live at `http://localhost:8080`!
+
+---
+
+### Step 4: Deploying to Render (Free 24/7 Cloud Hosting)
+
+The backend is pre-configured for **Render** via [`render.yaml`](render.yaml) and [`backend/Dockerfile`](backend/Dockerfile):
+
+1. Go to [render.com](https://render.com) and sign in.
+2. Click **New +** &rarr; select **Blueprint** (or **Web Service**).
+3. Connect your GitHub repository (`Digi_View_System`).
+4. Render automatically detects [`render.yaml`](render.yaml), sets the Docker runtime, and configures the `/health` endpoint.
+5. In the **Environment Variables** prompt, fill in your Supabase credentials:
+   * `SUPABASE_DB_URL` &rarr; Your Supabase JDBC URL
+   * `SUPABASE_DB_USER` &rarr; `postgres`
+   * `SUPABASE_DB_PASSWORD` &rarr; Your Supabase database password
+6. Click **Apply / Deploy**.
+7. Render will build the lightweight container and launch your backend with free SSL at:
+   🌐 `https://digiview-backend.onrender.com`
+
+> 💡 **Tip:** Render monitors [`/health`](/health) automatically. Whenever you push new commits to your GitHub branch, Render automatically redeploys with zero downtime!
 
 ---
 

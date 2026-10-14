@@ -4,6 +4,8 @@ bin/
 *.log
 .gradle/
 */.gradle/
+**/build/
+backend/build/
 
 # Secrets and environment files (NEVER commit credentials)
 .env
