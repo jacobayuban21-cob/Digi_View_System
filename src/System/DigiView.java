@@ -130,44 +130,169 @@ class DigiViewLMS extends JFrame {
     }
     
     
-        private Clip clickClip;
-        
-private void playClickSound() {
-    try {
-        if (clickClip == null) {
-            File soundFile = new File(
-                "src/System/sounds/mixkit-select-click-1109.wav"
-            );
+    private static DigiViewLMS activeInstance;
+    private static final int CLICK_POOL_SIZE = 6;
+    private Clip[] clickClips = new Clip[CLICK_POOL_SIZE];
+    private int currentClipIndex = 0;
+    private byte[] clickAudioBytes;
+    private Clip musicClip;
+    private boolean musicEnabled = true;
+    private long lastClickTime = 0;
 
-            if (!soundFile.exists()) {
-                System.out.println(
-                    "Sound file not found: "
-                    + soundFile.getAbsolutePath()
-                );
-                return;
+    private static InputStream getAudioResourceStream(String filename) {
+        try {
+            InputStream is = DigiView.class.getResourceAsStream("/System/sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getResourceAsStream("sounds/" + filename);
+            if (is != null) return is;
+            is = DigiView.class.getClassLoader().getResourceAsStream("System/sounds/" + filename);
+            if (is != null) return is;
+            File f = new File("src/System/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = new File("bin/System/sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+            f = new File("sounds/" + filename);
+            if (f.exists()) return new FileInputStream(f);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private void initAudio() {
+        activeInstance = this;
+        new Thread(() -> {
+            // 1. Preload Click Sound into memory and pool of 6 clips
+            try {
+                InputStream is = getAudioResourceStream("mixkit-select-click-1109.wav");
+                if (is != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192];
+                    int r;
+                    while ((r = is.read(buf)) != -1) baos.write(buf, 0, r);
+                    is.close();
+                    clickAudioBytes = baos.toByteArray();
+
+                    for (int i = 0; i < CLICK_POOL_SIZE; i++) {
+                        try {
+                            ByteArrayInputStream bais = new ByteArrayInputStream(clickAudioBytes);
+                            AudioInputStream ais = AudioSystem.getAudioInputStream(bais);
+                            Clip clip = AudioSystem.getClip();
+                            clip.open(ais);
+                            clickClips[i] = clip;
+                        } catch (Exception e) {
+                            System.err.println("Click clip pool item " + i + " init failed: " + e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to preload click audio: " + e.getMessage());
             }
 
-            AudioInputStream audioStream =
-                AudioSystem.getAudioInputStream(soundFile);
+            // 2. Global AWT Event Listener for instant, 100% consistent click feedback
+            try {
+                Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+                    if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+                        Object src = event.getSource();
+                        if (src instanceof AbstractButton || src instanceof JComboBox || src instanceof JTabbedPane) {
+                            playClick();
+                        }
+                    }
+                }, AWTEvent.MOUSE_EVENT_MASK);
+            } catch (Exception ignored) {}
 
-            clickClip = AudioSystem.getClip();
-            clickClip.open(audioStream);
-            audioStream.close();
-        }
-
-        if (clickClip.isRunning()) {
-            clickClip.stop();
-        }
-
-        clickClip.setFramePosition(0);
-        clickClip.start();
-
-    } catch (Exception e) {
-        System.out.println(
-            "Hindi ma-play ang click sound: " + e.getMessage()
-        );
+            // 3. Start ambient background study music automatically
+            startBackgroundMusic();
+        }, "DigiView-AudioEngine").start();
     }
-}
+
+    public static void playClick() {
+        if (activeInstance != null) {
+            activeInstance.playClickSound();
+        }
+    }
+
+    public void playClickSound() {
+        long now = System.currentTimeMillis();
+        if (now - lastClickTime < 70) {
+            return; // Throttle to prevent duplicate sound on rapid events
+        }
+        lastClickTime = now;
+
+        try {
+            if (clickClips != null && clickClips.length > 0) {
+                synchronized (clickClips) {
+                    Clip c = clickClips[currentClipIndex];
+                    currentClipIndex = (currentClipIndex + 1) % clickClips.length;
+                    if (c != null) {
+                        if (c.isRunning()) c.stop();
+                        c.setFramePosition(0);
+                        c.start();
+                        return;
+                    }
+                }
+            }
+            // Fallback if pool not yet ready
+            if (clickAudioBytes != null) {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(new ByteArrayInputStream(clickAudioBytes));
+                Clip c = AudioSystem.getClip();
+                c.open(ais);
+                c.addLineListener(ev -> {
+                    if (ev.getType() == LineEvent.Type.STOP) c.close();
+                });
+                c.start();
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public synchronized void startBackgroundMusic() {
+        if (!musicEnabled) return;
+        try {
+            if (musicClip != null && musicClip.isRunning()) return;
+
+            if (musicClip == null) {
+                InputStream is = getAudioResourceStream("freesound_community-relax-32200.wav");
+                if (is == null) {
+                    System.out.println("Music file not found: freesound_community-relax-32200.wav");
+                    return;
+                }
+                AudioInputStream ais = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
+                musicClip = AudioSystem.getClip();
+                musicClip.open(ais);
+
+                try {
+                    if (musicClip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                        FloatControl gain = (FloatControl) musicClip.getControl(FloatControl.Type.MASTER_GAIN);
+                        gain.setValue(-8.0f); // Pleasant background study music volume
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            musicClip.setFramePosition(0);
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+        } catch (Throwable t) {
+            System.err.println("Background music start failed: " + t.getMessage());
+        }
+    }
+
+    public synchronized void stopBackgroundMusic() {
+        try {
+            if (musicClip != null && musicClip.isRunning()) {
+                musicClip.stop();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public synchronized void toggleBackgroundMusic() {
+        musicEnabled = !musicEnabled;
+        if (musicEnabled) {
+            startBackgroundMusic();
+        } else {
+            stopBackgroundMusic();
+        }
+    }
+
+    public synchronized boolean isMusicPlaying() {
+        return musicEnabled && musicClip != null && musicClip.isRunning();
+    }
         
         private int quizHearts = 5;
 
@@ -423,6 +548,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     
     public DigiViewLMS() {
         loadData();
+        initAudio();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(860, 600));
@@ -479,6 +605,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         boolean active) {
 
     JButton b = new JButton(icon + "   " + title);
+    b.addActionListener(e -> playClick());
 
     b.setUI(new BasicButtonUI());
     b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -972,6 +1099,7 @@ private JPanel authCard(String heading, String subtitle) {
             setMinimumSize(new Dimension(100, 52));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
             setAlignmentX(Component.CENTER_ALIGNMENT);
+            addActionListener(e -> playClick());
         }
 
         @Override
@@ -1331,8 +1459,17 @@ private JPanel authCard(String heading, String subtitle) {
         userCard.add(new AvatarBadge(currentUser.username.substring(0, 1), 42));
         userCard.add(info);
         sidebar.add(userCard);
-        sidebar.add(Box.createVerticalStrut(14));
-
+        RoundedButton musicBtn = new RoundedButton(isMusicPlaying() ? "🎵   Music: ON" : "🔇   Music: OFF", false);
+        musicBtn.setForeground(new Color(160, 185, 215));
+        musicBtn.setPreferredSize(new Dimension(200, 42));
+        musicBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        musicBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        musicBtn.addActionListener(e -> {
+            toggleBackgroundMusic();
+            musicBtn.setText(isMusicPlaying() ? "🎵   Music: ON" : "🔇   Music: OFF");
+        });
+        sidebar.add(musicBtn);
+        sidebar.add(Box.createVerticalStrut(8));
 
         RoundedButton logout = new RoundedButton("\uD83D\uDEAA   Logout", false);
         logout.setForeground(new Color(200, 212, 230));

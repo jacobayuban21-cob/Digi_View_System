@@ -176,6 +176,66 @@ public class MainActivity extends AppCompatActivity {
 
         // Greet user with Desktop-matching Login screen initially
         showAuthScreen();
+
+        // Start study background music automatically
+        SoundManager.getInstance(this).startRelaxMusic(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SoundManager.getInstance(this).startRelaxMusic(this);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            SoundManager.getInstance(this).startRelaxMusic(this);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        SoundManager.getInstance(this).pauseMusic();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (ev.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+            View target = findClickableViewAt(getWindow().getDecorView(), (int) ev.getRawX(), (int) ev.getRawY());
+            if (target != null) {
+                SoundManager.getInstance(this).playClick();
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private View findClickableViewAt(View root, int rawX, int rawY) {
+        if (root == null || root.getVisibility() != View.VISIBLE) return null;
+        int[] loc = new int[2];
+        root.getLocationOnScreen(loc);
+        int x = loc[0], y = loc[1];
+        int w = root.getWidth(), h = root.getHeight();
+        if (rawX < x || rawX > x + w || rawY < y || rawY > y + h) {
+            return null;
+        }
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                View childTarget = findClickableViewAt(group.getChildAt(i), rawX, rawY);
+                if (childTarget != null) return childTarget;
+            }
+        }
+        if (root.isClickable() || root.isFocusable() || root.hasOnClickListeners()
+                || root instanceof android.widget.Checkable
+                || root instanceof android.widget.Button
+                || root instanceof android.widget.EditText
+                || root instanceof android.widget.Spinner) {
+            return root;
+        }
+        return null;
     }
 
     // =========================================================================
