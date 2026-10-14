@@ -46,32 +46,68 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_GENDER = "gender";
     private static final String KEY_XP = "xp";
     private static final String KEY_HISTORY = "history_json";
+    private static final String KEY_USERS_JSON = "users_map_json";
+
+    // User Entry for Multi-User Local Persistence
+    private static class UserEntry {
+        final String username;
+        final String password;
+        final String fullName;
+        final String gradeSection;
+        final String gender;
+        int xp;
+
+        UserEntry(String username, String password, String fullName, String gradeSection, String gender, int xp) {
+            this.username = username;
+            this.password = password;
+            this.fullName = fullName;
+            this.gradeSection = gradeSection;
+            this.gender = gender;
+            this.xp = xp;
+        }
+    }
+    private final Map<String, UserEntry> usersMap = new HashMap<>();
 
     // User State
     private String currentUsername = "student";
     private String currentFullName = "Student User";
     private String currentSection = "Grade 11 - STEM A";
-    private String currentGender = "Not specified";
+    private String currentGender = "Male";
     private int currentXp = 0;
+    private boolean isLoggedIn = false;
 
     // Top Bar Views
     private TextView tvTopXp, tvTopLevel, topAvatar;
 
+    // Fullscreen Auth Overlay Views
+    private FrameLayout authScreenContainer;
+    private View authLoginCard, authRegisterCard;
+    private EditText etLoginUsername, etLoginPassword;
+    private TextView tvLoginServerText, tvQuickDemoLogin;
+    private View btnLoginServerPill;
+    private MaterialButton btnDoLogin, btnGoToRegister;
+    private EditText etRegFullName, etRegGrade, etRegSection, etRegPassword, etRegConfirmPassword;
+    private Spinner spRegGender;
+    private MaterialButton btnDoRegister;
+    private TextView btnGoToLogin;
+
     // Content Frame
     private FrameLayout contentContainer;
 
-    // Bottom Navigation Views
-    private LinearLayout[] navItems = new LinearLayout[5];
-    private TextView[] navIcons = new TextView[5];
-    private TextView[] navLabels = new TextView[5];
+    // Bottom Navigation Views (6 Desktop Sections)
+    private static final int NUM_PAGES = 6;
+    private LinearLayout[] navItems = new LinearLayout[NUM_PAGES];
+    private TextView[] navIcons = new TextView[NUM_PAGES];
+    private TextView[] navLabels = new TextView[NUM_PAGES];
     private int activePageIndex = 0;
 
     // Cache of Inflated Views
     private View viewDashboard;
     private View viewLessons;
     private View viewQuizHub;
-    private View viewProfile;
+    private View viewAchievements;
     private View viewHistory;
+    private View viewProfile;
 
     // Lessons Curriculum Model
     private static class LessonItem {
@@ -130,9 +166,13 @@ public class MainActivity extends AppCompatActivity {
 
         bindTopBar();
         bindBottomNav();
+        bindAuthScreen();
 
-        // Start on Dashboard
+        // Start on Dashboard underneath
         switchPage(0);
+
+        // Greet user with Desktop-matching Login screen initially
+        showAuthScreen();
     }
 
     // =========================================================================
@@ -146,8 +186,41 @@ public class MainActivity extends AppCompatActivity {
         currentUsername = sp.getString(KEY_USERNAME, "student");
         currentFullName = sp.getString(KEY_FULL_NAME, "Student User");
         currentSection = sp.getString(KEY_SECTION, "Grade 11 - STEM A");
-        currentGender = sp.getString(KEY_GENDER, "Not specified");
+        currentGender = sp.getString(KEY_GENDER, "Male");
         currentXp = sp.getInt(KEY_XP, 0);
+
+        // Load Local Users Map
+        usersMap.clear();
+        String usersJson = sp.getString(KEY_USERS_JSON, "");
+        if (!usersJson.isEmpty()) {
+            try {
+                JSONObject obj = new JSONObject(usersJson);
+                Iterator<String> keys = obj.keys();
+                while (keys.hasNext()) {
+                    String k = keys.next();
+                    JSONObject u = obj.getJSONObject(k);
+                    usersMap.put(k.toLowerCase(Locale.ROOT), new UserEntry(
+                            u.optString("username", k),
+                            u.optString("password", "admin123"),
+                            u.optString("fullName", "Student User"),
+                            u.optString("gradeSection", "Grade 11 - STEM A"),
+                            u.optString("gender", "Male"),
+                            u.optInt("xp", 0)
+                    ));
+                }
+            } catch (Exception ignored) {}
+        }
+        // Seed default demo account matching Desktop
+        if (!usersMap.containsKey("student")) {
+            usersMap.put("student", new UserEntry(
+                    "student",
+                    "admin123",
+                    "Student User",
+                    "Grade 11 - STEM A",
+                    "Male",
+                    120
+            ));
+        }
 
         historyRecords.clear();
         String jsonHistory = sp.getString(KEY_HISTORY, "[]");
@@ -176,6 +249,29 @@ public class MainActivity extends AppCompatActivity {
         ed.putString(KEY_SECTION, currentSection);
         ed.putString(KEY_GENDER, currentGender);
         ed.putInt(KEY_XP, currentXp);
+
+        // Update active user in local map
+        if (!currentUsername.isEmpty()) {
+            UserEntry cur = usersMap.get(currentUsername.toLowerCase(Locale.ROOT));
+            String pw = cur != null ? cur.password : "admin123";
+            usersMap.put(currentUsername.toLowerCase(Locale.ROOT),
+                    new UserEntry(currentUsername, pw, currentFullName, currentSection, currentGender, currentXp));
+        }
+
+        JSONObject usersObj = new JSONObject();
+        for (Map.Entry<String, UserEntry> entry : usersMap.entrySet()) {
+            try {
+                JSONObject u = new JSONObject();
+                u.put("username", entry.getValue().username);
+                u.put("password", entry.getValue().password);
+                u.put("fullName", entry.getValue().fullName);
+                u.put("gradeSection", entry.getValue().gradeSection);
+                u.put("gender", entry.getValue().gender);
+                u.put("xp", entry.getValue().xp);
+                usersObj.put(entry.getKey(), u);
+            } catch (Exception ignored) {}
+        }
+        ed.putString(KEY_USERS_JSON, usersObj.toString());
 
         JSONArray arr = new JSONArray();
         for (QuizRecord r : historyRecords) {
@@ -206,7 +302,22 @@ public class MainActivity extends AppCompatActivity {
 
         topAvatar.setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            showAuthModal();
+            PopupMenu popup = new PopupMenu(this, topAvatar);
+            popup.getMenu().add(0, 1, 0, "👤 View Profile");
+            popup.getMenu().add(0, 2, 1, "☁️ Server & Sync");
+            popup.getMenu().add(0, 3, 2, "🚪 Logout");
+            popup.setOnMenuItemClickListener(item -> {
+                SoundManager.getInstance(this).playClick();
+                if (item.getItemId() == 1) {
+                    switchPage(5);
+                } else if (item.getItemId() == 2) {
+                    showAuthModal();
+                } else if (item.getItemId() == 3) {
+                    performLogout();
+                }
+                return true;
+            });
+            popup.show();
         });
 
         View topCloud = findViewById(R.id.topCloudPill);
@@ -234,24 +345,29 @@ public class MainActivity extends AppCompatActivity {
         navItems[0] = findViewById(R.id.navDashboard);
         navItems[1] = findViewById(R.id.navLessons);
         navItems[2] = findViewById(R.id.navQuiz);
-        navItems[3] = findViewById(R.id.navProfile);
+        navItems[3] = findViewById(R.id.navAchievements);
         navItems[4] = findViewById(R.id.navHistory);
+        navItems[5] = findViewById(R.id.navProfile);
 
         navIcons[0] = findViewById(R.id.iconNavDashboard);
         navIcons[1] = findViewById(R.id.iconNavLessons);
         navIcons[2] = findViewById(R.id.iconNavQuiz);
-        navIcons[3] = findViewById(R.id.iconNavProfile);
+        navIcons[3] = findViewById(R.id.iconNavAchievements);
         navIcons[4] = findViewById(R.id.iconNavHistory);
+        navIcons[5] = findViewById(R.id.iconNavProfile);
 
         navLabels[0] = findViewById(R.id.labelNavDashboard);
         navLabels[1] = findViewById(R.id.labelNavLessons);
         navLabels[2] = findViewById(R.id.labelNavQuiz);
-        navLabels[3] = findViewById(R.id.labelNavProfile);
+        navLabels[3] = findViewById(R.id.labelNavAchievements);
         navLabels[4] = findViewById(R.id.labelNavHistory);
+        navLabels[5] = findViewById(R.id.labelNavProfile);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < NUM_PAGES; i++) {
             final int page = i;
-            navItems[i].setOnClickListener(v -> switchPage(page));
+            if (navItems[i] != null) {
+                navItems[i].setOnClickListener(v -> switchPage(page));
+            }
         }
     }
 
@@ -263,10 +379,12 @@ public class MainActivity extends AppCompatActivity {
         int cyanColor = getResources().getColor(R.color.cyan, getTheme());
         int mutedColor = getResources().getColor(R.color.muted, getTheme());
 
-        for (int i = 0; i < 5; i++) {
-            boolean isActive = (i == index);
-            navLabels[i].setTextColor(isActive ? cyanColor : mutedColor);
-            navLabels[i].setTextSize(isActive ? 11.5f : 11.0f);
+        for (int i = 0; i < NUM_PAGES; i++) {
+            if (navLabels[i] != null) {
+                boolean isActive = (i == index);
+                navLabels[i].setTextColor(isActive ? cyanColor : mutedColor);
+                navLabels[i].setTextSize(isActive ? 11.0f : 10.5f);
+            }
         }
 
         // Animate Page Transition
@@ -279,8 +397,9 @@ public class MainActivity extends AppCompatActivity {
         // Refresh dynamic view contents
         if (index == 0) refreshDashboardView();
         else if (index == 1) refreshLessonsView();
-        else if (index == 3) refreshProfileView();
+        else if (index == 3) refreshAchievementsView();
         else if (index == 4) refreshHistoryView();
+        else if (index == 5) refreshProfileView();
     }
 
     private View getOrCreatePageView(int index) {
@@ -299,11 +418,14 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return viewQuizHub;
             case 3:
-                if (viewProfile == null) viewProfile = inflater.inflate(R.layout.layout_profile, contentContainer, false);
-                return viewProfile;
+                if (viewAchievements == null) viewAchievements = inflater.inflate(R.layout.layout_achievements, contentContainer, false);
+                return viewAchievements;
             case 4:
                 if (viewHistory == null) viewHistory = inflater.inflate(R.layout.layout_history, contentContainer, false);
                 return viewHistory;
+            case 5:
+                if (viewProfile == null) viewProfile = inflater.inflate(R.layout.layout_profile, contentContainer, false);
+                return viewProfile;
             default:
                 return new View(this);
         }
@@ -779,6 +901,397 @@ public class MainActivity extends AppCompatActivity {
             SoundManager.getInstance(this).playClick();
             showAuthModal();
         });
+
+        View btnLogout = viewProfile.findViewById(R.id.btnProfileLogout);
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                performLogout();
+            });
+        }
+    }
+
+    // =========================================================================
+    // 7. ACHIEVEMENTS PAGE (EXACT 9 DESKTOP ACHIEVEMENTS)
+    // =========================================================================
+    private static class AchievementItem {
+        final String icon;
+        final String title;
+        final String description;
+        final int current;
+        final int target;
+
+        AchievementItem(String icon, String title, String description, int current, int target) {
+            this.icon = icon;
+            this.title = title;
+            this.description = description;
+            this.current = current;
+            this.target = target;
+        }
+
+        boolean isUnlocked() {
+            return current >= target;
+        }
+    }
+
+    private boolean hasPassedDifficulty(String diff) {
+        for (QuizRecord r : historyRecords) {
+            if (r.getQuiz().toLowerCase(Locale.ROOT).contains(diff.toLowerCase(Locale.ROOT))
+                    && !r.getQuiz().contains("Exited")
+                    && r.getPercent() >= 70) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void refreshAchievementsView() {
+        if (viewAchievements == null) return;
+
+        int taken = historyRecords.size();
+        int xp = currentXp;
+        boolean passedAny = false;
+        boolean perfect = false;
+        for (QuizRecord r : historyRecords) {
+            if (!r.getQuiz().contains("Exited") && r.getPercent() >= 70) passedAny = true;
+            if (r.getPercent() == 100) perfect = true;
+        }
+
+        AchievementItem[] items = new AchievementItem[] {
+            new AchievementItem("🎯", "First Quiz", "Complete at least one quiz.", taken, 1),
+            new AchievementItem("⭐", "HTML Quiz Pass", "Earn 70% or higher on a quiz.", passedAny ? 1 : 0, 1),
+            new AchievementItem("🏆", "Perfect Score", "Get every question correct in a quiz.", perfect ? 1 : 0, 1),
+            new AchievementItem("🌱", "Easy Master", "Pass the Easy quiz.", hasPassedDifficulty("Beginner") || hasPassedDifficulty("Easy") ? 1 : 0, 1),
+            new AchievementItem("⚡", "Medium Master", "Pass the Medium quiz.", hasPassedDifficulty("Intermediate") || hasPassedDifficulty("Medium") ? 1 : 0, 1),
+            new AchievementItem("🔥", "Hard Master", "Pass the Hard quiz.", hasPassedDifficulty("Advanced") || hasPassedDifficulty("Hard") ? 1 : 0, 1),
+            new AchievementItem("📈", "Level Up", "Reach Level 2 (100 XP).", xp, 100),
+            new AchievementItem("📚", "Persistent Learner", "Complete 5 quizzes.", taken, 5),
+            new AchievementItem("💎", "XP Collector", "Earn 500 XP.", xp, 500)
+        };
+
+        int unlockedCount = 0;
+        for (AchievementItem item : items) {
+            if (item.isUnlocked()) unlockedCount++;
+        }
+
+        TextView tvSubtitle = viewAchievements.findViewById(R.id.tvAchievementsSubtitle);
+        ProgressBar overallBar = viewAchievements.findViewById(R.id.achievementsOverallBar);
+        if (tvSubtitle != null) {
+            tvSubtitle.setText(unlockedCount + " of " + items.length + " unlocked — achievements are based on your quiz results.");
+        }
+        if (overallBar != null) {
+            overallBar.setProgress((unlockedCount * 100) / items.length);
+        }
+
+        LinearLayout container = viewAchievements.findViewById(R.id.achievementsListContainer);
+        if (container == null) return;
+        container.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (AchievementItem item : items) {
+            View card = inflater.inflate(R.layout.item_achievement_card, container, false);
+            TextView tvIcon = card.findViewById(R.id.tvAchIcon);
+            TextView tvStatus = card.findViewById(R.id.tvAchStatus);
+            TextView tvTitle = card.findViewById(R.id.tvAchTitle);
+            TextView tvDesc = card.findViewById(R.id.tvAchDesc);
+            TextView tvProgText = card.findViewById(R.id.tvAchProgressText);
+            ProgressBar pb = card.findViewById(R.id.achProgressBar);
+
+            tvIcon.setText(item.icon);
+            tvTitle.setText(item.title);
+            tvDesc.setText(item.description);
+
+            int shown = Math.min(item.current, item.target);
+            int percent = Math.min(100, (item.current * 100) / item.target);
+            tvProgText.setText(shown + " / " + item.target);
+            pb.setProgress(percent);
+
+            if (item.isUnlocked()) {
+                tvStatus.setText("✓ Unlocked");
+                tvStatus.setTextColor(getResources().getColor(R.color.green, getTheme()));
+                tvTitle.setTextColor(getResources().getColor(R.color.text_white, getTheme()));
+                tvProgText.setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+            } else {
+                tvStatus.setText("🔒 Locked");
+                tvStatus.setTextColor(getResources().getColor(R.color.amber, getTheme()));
+                tvTitle.setTextColor(getResources().getColor(R.color.muted, getTheme()));
+                tvProgText.setTextColor(getResources().getColor(R.color.muted, getTheme()));
+            }
+
+            container.addView(card);
+        }
+    }
+
+    // =========================================================================
+    // 8. AUTHENTICATION SCREEN (DESKTOP REPLICA LOGIN & REGISTER)
+    // =========================================================================
+    private void bindAuthScreen() {
+        authScreenContainer = findViewById(R.id.authScreenContainer);
+        authLoginCard = findViewById(R.id.authLoginCard);
+        authRegisterCard = findViewById(R.id.authRegisterCard);
+
+        etLoginUsername = findViewById(R.id.etLoginUsername);
+        etLoginPassword = findViewById(R.id.etLoginPassword);
+        btnLoginServerPill = findViewById(R.id.btnLoginServerPill);
+        tvLoginServerText = findViewById(R.id.tvLoginServerText);
+        btnDoLogin = findViewById(R.id.btnDoLogin);
+        btnGoToRegister = findViewById(R.id.btnGoToRegister);
+        tvQuickDemoLogin = findViewById(R.id.tvQuickDemoLogin);
+
+        etRegFullName = findViewById(R.id.etRegFullName);
+        etRegGrade = findViewById(R.id.etRegGrade);
+        etRegSection = findViewById(R.id.etRegSection);
+        spRegGender = findViewById(R.id.spRegGender);
+        etRegPassword = findViewById(R.id.etRegPassword);
+        etRegConfirmPassword = findViewById(R.id.etRegConfirmPassword);
+        btnDoRegister = findViewById(R.id.btnDoRegister);
+        btnGoToLogin = findViewById(R.id.btnGoToLogin);
+
+        if (spRegGender != null) {
+            ArrayAdapter<String> genderAdapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    new String[]{"Select gender", "Male", "Female", "Prefer not to say"});
+            spRegGender.setAdapter(genderAdapter);
+        }
+
+        if (btnGoToRegister != null) {
+            btnGoToRegister.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                authLoginCard.setVisibility(View.GONE);
+                authRegisterCard.setVisibility(View.VISIBLE);
+                Animation anim = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+                authRegisterCard.startAnimation(anim);
+            });
+        }
+
+        if (btnGoToLogin != null) {
+            btnGoToLogin.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                authRegisterCard.setVisibility(View.GONE);
+                authLoginCard.setVisibility(View.VISIBLE);
+                Animation anim = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+                authLoginCard.startAnimation(anim);
+            });
+        }
+
+        if (tvQuickDemoLogin != null) {
+            tvQuickDemoLogin.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                if (etLoginUsername != null) etLoginUsername.setText("student");
+                if (etLoginPassword != null) etLoginPassword.setText("admin123");
+                Toast.makeText(this, "Default credentials filled!", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnLoginServerPill != null) {
+            btnLoginServerPill.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                showAuthModal();
+            });
+        }
+
+        if (btnDoLogin != null) {
+            btnDoLogin.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                String u = etLoginUsername != null ? etLoginUsername.getText().toString().trim() : "";
+                String p = etLoginPassword != null ? etLoginPassword.getText().toString().trim() : "";
+                performLogin(u, p);
+            });
+        }
+
+        if (btnDoRegister != null) {
+            btnDoRegister.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                performRegister();
+            });
+        }
+    }
+
+    private void showAuthScreen() {
+        if (authScreenContainer != null) {
+            authScreenContainer.setVisibility(View.VISIBLE);
+            if (authLoginCard != null) {
+                authLoginCard.setVisibility(View.VISIBLE);
+                Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+                authLoginCard.startAnimation(fadeIn);
+            }
+            if (authRegisterCard != null) {
+                authRegisterCard.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private void hideAuthScreen() {
+        if (authScreenContainer != null) {
+            Animation fadeOut = AnimationUtils.loadAnimation(this, android.R.anim.fade_out);
+            fadeOut.setDuration(250);
+            fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                @Override public void onAnimationStart(Animation animation) {}
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    authScreenContainer.setVisibility(View.GONE);
+                }
+                @Override public void onAnimationRepeat(Animation animation) {}
+            });
+            authScreenContainer.startAnimation(fadeOut);
+        }
+    }
+
+    private void performLogin(String username, String password) {
+        if (username.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Please enter both username and password.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        UserEntry entry = usersMap.get(username.toLowerCase(Locale.ROOT));
+        if (entry != null && entry.password.equals(password)) {
+            currentUsername = entry.username;
+            currentFullName = entry.fullName;
+            currentSection = entry.gradeSection;
+            currentGender = entry.gender;
+            currentXp = entry.xp;
+            isLoggedIn = true;
+            saveUserData();
+
+            hideAuthScreen();
+            switchPage(0);
+            Toast.makeText(this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
+
+            try {
+                ApiClient.getApi().login(new com.digiview.lms.model.AuthRequest(username, password))
+                        .enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
+                            @Override
+                            public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
+                            @Override
+                            public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
+                        });
+            } catch (Exception ignored) {}
+            return;
+        }
+
+        Toast.makeText(this, "Authenticating with server...", Toast.LENGTH_SHORT).show();
+        try {
+            ApiClient.getApi().login(new com.digiview.lms.model.AuthRequest(username, password))
+                    .enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {
+                            if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
+                                com.digiview.lms.model.User u = response.body().data;
+                                currentUsername = u.username != null ? u.username : username;
+                                currentFullName = u.fullName != null ? u.fullName : username;
+                                currentSection = u.gradeSection != null ? u.gradeSection : "Grade 11";
+                                currentGender = u.gender != null ? u.gender : "Not specified";
+                                currentXp = u.xp;
+                                isLoggedIn = true;
+
+                                UserEntry newEntry = new UserEntry(currentUsername, password, currentFullName, currentSection, currentGender, currentXp);
+                                usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newEntry);
+                                saveUserData();
+
+                                hideAuthScreen();
+                                switchPage(0);
+                                Toast.makeText(MainActivity.this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(MainActivity.this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {
+                            Toast.makeText(MainActivity.this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        } catch (Exception ex) {
+            Toast.makeText(this, "Invalid username or password.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void performRegister() {
+        String name = etRegFullName != null ? etRegFullName.getText().toString().trim() : "";
+        String gr = etRegGrade != null ? etRegGrade.getText().toString().trim() : "";
+        String sec = etRegSection != null ? etRegSection.getText().toString().trim() : "";
+        String gender = spRegGender != null && spRegGender.getSelectedItem() != null ? spRegGender.getSelectedItem().toString() : "";
+        int genderIndex = spRegGender != null ? spRegGender.getSelectedItemPosition() : 0;
+        String pw = etRegPassword != null ? etRegPassword.getText().toString().trim() : "";
+        String cpw = etRegConfirmPassword != null ? etRegConfirmPassword.getText().toString().trim() : "";
+
+        if (name.length() < 2 || gr.isEmpty() || sec.isEmpty() || genderIndex == 0 || pw.length() < 4) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Registration")
+                    .setMessage("Please complete all fields. Password must have at least 4 characters.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        if (!pw.equals(cpw)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Registration")
+                    .setMessage("Passwords do not match.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        String baseUsername = name.replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
+        if (baseUsername.isEmpty()) baseUsername = "student";
+
+        String un = baseUsername;
+        int suffix = 1;
+        while (usersMap.containsKey(un.toLowerCase(Locale.ROOT))) {
+            un = baseUsername + suffix;
+            suffix++;
+        }
+
+        String fullSec = gr + " - " + sec;
+        UserEntry newUser = new UserEntry(un, pw, name, fullSec, gender, 0);
+        usersMap.put(un.toLowerCase(Locale.ROOT), newUser);
+
+        currentUsername = un;
+        currentFullName = name;
+        currentSection = fullSec;
+        currentGender = gender;
+        currentXp = 0;
+        isLoggedIn = true;
+        saveUserData();
+
+        final String regUn = un;
+        final String regPw = pw;
+        final String regName = name;
+        final String regGender = gender;
+        final String regSec = fullSec;
+        try {
+            RegisterRequest req = new RegisterRequest(regName, 16, regGender, "General", regSec, regUn, regPw);
+            ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
+                @Override
+                public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
+            });
+        } catch (Exception ignored) {}
+
+        new AlertDialog.Builder(this)
+                .setTitle("Account Created")
+                .setMessage("Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.")
+                .setPositiveButton("Continue to App", (dialog, which) -> {
+                    hideAuthScreen();
+                    switchPage(0);
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void performLogout() {
+        new AlertDialog.Builder(this)
+                .setTitle("Logout")
+                .setMessage("Are you sure you want to log out?")
+                .setPositiveButton("Logout", (dialog, which) -> {
+                    SoundManager.getInstance(this).playClick();
+                    isLoggedIn = false;
+                    showAuthScreen();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     // =========================================================================
