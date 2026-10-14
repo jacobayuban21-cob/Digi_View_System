@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 echo ===================================================
-echo   DigiView - Spring Boot & Supabase Backend Server
+echo   DigiView - Spring Boot and Supabase Backend Server
 echo ===================================================
 
 rem Load variables from .env if present
