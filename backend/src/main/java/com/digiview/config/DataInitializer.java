@@ -1,7 +1,9 @@
 package com.digiview.config;
 
+import com.digiview.entity.AchievementEntity;
 import com.digiview.entity.QuizRecordEntity;
 import com.digiview.entity.UserEntity;
+import com.digiview.repository.AchievementRepository;
 import com.digiview.repository.QuizRecordRepository;
 import com.digiview.repository.UserRepository;
 import org.slf4j.Logger;
@@ -22,10 +24,14 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final QuizRecordRepository quizRecordRepository;
+    private final AchievementRepository achievementRepository;
 
-    public DataInitializer(UserRepository userRepository, QuizRecordRepository quizRecordRepository) {
+    public DataInitializer(UserRepository userRepository,
+                           QuizRecordRepository quizRecordRepository,
+                           AchievementRepository achievementRepository) {
         this.userRepository = userRepository;
         this.quizRecordRepository = quizRecordRepository;
+        this.achievementRepository = achievementRepository;
     }
 
     @Override
@@ -42,8 +48,6 @@ public class DataInitializer implements CommandLineRunner {
                         "admin123"
                 );
                 student.setXp(120);
-                student.getAchievements().add("First Quiz");
-                student.getAchievements().add("HTML Quiz Pass");
                 userRepository.save(student);
                 log.info("✅ Database seeded with default student user: student / admin123");
 
@@ -57,6 +61,14 @@ public class DataInitializer implements CommandLineRunner {
                 );
                 quizRecordRepository.save(sample);
                 log.info("✅ Database seeded with initial quiz record for student");
+
+                if (!achievementRepository.existsByUsernameIgnoreCaseAndAchievementName("student", "First Quiz")) {
+                    achievementRepository.save(new AchievementEntity("student", "First Quiz"));
+                }
+                if (!achievementRepository.existsByUsernameIgnoreCaseAndAchievementName("student", "HTML Quiz Pass")) {
+                    achievementRepository.save(new AchievementEntity("student", "HTML Quiz Pass"));
+                }
+                log.info("✅ Database seeded with initial achievements for student");
             } else {
                 log.info("ℹ️ Default student user already exists in database.");
             }
