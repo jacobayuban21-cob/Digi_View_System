@@ -1752,7 +1752,7 @@ private JPanel authCard(String heading, String subtitle) {
         dlg.getContentPane().add(p, BorderLayout.CENTER);
         dlg.pack();
         dlg.setSize(560, 360);
-        dlg.setLocationRelativeTo(this);
+        dlg.setLocationRelativeTo(this != null && this.isShowing() ? this : null);
         dlg.setVisible(true);
     }
     
@@ -3109,6 +3109,8 @@ card.add(label(resultMessage, 14, MUTED, false));
         RoundedPanel card = new RoundedPanel(28, new Color(13, 21, 36), new Color(33, 52, 80));
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(26, 30, 24, 30));
+        card.setPreferredSize(new Dimension(440, cancelText != null ? 275 : 250));
+        card.setMaximumSize(new Dimension(440, 380));
 
         // Top Icon Badge
         if (icon != null && !icon.isEmpty()) {
@@ -3136,17 +3138,15 @@ card.add(label(resultMessage, 14, MUTED, false));
         card.add(Box.createVerticalStrut(10));
 
         // Message
-        JTextArea msgArea = new JTextArea(message);
-        msgArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        msgArea.setForeground(MUTED);
-        msgArea.setOpaque(false);
-        msgArea.setEditable(false);
-        msgArea.setFocusable(false);
-        msgArea.setLineWrap(true);
-        msgArea.setWrapStyleWord(true);
-        msgArea.setColumns(24);
-        msgArea.setAlignmentX(Component.CENTER_ALIGNMENT);
-        card.add(msgArea);
+        String safeMsg = (message == null ? "" : message)
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\n", "<br/>");
+        JLabel msgLabel = new JLabel("<html><div style='text-align: center; width: 360px; color: #94A3B8; font-family: SansSerif; font-size: 13px; line-height: 1.4;'>"
+                + safeMsg + "</div></html>", SwingConstants.CENTER);
+        msgLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(msgLabel);
         card.add(Box.createVerticalStrut(22));
 
         // Button row
@@ -3154,11 +3154,13 @@ card.add(label(resultMessage, 14, MUTED, false));
         btnRow.setLayout(new BoxLayout(btnRow, BoxLayout.X_AXIS));
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRow.setMaximumSize(new Dimension(400, 50));
 
+        btnRow.add(Box.createHorizontalGlue());
         if (cancelText != null && !cancelText.isEmpty()) {
             RoundedButton btnCancel = new RoundedButton(cancelText, false);
             btnCancel.setFont(new Font("SansSerif", Font.BOLD, 13));
-            btnCancel.setPreferredSize(new Dimension(135, 46));
+            btnCancel.setPreferredSize(new Dimension(140, 46));
             btnCancel.setMaximumSize(new Dimension(140, 46));
             btnCancel.addActionListener(e -> {
                 playClickSound();
@@ -3166,19 +3168,20 @@ card.add(label(resultMessage, 14, MUTED, false));
                 dlg.dispose();
             });
             btnRow.add(btnCancel);
-            btnRow.add(Box.createHorizontalStrut(12));
+            btnRow.add(Box.createHorizontalStrut(14));
         }
 
         RoundedButton btnConfirm = new RoundedButton(confirmText != null ? confirmText : "OK", true);
         btnConfirm.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btnConfirm.setPreferredSize(new Dimension(cancelText != null ? 135 : 180, 46));
-        btnConfirm.setMaximumSize(new Dimension(cancelText != null ? 140 : 200, 46));
+        btnConfirm.setPreferredSize(new Dimension(cancelText != null ? 140 : 180, 46));
+        btnConfirm.setMaximumSize(new Dimension(cancelText != null ? 140 : 180, 46));
         btnConfirm.addActionListener(e -> {
             playClickSound();
             result[0] = true;
             dlg.dispose();
         });
         btnRow.add(btnConfirm);
+        btnRow.add(Box.createHorizontalGlue());
 
         card.add(btnRow);
         wrapper.add(card, BorderLayout.CENTER);
@@ -3195,7 +3198,8 @@ card.add(label(resultMessage, 14, MUTED, false));
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
         dlg.pack();
-        dlg.setLocationRelativeTo(this.isVisible() ? this : null);
+        dlg.setSize(472, dlg.getPreferredSize().height);
+        dlg.setLocationRelativeTo(this != null && this.isShowing() ? this : null);
         dlg.setVisible(true);
 
         return result[0];
