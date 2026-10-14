@@ -1161,7 +1161,17 @@ public class MainActivity extends AppCompatActivity {
                 ApiClient.getApi().login(new com.digiview.lms.model.AuthRequest(username, password))
                         .enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
                             @Override
-                            public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {}
+                            public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call, Response<ApiResponse<com.digiview.lms.model.User>> response) {
+                                if (response.code() == 401 || !response.isSuccessful() || response.body() == null || !response.body().success) {
+                                    RegisterRequest reg = new RegisterRequest(currentFullName, 16, currentGender, "General", currentSection, currentUsername, password);
+                                    ApiClient.getApi().register(reg).enqueue(new Callback<ApiResponse<com.digiview.lms.model.User>>() {
+                                        @Override
+                                        public void onResponse(Call<ApiResponse<com.digiview.lms.model.User>> call2, Response<ApiResponse<com.digiview.lms.model.User>> response2) {}
+                                        @Override
+                                        public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call2, Throwable t) {}
+                                    });
+                                }
+                            }
                             @Override
                             public void onFailure(Call<ApiResponse<com.digiview.lms.model.User>> call, Throwable t) {}
                         });

@@ -1179,6 +1179,17 @@ private JPanel authCard(String heading, String subtitle) {
             return;
         }
         currentUser = u;
+
+        // Auto-sync user to cloud Supabase backend so the user record is guaranteed to exist
+        final String syncUser = u.username;
+        final String syncPw = u.password;
+        final String syncName = u.fullName;
+        final String syncGender = u.gender;
+        final String syncSec = u.gradeSection;
+        new Thread(() -> {
+            ApiClient.registerUser(syncUser, syncPw, syncName, 16, syncGender, "General", syncSec);
+        }).start();
+
         showApp();
     }
 
