@@ -1102,6 +1102,12 @@ private JPanel authCard(String heading, String subtitle) {
             currentUser = new User(name, 0, g, "N/A", gr + " - " + sec, un, pw);
             users.put(un.toLowerCase(Locale.ROOT), currentUser);
             saveData();
+            final String regUn = un;
+            final String regPw = pw;
+            final String regName = name;
+            final String regG = g;
+            final String regSec = gr + " - " + sec;
+            new Thread(() -> ApiClient.registerUser(regUn, regPw, regName, 16, regG, "General", regSec)).start();
             showApp();
 
             message("Account created successfully!\n\n"
@@ -2023,10 +2029,16 @@ private JPanel authCard(String heading, String subtitle) {
             currentUser.xp += score * 5;
             String qName = difficultyName(difficulty);
             currentUser.history.add(new QuizRecord(qName, score, questions.size(), percent, new Date().toString()));
-            if (percent >= 70) currentUser.achievements.add("HTML Quiz Pass");
-            if (percent == 100) currentUser.achievements.add("Perfect Score");
-            saveData();
             final String uName = currentUser.username;
+            if (percent >= 70) {
+                currentUser.achievements.add("HTML Quiz Pass");
+                new Thread(() -> ApiClient.unlockAchievement(uName, "HTML Quiz Pass")).start();
+            }
+            if (percent == 100) {
+                currentUser.achievements.add("Perfect Score");
+                new Thread(() -> ApiClient.unlockAchievement(uName, "Perfect Score")).start();
+            }
+            saveData();
             final int sScore = score;
             final int tTotal = questions.size();
             final int pPercent = percent;
