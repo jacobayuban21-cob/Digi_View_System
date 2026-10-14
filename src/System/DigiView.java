@@ -787,7 +787,115 @@ private JPanel authCard(String heading, String subtitle) {
             paintInputOutline(g, this);
         }
     }
+    
 
+    private static class AnswerOption extends JToggleButton {
+        static final int NORMAL = 0, CORRECT = 1, WRONG = 2;
+
+        final int optionIndex;
+        private final String letter;
+        private final String answerText;
+        private int state = NORMAL;
+        private boolean locked = false;
+        private final HoverAnimator hoverAnim = new HoverAnimator(this);
+
+        AnswerOption(String letter, String text, int optionIndex) {
+            super(text);
+            this.letter = letter;
+            this.answerText = text;
+            this.optionIndex = optionIndex;
+            setActionCommand(String.valueOf(optionIndex));
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setOpaque(false);
+            setText("");   
+            setFont(new Font("SansSerif", Font.PLAIN, 17));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        
+        void lock(int resultState) {
+            this.state = resultState;
+            this.locked = true;
+            setEnabled(false);
+            setCursor(Cursor.getDefaultCursor());
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth(), h = getHeight();
+            float t = locked ? 0f : hoverAnim.get();
+            boolean selected = isSelected();
+
+            Color fill, line, badge;
+            if (state == CORRECT) {
+                fill = new Color(14, 62, 46);
+                line = new Color(34, 197, 94);
+                badge = new Color(34, 197, 94);
+            } else if (state == WRONG) {
+                fill = new Color(72, 22, 30);
+                line = new Color(239, 68, 68);
+                badge = new Color(239, 68, 68);
+            } else if (selected) {
+                fill = new Color(18, 52, 98);
+                line = new Color(56, 189, 248);
+                badge = new Color(37, 99, 235);
+            } else {
+                fill = mix(new Color(14, 27, 48), new Color(20, 41, 67), t);
+                line = mix(new Color(30, 48, 76), new Color(56, 120, 190), t);
+                badge = mix(new Color(26, 45, 82), new Color(37, 80, 150), t);
+            }
+
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, 20, 20);
+            g2.setColor(line);
+            g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
+
+           
+            int bs = 36, bx = 14, by = (h - bs) / 2;
+            g2.setColor(badge);
+            g2.fillRoundRect(bx, by, bs, bs, 12, 12);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
+            FontMetrics bfm = g2.getFontMetrics();
+            g2.drawString(letter, bx + (bs - bfm.stringWidth(letter)) / 2,
+                    by + (bs + bfm.getAscent() - bfm.getDescent()) / 2);
+
+           
+            g2.setFont(getFont());
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = bx + bs + 16;
+            int maxW = w - tx - 50;
+            String s = answerText;
+            while (s.length() > 1 && fm.stringWidth(s) > maxW) {
+                s = s.substring(0, s.length() - 1);
+            }
+            if (!s.equals(answerText)) s = s.substring(0, Math.max(1, s.length() - 1)) + "\u2026";
+            g2.setColor(new Color(248, 250, 252));
+            g2.drawString(s, tx, (h + fm.getAscent() - fm.getDescent()) / 2);
+
+            
+            if (state != NORMAL) {
+                String mark = state == CORRECT ? "\u2713" : "\u2717";
+                g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+                FontMetrics mfm = g2.getFontMetrics();
+                g2.setColor(state == CORRECT ? new Color(74, 222, 128) : new Color(248, 113, 113));
+                g2.drawString(mark, w - 20 - mfm.stringWidth(mark),
+                        (h + mfm.getAscent() - mfm.getDescent()) / 2);
+            }
+            g2.dispose();
+        }
+    }
+    
+    
     
     private static Color mix(Color a, Color b, float t) {
         return new Color(
@@ -1915,31 +2023,35 @@ private JPanel authCard(String heading, String subtitle) {
             showQuizResult(score, questions.size(), percent, difficulty);
             return;
         }
+        
         Question q = questions.get(index);
         JPanel p = verticalPanel();
-        p.add(sectionHeading(difficultyName(difficulty) + " Quiz","Question " + (index + 1) + " of " + questions.size()));
-        JPanel card = panel(); card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS)); card.setBorder(new EmptyBorder(25, 25, 25, 25));
-        JLabel heartsLabel = createHeartsLabel();
-        heartsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        card.add(heartsLabel);
-        card.add(Box.createVerticalStrut(15));
-        JLabel number = label(String.format("QUESTION %02d", index + 1), 12, CYAN, true);
-        JTextArea question = new JTextArea(q.text);
-        question.setAlignmentX(Component.LEFT_ALIGNMENT);
-        question.setLineWrap(true); 
-        question.setWrapStyleWord(true); 
-        question.setEditable(false);
-        question.setOpaque(false); 
-        question.setForeground(TEXT); 
-        question.setFont(new Font("SansSerif", Font.BOLD, 21)); 
-        question.setBorder(new EmptyBorder(15, 0, 18, 0));
-                card.add(number); card.add(question);
-                JButton exitQuiz = button("Exit Quiz", new Color(153, 27, 27));
+        
+        JLabel quizTitle = new JLabel(difficultyName(difficulty) + " Quiz");
+        quizTitle.setFont(new Font("SansSerif", Font.BOLD, 30));
+        quizTitle.setForeground(TEXT);
+        quizTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        exitQuiz.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel progressLabel = new JLabel("Question " + (index + 1) + " of " + questions.size());
+        progressLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        progressLabel.setForeground(CYAN);
+        progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        JPanel titleBox = new JPanel();
+        titleBox.setOpaque(false);
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        titleBox.add(quizTitle);
+        titleBox.add(Box.createVerticalStrut(4));
+        titleBox.add(progressLabel);
+
+        RoundedButton exitQuiz = new RoundedButton("Exit Quiz", false);
+        exitQuiz.setForeground(new Color(252, 165, 165));
+        exitQuiz.setPreferredSize(new Dimension(130, 44));
         exitQuiz.addActionListener(e -> {
+            playClickSound();
             int choice = JOptionPane.showConfirmDialog(
                 this,
                 "Are you sure you want to exit this quiz?\n"
@@ -1954,110 +2066,162 @@ private JPanel authCard(String heading, String subtitle) {
             }
         });
 
-        card.add(exitQuiz);
-        card.add(Box.createVerticalStrut(15));
-        List<Integer> order = new ArrayList<>(List.of(0,1,2,3)); Collections.shuffle(order);
-        ButtonGroup group = new ButtonGroup(); List<JRadioButton> radios = new ArrayList<>();
-        for (int oi : order) {
-        JRadioButton rb = new JRadioButton(q.options.get(oi));
-        rb.setActionCommand(String.valueOf(oi));
-        rb.setOpaque(true);
-        rb.setBackground(PANEL2);
-        rb.setForeground(TEXT);
-        rb.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        rb.setBorder(new EmptyBorder(12, 12, 12, 12));
-        rb.setAlignmentX(Component.LEFT_ALIGNMENT);
-        rb.setHorizontalAlignment(SwingConstants.LEFT);
-        rb.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        group.add(rb);
-        radios.add(rb);
-        card.add(rb);
+        JPanel exitWrap = new JPanel(new GridBagLayout());
+        exitWrap.setOpaque(false);
+        exitWrap.add(exitQuiz);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.add(titleBox, BorderLayout.WEST);
+        header.add(exitWrap, BorderLayout.EAST);
+        p.add(fixHeight(header, 80));
+        p.add(Box.createVerticalStrut(16));
+
+        
+        RoundedPanel card = new RoundedPanel(26, D_CARD, D_LINE);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(24, 30, 26, 30));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel heartsLabel = createHeartsLabel();
+        heartsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel number = label(String.format("QUESTION %02d", index + 1), 13, CYAN, true);
+        number.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        
+        String safeText = q.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        JLabel question = new JLabel(
+            "<html><div style='width:860px'>" + safeText + "</div></html>");
+        question.setFont(new Font("SansSerif", Font.BOLD, 24));
+        question.setForeground(TEXT);
+        question.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(heartsLabel);
+        card.add(Box.createVerticalStrut(14));
+        card.add(number);
         card.add(Box.createVerticalStrut(8));
-}
-        JLabel feedback = label("Choose the best answer.", 13, MUTED, false);
-        JButton submit = button("Submit Answer", BLUE);
+        card.add(question);
+
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, card.getPreferredSize().height));
+        p.add(card);
+        p.add(Box.createVerticalStrut(20));
+
+        
+        List<Integer> order = new ArrayList<>(List.of(0, 1, 2, 3));
+        Collections.shuffle(order);
+
+        String[] letters = {"A", "B", "C", "D"};
+        ButtonGroup group = new ButtonGroup();
+        List<AnswerOption> options = new ArrayList<>();
+
+        for (int pos = 0; pos < order.size(); pos++) {
+            int oi = order.get(pos);
+            AnswerOption opt = new AnswerOption(letters[pos], q.options.get(oi), oi);
+            opt.addActionListener(e -> playClickSound());
+            group.add(opt);
+            options.add(opt);
+            p.add(fixHeight(opt, 58));
+            p.add(Box.createVerticalStrut(12));
+        }
+
+        
+        JLabel feedback = label("Choose the best answer.", 15, MUTED, false);
+        feedback.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        RoundedButton submit = new RoundedButton("Submit Answer", true);
+        submit.setPreferredSize(new Dimension(220, 50));
+        submit.setMaximumSize(new Dimension(220, 50));
         submit.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            card.add(feedback);
-            card.add(Box.createVerticalStrut(10));
-            card.add(submit);
-       submit.addActionListener(e -> {
-    if (group.getSelection() == null) {
-        message(
-            "Please select an answer first.",
-            JOptionPane.WARNING_MESSAGE
-        );
-        return;
+        p.add(Box.createVerticalStrut(4));
+        p.add(feedback);
+        p.add(Box.createVerticalStrut(12));
+        p.add(submit);
+
+        submit.addActionListener(e -> {
+            playClickSound();
+
+            if (group.getSelection() == null) {
+                message(
+                    "Please select an answer first.",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            int chosen = Integer.parseInt(
+                group.getSelection().getActionCommand()
+            );
+
+            boolean correct = chosen == q.answer;
+
+            submit.setEnabled(false);
+
+            
+            for (AnswerOption o : options) {
+                if (o.optionIndex == chosen) {
+                    o.lock(correct ? AnswerOption.CORRECT : AnswerOption.WRONG);
+                } else {
+                    o.lock(AnswerOption.NORMAL);
+                }
+            }
+
+            if (!correct) {
+                quizHearts--;
+            }
+
+            updateHeartsLabel(heartsLabel);
+
+            if (quizHearts <= 0) {
+                message(
+                    "You ran out of hearts! Please try the quiz again.",
+                    JOptionPane.WARNING_MESSAGE
+                );
+
+                showPage("Quiz");
+                return;
+            }
+
+            feedback.setText(
+                correct
+                    ? "Correct answer!"
+                    : "Incorrect answer. One heart was deducted."
+            );
+
+            feedback.setForeground(correct ? GREEN : RED);
+
+            RoundedButton next = new RoundedButton(
+                index == questions.size() - 1
+                    ? "View Results \u2192"
+                    : "Next Question \u2192",
+                true
+            );
+            next.setPreferredSize(new Dimension(220, 50));
+            next.setMaximumSize(new Dimension(220, 50));
+            next.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            next.addActionListener(ev -> {
+                playClickSound();
+                runQuiz(
+                    questions,
+                    index + 1,
+                    score + (correct ? 1 : 0),
+                    difficulty
+                );
+            });
+
+            p.add(Box.createVerticalStrut(12));
+            p.add(next);
+
+            p.revalidate();
+            p.repaint();
+        });
+
+        addToContent(p);
     }
-
-    int chosen = Integer.parseInt(
-        group.getSelection().getActionCommand()
-    );
-
-    boolean correct = chosen == q.answer;
-
-
-    submit.setEnabled(false);
-
-
-    if (!correct) {
-        quizHearts--;
-    }
-
-
-    updateHeartsLabel(heartsLabel);
-
-
-    if (quizHearts <= 0) {
-        message(
-            "You ran out of hearts! Please try the quiz again.",
-            JOptionPane.WARNING_MESSAGE
-        );
-
-        showPage("Quiz");
-        return;
-    }
-
-
-    feedback.setText(
-        correct
-            ? "Correct answer!"
-            : "Incorrect answer. One heart was deducted."
-    );
-
-    feedback.setForeground(correct ? GREEN : RED);
-
-    JButton next = button(
-        index == questions.size() - 1
-            ? "View Results →"
-            : "Next Question →",
-        new Color(8, 145, 178)
-    );
-
-    next.addActionListener(ev -> {
-        runQuiz(
-            questions,
-            index + 1,
-            score + (correct ? 1 : 0),
-            difficulty
-        );
-    });
-
-    card.add(Box.createVerticalStrut(10));
-    card.add(feedback);
-    card.add(Box.createVerticalStrut(10));
-    card.add(next);
-
-    card.revalidate();
-    card.repaint();
-    });
-       
-     p.add(card);
-    addToContent(p);
-}
     
-    private void showQuizResult
-        ( int score, int total, int percent, int difficulty ) {
+    private void showQuizResult( int score, int total, int percent, int difficulty ) {
         
         
         JPanel p = verticalPanel();
