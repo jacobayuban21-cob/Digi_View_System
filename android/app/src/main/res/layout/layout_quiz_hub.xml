@@ -72,7 +72,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5 Qs"
+                        android:text="25 Qs"
                         android:textColor="@color/cyan"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -124,7 +124,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5 Qs"
+                        android:text="25 Qs"
                         android:textColor="@color/amber"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -176,7 +176,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5 Qs"
+                        android:text="20 Qs"
                         android:textColor="@color/red"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -318,6 +318,7 @@
                 android:layout_marginTop="16dp">
 
                 <TextView
+                    android:id="@+id/tvActiveOptionBadgeA"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="@drawable/bg_pill"
@@ -351,6 +352,7 @@
                 android:layout_marginTop="10dp">
 
                 <TextView
+                    android:id="@+id/tvActiveOptionBadgeB"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="@drawable/bg_pill"
@@ -384,6 +386,7 @@
                 android:layout_marginTop="10dp">
 
                 <TextView
+                    android:id="@+id/tvActiveOptionBadgeC"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="@drawable/bg_pill"
@@ -417,6 +420,7 @@
                 android:layout_marginTop="10dp">
 
                 <TextView
+                    android:id="@+id/tvActiveOptionBadgeD"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="@drawable/bg_pill"

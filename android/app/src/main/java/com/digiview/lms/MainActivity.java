@@ -5,8 +5,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
@@ -150,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView activeQuizTitle, activeQuizProgress;
     private LinearLayout[] activeOptionLayouts = new LinearLayout[4];
     private TextView[] activeOptionTexts = new TextView[4];
+    private TextView[] activeOptionBadges = new TextView[4];
     private MaterialButton btnActiveSubmit, btnActiveNext, btnActiveExitQuiz;
 
     // History Records Cache
@@ -535,48 +538,100 @@ public class MainActivity extends AppCompatActivity {
             dialog.dismiss();
         });
         dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
+            int maxWidth = (int) (420 * getResources().getDisplayMetrics().density + 0.5f);
+            dialog.getWindow().setLayout(Math.min(width, maxWidth), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
     }
 
     // =========================================================================
-    // 5. QUIZ ENGINE (MATCHING DESKTOP DIFFICULTY & HEARTS)
+    // 5. QUIZ ENGINE (FULL 70 QUESTIONS MATCHING DESKTOP DIFFICULTY & HEARTS)
     // =========================================================================
+    private static Question q(String text, String a, String b, String c, String d, int ans, int diff) {
+        return new Question(text, Arrays.asList(a, b, c, d), ans, diff);
+    }
+
     private void initQuestionBank() {
         questionBank.clear();
-        // Difficulty 1: Beginner
-        questionBank.add(new Question("What does HTML stand for?",
-                Arrays.asList("HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language"), 0, 1));
-        questionBank.add(new Question("Which file extension is used for HTML webpages?",
-                Arrays.asList(".html", ".web", ".page", ".doc"), 0, 1));
-        questionBank.add(new Question("Which HTML tag is used for the largest heading?",
-                Arrays.asList("<h6>", "<h1>", "<head>", "<heading>"), 1, 1));
-        questionBank.add(new Question("Which HTML tag creates a paragraph of text?",
-                Arrays.asList("<text>", "<p>", "<para>", "<content>"), 1, 1));
-        questionBank.add(new Question("Which element contains the visible content of a webpage?",
-                Arrays.asList("<head>", "<body>", "<title>", "<meta>"), 1, 1));
 
-        // Difficulty 2: Intermediate
-        questionBank.add(new Question("Which code correctly creates a link to example.com?",
-                Arrays.asList("<a src=\"https://example.com\">Visit</a>", "<a href=\"https://example.com\">Visit</a>", "<link>https://example.com</link>", "<href>example.com</href>"), 1, 2));
-        questionBank.add(new Question("Which tag creates a bulleted unordered list?",
-                Arrays.asList("<ol>", "<ul>", "<list>", "<dl>"), 1, 2));
-        questionBank.add(new Question("Which attribute specifies alternative text for an image?",
-                Arrays.asList("src", "title", "alt", "name"), 2, 2));
-        questionBank.add(new Question("Which HTML tag defines a table row?",
-                Arrays.asList("<td>", "<th>", "<tr>", "<table>"), 2, 2));
-        questionBank.add(new Question("Which HTML tag creates a form to collect user input?",
-                Arrays.asList("<input>", "<form>", "<fieldset>", "<submit>"), 1, 2));
+        // Difficulty 1: Easy / Beginner (25 questions matching desktop)
+        questionBank.add(q("What does HTML stand for?", "HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language", 0, 1));
+        questionBank.add(q("Which file extension is used for a webpage written in HTML?", ".java", ".html", ".docx", ".exe", 1, 1));
+        questionBank.add(q("Which program is used to open and view a webpage?", "A calculator", "A spreadsheet", "A web browser", "A compiler", 2, 1));
+        questionBank.add(q("Which element contains the visible content of a webpage?", "<head>", "<body>", "<title>", "<meta>", 1, 1));
+        questionBank.add(q("Which element sets the title shown in the browser tab?", "<head>", "<h1>", "<title>", "<header>", 2, 1));
+        questionBank.add(q("Which element creates the largest heading?", "<h6>", "<heading>", "<h1>", "<head>", 2, 1));
+        questionBank.add(q("Which element creates a paragraph?", "<para>", "<p>", "<text>", "<paragraph>", 1, 1));
+        questionBank.add(q("Which element creates a line break?", "<break>", "<lb>", "<br>", "<newline>", 2, 1));
+        questionBank.add(q("Which element creates a hyperlink?", "<link>", "<a>", "<href>", "<url>", 1, 1));
+        questionBank.add(q("Which element displays an image?", "<image>", "<picture>", "<src>", "<img>", 3, 1));
+        questionBank.add(q("Which element creates a bulleted (unordered) list?", "<ol>", "<li>", "<ul>", "<list>", 2, 1));
+        questionBank.add(q("Which element creates a numbered (ordered) list?", "<ul>", "<ol>", "<li>", "<order>", 1, 1));
+        questionBank.add(q("Which element marks one item inside a list?", "<item>", "<ul>", "<li>", "<ol>", 2, 1));
+        questionBank.add(q("Which element creates a table?", "<table>", "<tab>", "<grid>", "<data>", 0, 1));
+        questionBank.add(q("Which element creates a table row?", "<td>", "<th>", "<tr>", "<row>", 2, 1));
+        questionBank.add(q("Which element creates a table header cell?", "<td>", "<th>", "<tr>", "<thead-cell>", 1, 1));
+        questionBank.add(q("Which element creates a table data cell?", "<cell>", "<data>", "<td>", "<tr>", 2, 1));
+        questionBank.add(q("Which element creates a form?", "<input>", "<form>", "<field>", "<submit>", 1, 1));
+        questionBank.add(q("Which element creates a clickable button?", "<click>", "<press>", "<button>", "<btn>", 2, 1));
+        questionBank.add(q("Which element shows text with strong importance (usually bold)?", "<strong>", "<small>", "<mark-up>", "<heavy>", 0, 1));
+        questionBank.add(q("Which element creates a horizontal line?", "<line>", "<hr>", "<br>", "<divider>", 1, 1));
+        questionBank.add(q("Which declaration identifies an HTML5 document?", "<html5>", "<!DOCTYPE html>", "<doctype>", "<HTML5>", 1, 1));
+        questionBank.add(q("Which element is the root of an HTML document?", "<body>", "<head>", "<html>", "<main>", 2, 1));
+        questionBank.add(q("Which element contains information about the page that is not displayed?", "<footer>", "<main>", "<head>", "<section>", 2, 1));
+        questionBank.add(q("Which element is a generic block container?", "<span>", "<div>", "<a>", "<strong>", 1, 1));
 
-        // Difficulty 3: Advanced
-        questionBank.add(new Question("What is the correct HTML5 Doctype declaration?",
-                Arrays.asList("<!DOCTYPE html>", "<!DOCTYPE HTML5>", "<?xml version='1.0'?>", "<html doctype='html5'>"), 0, 3));
-        questionBank.add(new Question("Which tag indicates self-contained navigation links in HTML5?",
-                Arrays.asList("<menu>", "<navigate>", "<nav>", "<links>"), 2, 3));
-        questionBank.add(new Question("Which attribute opens a link in a new browser tab?",
-                Arrays.asList("target=\"_blank\"", "target=\"_new\"", "window=\"new\"", "rel=\"external\""), 0, 3));
-        questionBank.add(new Question("Which element is used to group related options in a drop-down list?",
-                Arrays.asList("<group>", "<optgroup>", "<options>", "<selectgroup>"), 1, 3));
-        questionBank.add(new Question("Which attribute makes an input field required before form submission?",
-                Arrays.asList("validate", "mandatory", "required", "need"), 2, 3));
+        // Difficulty 2: Medium / Intermediate (25 questions matching desktop)
+        questionBank.add(q("Which is the correct way to write a paragraph?", "<p>Hello<p>", "<p>Hello</p>", "</p>Hello<p>", "<p/>Hello", 1, 2));
+        questionBank.add(q("Which code creates a link to example.com?", "<a src=\"https://example.com\">Visit</a>", "<link>https://example.com</link>", "<a href=\"https://example.com\">Visit</a>", "<href=\"https://example.com\">Visit</href>", 2, 2));
+        questionBank.add(q("Which attribute tells <img> which picture file to show?", "href", "src", "alt", "link", 1, 2));
+        questionBank.add(q("Which code displays an image with alternative text?", "<img href=\"cat.jpg\" alt=\"Cat\">", "<image src=\"cat.jpg\">", "<img src=\"cat.jpg\" alt=\"Cat\">", "<img>cat.jpg</img>", 2, 2));
+        questionBank.add(q("Which syntax creates an HTML comment?", "// comment", "/* comment */", "<!-- comment -->", "** comment **", 2, 2));
+        questionBank.add(q("What is the correct closing tag for <h1>?", "<h1/>", "</h1>", "<\\h1>", "</heading>", 1, 2));
+        questionBank.add(q("Which code correctly places a list item inside a bulleted list?", "<ul><li>HTML</li></ul>", "<li><ul>HTML</ul></li>", "<ul>HTML<li></ul>", "<ul><item>HTML</item></ul>", 0, 2));
+        questionBank.add(q("Which code creates a numbered list with one item?", "<ul><li>One</li></ul>", "<ol><li>One</li></ol>", "<li><ol>One</ol></li>", "<list>One</list>", 1, 2));
+        questionBank.add(q("Which code creates a table row with two header cells?", "<tr><td>Name</td><td>Age</td></tr>", "<table>Name Age</table>", "<tr><th>Name</th><th>Age</th></tr>", "<th><tr>Name</tr></th>", 2, 2));
+        questionBank.add(q("Which attribute makes a cell span two columns?", "rowspan=\"2\"", "colspan=\"2\"", "columns=\"2\"", "span=\"2\"", 1, 2));
+        questionBank.add(q("Which attribute makes a cell span two rows?", "colspan=\"2\"", "height=\"2\"", "rowspan=\"2\"", "rows=\"2\"", 2, 2));
+        questionBank.add(q("Which code creates a single-line text box?", "<input type=\"text\">", "<text></text>", "<input text>", "<textbox>", 0, 2));
+        questionBank.add(q("Which code creates a password field?", "<input type=\"text\">", "<input type=\"hidden\">", "<input type=\"password\">", "<password>", 2, 2));
+        questionBank.add(q("Which attribute shows hint text inside an empty input?", "value", "label", "placeholder", "hint", 2, 2));
+        questionBank.add(q("Which attribute makes a form field mandatory?", "required", "important", "validate", "must", 0, 2));
+        questionBank.add(q("Which code correctly connects a label to an input?", "<label name=\"user\">Username</label><input id=\"user\">", "<label for=\"user\">Username</label><input id=\"user\">", "<label id=\"user\">Username</label><input for=\"user\">", "<label href=\"user\">Username</label><input name=\"label\">", 1, 2));
+        questionBank.add(q("Which code creates a dropdown list with one option?", "<select><option>Red</option></select>", "<dropdown><item>Red</item></dropdown>", "<option><select>Red</select></option>", "<input type=\"dropdown\">", 0, 2));
+        questionBank.add(q("Which attribute opens a link in a new tab?", "new", "window", "target=\"_blank\"", "open=\"new\"", 2, 2));
+        questionBank.add(q("Which attribute uniquely identifies one element?", "class", "id", "style", "group", 1, 2));
+        questionBank.add(q("Which attribute lets several elements share the same CSS class?", "id", "unique", "class", "single", 2, 2));
+        questionBank.add(q("Which code sets the page language to English?", "<html language=\"English\">", "<html lang=\"en\">", "<language value=\"en\">", "<head lang=\"en\">", 1, 2));
+        questionBank.add(q("Which code declares UTF-8 character encoding?", "<charset value=\"UTF-8\">", "<meta encoding=\"UTF-8\">", "<meta charset=\"UTF-8\">", "<head charset=\"UTF-8\">", 2, 2));
+        questionBank.add(q("Which code nests tags correctly?", "<p><strong>Hi</p></strong>", "<p><strong>Hi</strong></p>", "<strong><p>Hi</strong></p>", "<p><strong>Hi</p>", 1, 2));
+        questionBank.add(q("Which code loads an external stylesheet?", "<style src=\"styles.css\">", "<css href=\"styles.css\"></css>", "<link rel=\"stylesheet\" href=\"styles.css\">", "<script href=\"styles.css\"></script>", 2, 2));
+        questionBank.add(q("Which code loads an external JavaScript file?", "<javascript src=\"app.js\">", "<script src=\"app.js\"></script>", "<link rel=\"script\" href=\"app.js\">", "<script href=\"app.js\"></script>", 1, 2));
+
+        // Difficulty 3: Hard / Advanced (20 questions matching desktop)
+        questionBank.add(q("Complete the code: <a ____=\"https://example.com\">Visit</a>", "src", "link", "href", "url", 2, 3));
+        questionBank.add(q("Complete the code: <img ____=\"photo.jpg\" alt=\"Photo\">", "src", "href", "file", "path", 0, 3));
+        questionBank.add(q("Complete the code: <img src=\"photo.jpg\" ____=\"A photo\">", "title", "alt", "name", "text", 1, 3));
+        questionBank.add(q("Complete the code: <ul><____>HTML</____></ul>", "item", "ol", "li", "list", 2, 3));
+        questionBank.add(q("Complete the code to make a numbered list: <____><li>First</li><li>Second</li></____>", "ul", "ol", "list", "nl", 1, 3));
+        questionBank.add(q("Complete the code: <table><____><th>Name</th></____></table>", "td", "row", "th", "tr", 3, 3));
+        questionBank.add(q("Complete the code so the cell spans two columns: <td ____=\"2\">Total</td>", "rowspan", "colspan", "span", "columns", 1, 3));
+        questionBank.add(q("Complete the code so typed characters are hidden: <input type=\"____\">", "hidden", "secret", "password", "text", 2, 3));
+        questionBank.add(q("Complete the code so the field must be filled in: <input type=\"email\" ____>", "needed", "required", "validate", "must", 1, 3));
+        questionBank.add(q("Complete the code: <label ____=\"user\">Username</label><input id=\"user\">", "id", "name", "href", "for", 3, 3));
+        questionBank.add(q("Complete the code: <select><____>Red</____><option>Blue</option></select>", "item", "choice", "option", "value", 2, 3));
+        questionBank.add(q("Complete the code so the link opens in a new tab: <a href=\"https://example.com\" target=\"____\">Visit</a>", "_new", "_blank", "_tab", "_self", 1, 3));
+        questionBank.add(q("Complete the code: <html ____=\"en\">", "language", "lang", "code", "locale", 1, 3));
+        questionBank.add(q("Complete the code: <meta ____=\"UTF-8\">", "encoding", "type", "charset", "content", 2, 3));
+        questionBank.add(q("Complete the code: <link rel=\"stylesheet\" ____=\"styles.css\">", "src", "href", "file", "style", 1, 3));
+        questionBank.add(q("Complete the code: <script ____=\"app.js\"></script>", "href", "link", "file", "src", 3, 3));
+        questionBank.add(q("Complete the code: <form ____=\"POST\" action=\"save.php\">...</form>", "type", "method", "submit", "send", 1, 3));
+        questionBank.add(q("Complete the code: <____>Copyright 2026 Digi-View</____>", "bottom", "footer", "end", "foot", 1, 3));
+        questionBank.add(q("Complete the code: <figure><img src=\"chart.png\" alt=\"Chart\"><____>Sales</____></figure>", "caption", "figcaption", "figuretitle", "label", 1, 3));
+        questionBank.add(q("Complete the code so the video shows play and pause buttons: <video src=\"movie.mp4\" ____></video>", "buttons", "play", "controls", "show", 2, 3));
     }
 
     private void initQuizHubViews(View hub) {
@@ -587,15 +642,15 @@ public class MainActivity extends AppCompatActivity {
         // Difficulty Selector Cards
         hub.findViewById(R.id.btnTierBeginner).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Beginner", 1);
+            promptStartQuiz("Beginner", 1);
         });
         hub.findViewById(R.id.btnTierIntermediate).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Intermediate", 2);
+            promptStartQuiz("Intermediate", 2);
         });
         hub.findViewById(R.id.btnTierAdvanced).setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
-            startQuiz("Advanced", 3);
+            promptStartQuiz("Advanced", 3);
         });
 
         // Active Quiz Controls
@@ -615,6 +670,11 @@ public class MainActivity extends AppCompatActivity {
         activeOptionTexts[1] = hub.findViewById(R.id.tvActiveOptionB);
         activeOptionTexts[2] = hub.findViewById(R.id.tvActiveOptionC);
         activeOptionTexts[3] = hub.findViewById(R.id.tvActiveOptionD);
+
+        activeOptionBadges[0] = hub.findViewById(R.id.tvActiveOptionBadgeA);
+        activeOptionBadges[1] = hub.findViewById(R.id.tvActiveOptionBadgeB);
+        activeOptionBadges[2] = hub.findViewById(R.id.tvActiveOptionBadgeC);
+        activeOptionBadges[3] = hub.findViewById(R.id.tvActiveOptionBadgeD);
 
         btnActiveSubmit = hub.findViewById(R.id.btnActiveSubmit);
         btnActiveNext = hub.findViewById(R.id.btnActiveNext);
@@ -646,6 +706,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void promptStartQuiz(String diffName, int diffLevel) {
+        showThemedConfirmDialog(
+                "🚀",
+                "Start " + diffName + " Quiz",
+                "Are you ready to take the " + diffName + " Quiz?\nYou will have 5 hearts. Each wrong answer deducts 1 heart.",
+                "START QUIZ",
+                "CANCEL",
+                () -> startQuiz(diffName, diffLevel)
+        );
+    }
+
     private void startQuiz(String diffName, int diffLevel) {
         activeDifficultyName = diffName;
         activeDifficultyLevel = diffLevel;
@@ -657,6 +728,20 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         Collections.shuffle(activeQuestions);
+
+        int limit;
+        switch (diffLevel) {
+            case 1: limit = 25; break;
+            case 2: limit = 25; break;
+            case 3: limit = 20; break;
+            default: limit = 10; break;
+        }
+
+        if (activeQuestions.size() > limit) {
+            List<Question> trimmed = new ArrayList<>(activeQuestions.subList(0, limit));
+            activeQuestions.clear();
+            activeQuestions.addAll(trimmed);
+        }
 
         activeQuestionIndex = 0;
         activeScore = 0;
@@ -688,8 +773,14 @@ public class MainActivity extends AppCompatActivity {
 
         for (int i = 0; i < 4; i++) {
             activeOptionTexts[i].setText(q.options.get(i));
+            activeOptionTexts[i].setTextColor(getResources().getColor(R.color.text_white, getTheme()));
+            activeOptionTexts[i].setTypeface(null, android.graphics.Typeface.NORMAL);
             activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
             activeOptionLayouts[i].setEnabled(true);
+            if (activeOptionBadges[i] != null) {
+                activeOptionBadges[i].setBackgroundResource(R.drawable.bg_pill);
+                activeOptionBadges[i].setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+            }
         }
 
         tvActiveFeedback.setText("Choose the best answer.");
@@ -715,10 +806,22 @@ public class MainActivity extends AppCompatActivity {
         Animation pop = AnimationUtils.loadAnimation(this, R.anim.card_pop);
         for (int i = 0; i < 4; i++) {
             if (i == index) {
-                activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_card);
+                activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_selected);
                 activeOptionLayouts[i].startAnimation(pop);
+                if (activeOptionBadges[i] != null) {
+                    activeOptionBadges[i].setBackgroundResource(R.drawable.bg_badge_selected);
+                    activeOptionBadges[i].setTextColor(Color.WHITE);
+                }
+                activeOptionTexts[i].setTextColor(Color.WHITE);
+                activeOptionTexts[i].setTypeface(null, android.graphics.Typeface.BOLD);
             } else {
                 activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
+                if (activeOptionBadges[i] != null) {
+                    activeOptionBadges[i].setBackgroundResource(R.drawable.bg_pill);
+                    activeOptionBadges[i].setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+                }
+                activeOptionTexts[i].setTextColor(getResources().getColor(R.color.text_white, getTheme()));
+                activeOptionTexts[i].setTypeface(null, android.graphics.Typeface.NORMAL);
             }
         }
     }
@@ -738,12 +841,24 @@ public class MainActivity extends AppCompatActivity {
         if (isCorrect) {
             activeScore++;
             activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_correct);
+            if (activeOptionBadges[selectedOptionIndex] != null) {
+                activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_success);
+                activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
+            }
             tvActiveFeedback.setText("Correct answer! Great job! 🎉");
             tvActiveFeedback.setTextColor(getResources().getColor(R.color.green, getTheme()));
         } else {
             activeHearts--;
             activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_wrong);
+            if (activeOptionBadges[selectedOptionIndex] != null) {
+                activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_danger);
+                activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
+            }
             activeOptionLayouts[q.answer].setBackgroundResource(R.drawable.bg_option_correct);
+            if (activeOptionBadges[q.answer] != null) {
+                activeOptionBadges[q.answer].setBackgroundResource(R.drawable.bg_badge_success);
+                activeOptionBadges[q.answer].setTextColor(Color.WHITE);
+            }
             tvActiveFeedback.setText("Incorrect. One heart deducted.");
             tvActiveFeedback.setTextColor(getResources().getColor(R.color.red, getTheme()));
         }
@@ -751,16 +866,17 @@ public class MainActivity extends AppCompatActivity {
         updateHeartsText();
 
         if (activeHearts <= 0) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Out of Hearts")
-                    .setMessage("You ran out of hearts! Please review the lesson and try again.")
-                    .setPositiveButton("Try Again", (dialog, which) -> {
-                        recordQuizAttempt(activeDifficultyName + " (Failed)", activeScore, activeQuestions.size(), 0);
+            showThemedAlertDialog(
+                    "💔",
+                    "Out of Hearts",
+                    "You ran out of hearts! Review the lessons and try again.",
+                    "TRY AGAIN",
+                    () -> {
+                        recordQuizAttempt(activeDifficultyName + " Quiz (Failed)", activeScore, activeQuestions.size(), 0);
                         quizActiveView.setVisibility(View.GONE);
                         quizDifficultyView.setVisibility(View.VISIBLE);
-                    })
-                    .setCancelable(false)
-                    .show();
+                    }
+            );
             return;
         }
 
@@ -775,16 +891,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void exitQuizWithRecord() {
-        new AlertDialog.Builder(this)
-                .setTitle("Exit Quiz?")
-                .setMessage("Are you sure you want to exit? Your attempt will be recorded as exited.")
-                .setPositiveButton("Exit", (dialog, which) -> {
+        showThemedConfirmDialog(
+                "⚠️",
+                "Exit Quiz?",
+                "Are you sure you want to exit? Your attempt will be recorded as exited.",
+                "EXIT",
+                "CANCEL",
+                () -> {
                     recordQuizAttempt(activeDifficultyName + " Quiz (Exited)", activeScore, activeQuestions.size(), 0);
                     quizActiveView.setVisibility(View.GONE);
                     quizDifficultyView.setVisibility(View.VISIBLE);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                }
+        );
     }
 
     private void finishQuizSuccess() {
@@ -1226,20 +1344,12 @@ public class MainActivity extends AppCompatActivity {
         String cpw = etRegConfirmPassword != null ? etRegConfirmPassword.getText().toString().trim() : "";
 
         if (name.length() < 2 || gr.isEmpty() || sec.isEmpty() || genderIndex == 0 || pw.length() < 4) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Registration")
-                    .setMessage("Please complete all fields. Password must have at least 4 characters.")
-                    .setPositiveButton("OK", null)
-                    .show();
+            showThemedAlertDialog("⚠️", "Incomplete Form", "Please complete all fields. Password must have at least 4 characters.", "GOT IT", null);
             return;
         }
 
         if (!pw.equals(cpw)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Registration")
-                    .setMessage("Passwords do not match.")
-                    .setPositiveButton("OK", null)
-                    .show();
+            showThemedAlertDialog("⚠️", "Password Mismatch", "Passwords do not match. Please re-enter your passwords.", "TRY AGAIN", null);
             return;
         }
 
@@ -1280,28 +1390,117 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception ignored) {}
 
-        new AlertDialog.Builder(this)
-                .setTitle("Account Created")
-                .setMessage("Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.")
-                .setPositiveButton("Continue to App", (dialog, which) -> {
+        showThemedAlertDialog(
+                "🎉",
+                "Account Created",
+                "Account created successfully!\n\nYour username is: " + un + "\nPlease remember this username for login.",
+                "CONTINUE TO APP",
+                () -> {
                     hideAuthScreen();
                     switchPage(0);
-                })
-                .setCancelable(false)
-                .show();
+                }
+        );
     }
 
     private void performLogout() {
-        new AlertDialog.Builder(this)
-                .setTitle("Logout")
-                .setMessage("Are you sure you want to log out?")
-                .setPositiveButton("Logout", (dialog, which) -> {
-                    SoundManager.getInstance(this).playClick();
+        showThemedConfirmDialog(
+                "🚪",
+                "Log Out",
+                "Are you sure you want to log out of your DigiView account?",
+                "LOG OUT",
+                "CANCEL",
+                () -> {
                     isLoggedIn = false;
                     showAuthScreen();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                }
+        );
+    }
+
+    // =========================================================================
+    // THEMED CONFIRMATION & ALERT DIALOGS
+    // =========================================================================
+    public void showThemedConfirmDialog(String icon, String title, String message,
+                                         String confirmText, String cancelText,
+                                         Runnable onConfirm) {
+        showThemedDialogInternal(icon, title, message, confirmText, cancelText, onConfirm, true);
+    }
+
+    public void showThemedAlertDialog(String icon, String title, String message,
+                                       String buttonText, Runnable onDismiss) {
+        showThemedDialogInternal(icon, title, message, buttonText, null, onDismiss, false);
+    }
+
+    private void showThemedDialogInternal(String icon, String title, String message,
+                                          String confirmText, String cancelText,
+                                          Runnable onAction, boolean cancelable) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(cancelable)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvIcon = dialogView.findViewById(R.id.tvConfirmIcon);
+        TextView tvTitle = dialogView.findViewById(R.id.tvConfirmTitle);
+        TextView tvMsg = dialogView.findViewById(R.id.tvConfirmMessage);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnConfirmCancel);
+        MaterialButton btnOk = dialogView.findViewById(R.id.btnConfirmOk);
+
+        if (icon != null && !icon.isEmpty()) {
+            tvIcon.setText(icon);
+            tvIcon.setVisibility(View.VISIBLE);
+        } else {
+            tvIcon.setVisibility(View.GONE);
+        }
+
+        tvTitle.setText(title != null ? title : "DigiView");
+        tvMsg.setText(message != null ? message : "");
+
+        if (confirmText != null && !confirmText.isEmpty()) {
+            btnOk.setText(confirmText);
+        }
+
+        if (cancelText != null && !cancelText.isEmpty()) {
+            btnCancel.setVisibility(View.VISIBLE);
+            btnCancel.setText(cancelText);
+            btnCancel.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                dialog.dismiss();
+            });
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) btnOk.getLayoutParams();
+            if (lp != null) {
+                int marginPx = (int) (6 * getResources().getDisplayMetrics().density + 0.5f);
+                lp.setMarginStart(marginPx);
+                btnOk.setLayoutParams(lp);
+            }
+        } else {
+            btnCancel.setVisibility(View.GONE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) btnOk.getLayoutParams();
+            if (lp != null) {
+                lp.setMarginStart(0);
+                btnOk.setLayoutParams(lp);
+            }
+        }
+
+        btnOk.setOnClickListener(v -> {
+            SoundManager.getInstance(this).playClick();
+            dialog.dismiss();
+            if (onAction != null) {
+                onAction.run();
+            }
+        });
+
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90f);
+            int maxWidth = (int) (380 * getResources().getDisplayMetrics().density + 0.5f);
+            dialog.getWindow().setLayout(Math.min(width, maxWidth), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
     }
 
     // =========================================================================
@@ -1514,6 +1713,13 @@ public class MainActivity extends AppCompatActivity {
             dialog.dismiss();
         });
         dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
+            int maxWidth = (int) (420 * getResources().getDisplayMetrics().density + 0.5f);
+            dialog.getWindow().setLayout(Math.min(width, maxWidth), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
     }
 
     @Override
