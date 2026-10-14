@@ -42,7 +42,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DIGI-VIEW"
+                android:text="DIGIVIEW"
                 android:textColor="@color/cyan"
                 android:textSize="18sp"
                 android:textStyle="bold"
