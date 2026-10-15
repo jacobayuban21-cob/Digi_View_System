@@ -1,16 +1,13 @@
 package com.digiview.lms.model;
 
-import java.io.Serializable;
-
-public class User implements Serializable {
+/**
+ * Android User model inheriting from the shared Universal User blueprint.
+ */
+public class User extends com.digiview.core.model.User {
     public Long id;
-    public String fullName;
-    public int age;
-    public String gender;
-    public String strand;
-    public String gradeSection;
-    public String username;
-    public int xp;
 
-    public User() {}
+    public User() {
+        super();
+    }
 }
+

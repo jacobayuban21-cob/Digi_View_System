@@ -1,6 +1,7 @@
 {
     "java.project.sourcePaths": [
-        "src"
+        "src",
+        "shared"
     ],
     "java.project.outputPath": "bin"
 }

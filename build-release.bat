@@ -9,7 +9,7 @@ cd /d "%~dp0"
 
 echo [1/4] Compiling Java classes...
 if not exist "bin" mkdir bin
-javac -encoding UTF-8 -d bin src\System\ApiClient.java src\System\DigiView.java
+javac -encoding UTF-8 -sourcepath "shared;src" -d bin src\System\ApiClient.java src\System\DigiView.java
 if %errorlevel% neq 0 (
     echo [ERROR] Compilation failed!
     pause
@@ -57,16 +57,9 @@ if exist "%CSC%" (
     echo [WARNING] .NET csc compiler not found at %CSC%; creating fallback launcher...
 )
 
-rem Fallback / Debug batch script
-echo @echo off > "%RELEASE_DIR%\DigiView-Debug.bat"
-echo cd /d "%%~dp0" >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo if exist "jre\bin\java.exe" ( >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo     "jre\bin\java.exe" -cp "DigiViewSystem.jar" System.DigiView >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo     pause >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo     exit /b 0 >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo ) >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo java -cp "DigiViewSystem.jar" System.DigiView >> "%RELEASE_DIR%\DigiView-Debug.bat"
-echo pause >> "%RELEASE_DIR%\DigiView-Debug.bat"
+rem Copy Debug and Console Log Listener batch files
+copy /y "src\Launcher\DigiView-Debug.bat" "%RELEASE_DIR%\DigiView-Debug.bat" >nul
+copy /y "src\Launcher\DigiView-Debug.bat" "%RELEASE_DIR%\DigiView.bat" >nul
 
 echo [4/4] Creating ZIP package for easy distribution...
 powershell -NoProfile -Command "Compress-Archive -Path '%RELEASE_DIR%\*' -DestinationPath 'dist\DigiView-Portable.zip' -Force"

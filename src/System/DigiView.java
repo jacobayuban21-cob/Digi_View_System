@@ -21,14 +21,57 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+
+import com.digiview.core.model.Question;
+import com.digiview.core.model.Lesson;
+import com.digiview.core.model.QuizRecord;
+import com.digiview.core.model.User;
+import com.digiview.core.model.Achievement;
+import com.digiview.core.data.QuestionBank;
+import com.digiview.core.data.LessonCurriculum;
+import com.digiview.core.data.AchievementRegistry;
+import com.digiview.core.logic.QuizProgressionRules;
 /**
  *
  * @author Jacob
  */
 public class DigiView {
-public static void main(String[] args) {
-    javax.swing.SwingUtilities.invokeLater(() -> {
-        new DigiViewLMS().setVisible(true);
+
+    public static void log(String tag, String message) {
+        String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date());
+        System.out.printf("[%s] [%-8s] %s%n", timestamp, tag, message);
+    }
+
+    public static void logErr(String tag, String message, Throwable t) {
+        String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date());
+        System.err.printf("[%s] [ERROR   ] [%s] %s%n", timestamp, tag, message);
+        if (t != null) {
+            t.printStackTrace(System.err);
+        }
+    }
+
+    public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            logErr("THREAD", "Uncaught exception on thread: " + thread.getName(), throwable);
+        });
+
+        log("SYSTEM", "==========================================================");
+        log("SYSTEM", "  DigiView LMS Desktop v1.0.0 (Initial Production Release)");
+        log("SYSTEM", "  Java Runtime : " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")");
+        log("SYSTEM", "  OS Platform  : " + System.getProperty("os.name") + " " + System.getProperty("os.version") + " (" + System.getProperty("os.arch") + ")");
+        log("SYSTEM", "  Working Dir  : " + new File(".").getAbsolutePath());
+        log("SYSTEM", "  Cloud Server : " + ApiClient.getBaseUrl());
+        log("SYSTEM", "==========================================================");
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            try {
+                log("UI", "Initializing DigiView LMS desktop application...");
+                DigiViewLMS app = new DigiViewLMS();
+                app.setVisible(true);
+                log("UI", "Main window displayed successfully. Ready for user interaction.");
+            } catch (Throwable t) {
+                logErr("STARTUP", "Failed to initialize desktop application UI", t);
+            }
         });
     }
 }
@@ -239,7 +282,9 @@ class DigiViewLMS extends JFrame {
     private void initAudio() {
         activeInstance = this;
         new Thread(() -> {
+            DigiView.log("AUDIO", "Initializing audio subsystem and preloading sound clips...");
             // 1. Preload Click Sound into memory and pool of 6 clips
+            int poolLoaded = 0;
             try {
                 InputStream is = getAudioResourceStream("mixkit-select-click-1109.wav");
                 if (is != null) {
@@ -257,13 +302,17 @@ class DigiViewLMS extends JFrame {
                             Clip clip = AudioSystem.getClip();
                             clip.open(ais);
                             clickClips[i] = clip;
+                            poolLoaded++;
                         } catch (Exception e) {
-                            System.err.println("Click clip pool item " + i + " init failed: " + e.getMessage());
+                            DigiView.logErr("AUDIO", "Click clip pool item " + i + " init failed: " + e.getMessage(), null);
                         }
                     }
+                    DigiView.log("AUDIO", "Click audio pool ready: " + poolLoaded + "/" + CLICK_POOL_SIZE + " clips allocated.");
+                } else {
+                    DigiView.log("AUDIO", "Warning: mixkit-select-click-1109.wav not found.");
                 }
             } catch (Exception e) {
-                System.err.println("Failed to preload click audio: " + e.getMessage());
+                DigiView.logErr("AUDIO", "Failed to preload click audio: " + e.getMessage(), e);
             }
 
             // 2. Global AWT Event Listener for instant, 100% consistent click feedback
@@ -330,7 +379,7 @@ class DigiViewLMS extends JFrame {
             if (musicClip == null) {
                 InputStream is = getAudioResourceStream("freesound_community-relax-32200.wav");
                 if (is == null) {
-                    System.out.println("Music file not found: freesound_community-relax-32200.wav");
+                    DigiView.log("AUDIO", "Background music file not found: freesound_community-relax-32200.wav");
                     return;
                 }
                 AudioInputStream ais = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
@@ -347,8 +396,9 @@ class DigiViewLMS extends JFrame {
 
             musicClip.setFramePosition(0);
             musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            DigiView.log("AUDIO", "Background study music playing in continuous loop (freesound_community-relax-32200.wav).");
         } catch (Throwable t) {
-            System.err.println("Background music start failed: " + t.getMessage());
+            DigiView.logErr("AUDIO", "Background music start failed: " + t.getMessage(), t);
         }
     }
 
@@ -356,12 +406,14 @@ class DigiViewLMS extends JFrame {
         try {
             if (musicClip != null && musicClip.isRunning()) {
                 musicClip.stop();
+                DigiView.log("AUDIO", "Background music paused.");
             }
         } catch (Exception ignored) {}
     }
 
     public synchronized void toggleBackgroundMusic() {
         musicEnabled = !musicEnabled;
+        DigiView.log("AUDIO", "Background music toggled: " + (musicEnabled ? "ON" : "OFF"));
         if (musicEnabled) {
             startBackgroundMusic();
         } else {
@@ -406,16 +458,10 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         
     private boolean hasPassed(String quizName) {
         if (currentUser == null || currentUser.history == null) return false;
-        String target = quizName.toLowerCase();
-        String alt = target.contains("easy") || target.contains("beginner") ? "beginner" :
-                     (target.contains("medium") || target.contains("intermediate") ? "intermediate" : "advanced");
-        return currentUser.history.stream().anyMatch(
-            record -> record != null && record.quiz != null
-                && (record.quiz.toLowerCase().contains(target) || record.quiz.toLowerCase().contains(alt))
-                && !record.quiz.toLowerCase().contains("exited")
-                && !record.quiz.toLowerCase().contains("failed")
-                && record.percent >= 70
-        );
+        String t = quizName.toLowerCase();
+        int tier = (t.contains("easy") || t.contains("beginner")) ? 1 :
+                   ((t.contains("medium") || t.contains("intermediate")) ? 2 : 3);
+        return QuizProgressionRules.hasPassedTier(tier, currentUser.history);
     }
 
     private JPanel createLogo() {
@@ -509,126 +555,11 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private JTextField loginUsername;
     private JPasswordField loginPassword;
 
-    private final List<Lesson> lessons = Arrays.asList(
-        new Lesson("HTML Basics", "🌐",
-            "HTML stands for HyperText Markup Language. It is used to create and structure the content of webpages. A basic HTML document usually contains the &lt;html&gt;, &lt;head&gt;, &lt;title&gt;, and &lt;body&gt; elements.",
-            "<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>My Page</title>\\n</head>\\n<body>\\n  <h1>Hello World</h1>\\n  <p>Welcome!</p>\\n</body>\\n</html>"),
-        new Lesson("Headings & Paragraphs", "📝",
-            "HTML headings are used to create titles and subtitles. Heading elements range from &lt;h1&gt; to &lt;h6&gt;, while the &lt;p&gt; element is used to create paragraphs of text.",
-            "<h1>My Website</h1>\\n<h2>About Me</h2>\\n<p>This is a paragraph.</p>"),
-        new Lesson("Links", "🔗",
-            "HTML links allow users to move from one webpage to another. The &lt;a&gt; element creates a link, while the href attribute specifies the destination of the link.",
-            "<a href=\"https://example.com\">Visit Website</a>"),
-        new Lesson("Images", "🖼",
-            "The &lt;img&gt; element is used to display an image on a webpage. The src attribute specifies the image location, while the alt attribute provides alternative text.",
-            "<img src=\"picture.jpg\" alt=\"My picture\">"),
-        new Lesson("Lists", "📋",
-            "HTML provides two common types of lists. The &lt;ul&gt; element creates an unordered list, while &lt;ol&gt; creates an ordered list. Each item is placed inside an &lt;li&gt; element.",
-            "<ul>\\n  <li>HTML</li>\\n  <li>CSS</li>\\n</ul>\\n\\n<ol>\\n  <li>First</li>\\n  <li>Second</li>\\n</ol>"),
-        new Lesson("HTML Tables", "📊",
-            "HTML tables are used to organize information into rows and columns. The &lt;table&gt; element creates the table, &lt;tr&gt; creates a row, &lt;th&gt; creates a header cell, and &lt;td&gt; creates a data cell.",
-            "<table>\\n  <tr><th>Name</th><th>Score</th></tr>\\n  <tr><td>Juan</td><td>90</td></tr>\\n</table>"),
-        new Lesson("HTML Forms", "📝",
-            "HTML forms are used to collect information from users. Common form elements include &lt;form&gt;, &lt;label&gt;, &lt;input&gt;, and &lt;button&gt;. Forms are useful for login pages, registration forms, and surveys.",
-            "<form>\\n  <label>Username</label>\\n  <input type=\"text\" placeholder=\"Enter username\">\\n  <button>Submit</button>\\n</form>"),
-        new Lesson("Block-Level Elements", "🧱",
-            "Block-level elements normally start on a new line and take up the available width. Common examples include &lt;div&gt;, &lt;p&gt;, and heading elements such as &lt;h1&gt;. They are useful for organizing webpage content into sections.",
-            "<div>\\n  <h2>Profile</h2>\\n  <p>This is a block-level section.</p>\\n</div>")
-    );
-    
-   private final List<Question> easyQuestions = Arrays.asList(
-    q("What does HTML stand for?", "HyperText Markup Language", "HighText Machine Language", "Hyperlink Text Management Language", "Home Tool Markup Language", 0, 1),
-        q("Which file extension is used for a webpage written in HTML?", ".java", ".html", ".docx", ".exe", 1, 1),
-        q("Which program is used to open and view a webpage?", "A calculator", "A spreadsheet", "A web browser", "A compiler", 2, 1),
-        q("Which element contains the visible content of a webpage?", "<head>", "<body>", "<title>", "<meta>", 1, 1),
-        q("Which element sets the title shown in the browser tab?", "<head>", "<h1>", "<title>", "<header>", 2, 1),
-        q("Which element creates the largest heading?", "<h6>", "<heading>", "<h1>", "<head>", 2, 1),
-        q("Which element creates a paragraph?", "<para>", "<p>", "<text>", "<paragraph>", 1, 1),
-        q("Which element creates a line break?", "<break>", "<lb>", "<br>", "<newline>", 2, 1),
-        q("Which element creates a hyperlink?", "<link>", "<a>", "<href>", "<url>", 1, 1),
-        q("Which element displays an image?", "<image>", "<picture>", "<src>", "<img>", 3, 1),
-        q("Which element creates a bulleted (unordered) list?", "<ol>", "<li>", "<ul>", "<list>", 2, 1),
-        q("Which element creates a numbered (ordered) list?", "<ul>", "<ol>", "<li>", "<order>", 1, 1),
-        q("Which element marks one item inside a list?", "<item>", "<ul>", "<li>", "<ol>", 2, 1),
-        q("Which element creates a table?", "<table>", "<tab>", "<grid>", "<data>", 0, 1),
-        q("Which element creates a table row?", "<td>", "<th>", "<tr>", "<row>", 2, 1),
-        q("Which element creates a table header cell?", "<td>", "<th>", "<tr>", "<thead-cell>", 1, 1),
-        q("Which element creates a table data cell?", "<cell>", "<data>", "<td>", "<tr>", 2, 1),
-        q("Which element creates a form?", "<input>", "<form>", "<field>", "<submit>", 1, 1),
-        q("Which element creates a clickable button?", "<click>", "<press>", "<button>", "<btn>", 2, 1),
-        q("Which element shows text with strong importance (usually bold)?", "<strong>", "<small>", "<mark-up>", "<heavy>", 0, 1),
-        q("Which element creates a horizontal line?", "<line>", "<hr>", "<br>", "<divider>", 1, 1),
-        q("Which declaration identifies an HTML5 document?", "<html5>", "<!DOCTYPE html>", "<doctype>", "<HTML5>", 1, 1),
-        q("Which element is the root of an HTML document?", "<body>", "<head>", "<html>", "<main>", 2, 1),
-        q("Which element contains information about the page that is not displayed?", "<footer>", "<main>", "<head>", "<section>", 2, 1),
-        q("Which element is a generic block container?", "<span>", "<div>", "<a>", "<strong>", 1, 1)
-    );
-
-    
-
-    private final List<Question> mediumQuestions = Arrays.asList(
-    q("Which is the correct way to write a paragraph?", "<p>Hello<p>", "<p>Hello</p>", "</p>Hello<p>", "<p/>Hello", 1, 2),
-        q("Which code creates a link to example.com?", "<a src=\"https://example.com\">Visit</a>", "<link>https://example.com</link>", "<a href=\"https://example.com\">Visit</a>", "<href=\"https://example.com\">Visit</href>", 2, 2),
-        q("Which attribute tells <img> which picture file to show?", "href", "src", "alt", "link", 1, 2),
-        q("Which code displays an image with alternative text?", "<img href=\"cat.jpg\" alt=\"Cat\">", "<image src=\"cat.jpg\">", "<img src=\"cat.jpg\" alt=\"Cat\">", "<img>cat.jpg</img>", 2, 2),
-        q("Which syntax creates an HTML comment?", "// comment", "/* comment */", "<!-- comment -->", "** comment **", 2, 2),
-        q("What is the correct closing tag for <h1>?", "<h1/>", "</h1>", "<\\h1>", "</heading>", 1, 2),
-        q("Which code correctly places a list item inside a bulleted list?", "<ul><li>HTML</li></ul>", "<li><ul>HTML</ul></li>", "<ul>HTML<li></ul>", "<ul><item>HTML</item></ul>", 0, 2),
-        q("Which code creates a numbered list with one item?", "<ul><li>One</li></ul>", "<ol><li>One</li></ol>", "<li><ol>One</ol></li>", "<list>One</list>", 1, 2),
-        q("Which code creates a table row with two header cells?", "<tr><td>Name</td><td>Age</td></tr>", "<table>Name Age</table>", "<tr><th>Name</th><th>Age</th></tr>", "<th><tr>Name</tr></th>", 2, 2),
-        q("Which attribute makes a cell span two columns?", "rowspan=\"2\"", "colspan=\"2\"", "columns=\"2\"", "span=\"2\"", 1, 2),
-        q("Which attribute makes a cell span two rows?", "colspan=\"2\"", "height=\"2\"", "rowspan=\"2\"", "rows=\"2\"", 2, 2),
-        q("Which code creates a single-line text box?", "<input type=\"text\">", "<text></text>", "<input text>", "<textbox>", 0, 2),
-        q("Which code creates a password field?", "<input type=\"text\">", "<input type=\"hidden\">", "<input type=\"password\">", "<password>", 2, 2),
-        q("Which attribute shows hint text inside an empty input?", "value", "label", "placeholder", "hint", 2, 2),
-        q("Which attribute makes a form field mandatory?", "required", "important", "validate", "must", 0, 2),
-        q("Which code correctly connects a label to an input?", "<label name=\"user\">Username</label><input id=\"user\">", "<label for=\"user\">Username</label><input id=\"user\">", "<label id=\"user\">Username</label><input for=\"user\">", "<label href=\"user\">Username</label><input name=\"label\">", 1, 2),
-        q("Which code creates a dropdown list with one option?", "<select><option>Red</option></select>", "<dropdown><item>Red</item></dropdown>", "<option><select>Red</select></option>", "<input type=\"dropdown\">", 0, 2),
-        q("Which attribute opens a link in a new tab?", "new", "window", "target=\"_blank\"", "open=\"new\"", 2, 2),
-        q("Which attribute uniquely identifies one element?", "class", "id", "style", "group", 1, 2),
-        q("Which attribute lets several elements share the same CSS class?", "id", "unique", "class", "single", 2, 2),
-        q("Which code sets the page language to English?", "<html language=\"English\">", "<html lang=\"en\">", "<language value=\"en\">", "<head lang=\"en\">", 1, 2),
-        q("Which code declares UTF-8 character encoding?", "<charset value=\"UTF-8\">", "<meta encoding=\"UTF-8\">", "<meta charset=\"UTF-8\">", "<head charset=\"UTF-8\">", 2, 2),
-        q("Which code nests tags correctly?", "<p><strong>Hi</p></strong>", "<p><strong>Hi</strong></p>", "<strong><p>Hi</strong></p>", "<p><strong>Hi</p>", 1, 2),
-        q("Which code loads an external stylesheet?", "<style src=\"styles.css\">", "<css href=\"styles.css\"></css>", "<link rel=\"stylesheet\" href=\"styles.css\">", "<script href=\"styles.css\"></script>", 2, 2),
-        q("Which code loads an external JavaScript file?", "<javascript src=\"app.js\">", "<script src=\"app.js\"></script>", "<link rel=\"script\" href=\"app.js\">", "<script href=\"app.js\"></script>", 1, 2)
-    );
-
-
-
-
-
-    private final List<Question> hardQuestions = Arrays.asList(
-    q("Complete the code: <a ____=\"https://example.com\">Visit</a>", "src", "link", "href", "url", 2, 3),
-        q("Complete the code: <img ____=\"photo.jpg\" alt=\"Photo\">", "src", "href", "file", "path", 0, 3),
-        q("Complete the code: <img src=\"photo.jpg\" ____=\"A photo\">", "title", "alt", "name", "text", 1, 3),
-        q("Complete the code: <ul><____>HTML</____></ul>", "item", "ol", "li", "list", 2, 3),
-        q("Complete the code to make a numbered list: <____><li>First</li><li>Second</li></____>", "ul", "ol", "list", "nl", 1, 3),
-        q("Complete the code: <table><____><th>Name</th></____></table>", "td", "row", "th", "tr", 3, 3),
-        q("Complete the code so the cell spans two columns: <td ____=\"2\">Total</td>", "rowspan", "colspan", "span", "columns", 1, 3),
-        q("Complete the code so typed characters are hidden: <input type=\"____\">", "hidden", "secret", "password", "text", 2, 3),
-        q("Complete the code so the field must be filled in: <input type=\"email\" ____>", "needed", "required", "validate", "must", 1, 3),
-        q("Complete the code: <label ____=\"user\">Username</label><input id=\"user\">", "id", "name", "href", "for", 3, 3),
-        q("Complete the code: <select><____>Red</____><option>Blue</option></select>", "item", "choice", "option", "value", 2, 3),
-        q("Complete the code so the link opens in a new tab: <a href=\"https://example.com\" target=\"____\">Visit</a>", "_new", "_blank", "_tab", "_self", 1, 3),
-        q("Complete the code: <html ____=\"en\">", "language", "lang", "code", "locale", 1, 3),
-        q("Complete the code: <meta ____=\"UTF-8\">", "encoding", "type", "charset", "content", 2, 3),
-        q("Complete the code: <link rel=\"stylesheet\" ____=\"styles.css\">", "src", "href", "file", "style", 1, 3),
-        q("Complete the code: <script ____=\"app.js\"></script>", "href", "link", "file", "src", 3, 3),
-        q("Complete the code: <form ____=\"POST\" action=\"save.php\">...</form>", "type", "method", "submit", "send", 1, 3),
-        q("Complete the code: <____>Copyright 2026 Digi-View</____>", "bottom", "footer", "end", "foot", 1, 3),
-        q("Complete the code: <figure><img src=\"chart.png\" alt=\"Chart\"><____>Sales</____></figure>", "caption", "figcaption", "figuretitle", "label", 1, 3),
-        q("Complete the code so the video shows play and pause buttons: <video src=\"movie.mp4\" ____></video>", "buttons", "play", "controls", "show", 2, 3)
-    );
-    
-    private final List<Question> questionBank =
-    java.util.stream.Stream.of(
-        easyQuestions,
-        mediumQuestions,
-        hardQuestions
-    )
-    .flatMap(List::stream)
-    .collect(java.util.stream.Collectors.toList());
+    private final List<Lesson> lessons = LessonCurriculum.getLessons();
+    private final List<Question> easyQuestions = QuestionBank.getQuestionsForDifficulty(1);
+    private final List<Question> mediumQuestions = QuestionBank.getQuestionsForDifficulty(2);
+    private final List<Question> hardQuestions = QuestionBank.getQuestionsForDifficulty(3);
+    private final List<Question> questionBank = QuestionBank.getAllQuestions();
     
     
     private void loadAppIcon() {
@@ -785,7 +716,10 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     private void loadData() {
-        if (!DATA_FILE.exists()) return;
+        if (!DATA_FILE.exists()) {
+            DigiView.log("DATA", "Local data file not found (" + DATA_FILE.getAbsolutePath() + "). Starting with clean state.");
+            return;
+        }
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE))) {
             Object data = in.readObject();
             if (data instanceof Map<?, ?>) {
@@ -797,7 +731,9 @@ private void updateHeartsLabel(JLabel heartsLabel) {
                     }
                 }
             }
+            DigiView.log("DATA", "Successfully loaded " + users.size() + " user account(s) from " + DATA_FILE.getAbsolutePath());
         } catch (Exception ex) {
+            DigiView.logErr("DATA", "Saved data could not be loaded: " + ex.getMessage(), ex);
             showThemedMessage("⚠️", "Digi-View", "Saved data could not be loaded. A new local data file will be used.");
         }
     }
@@ -805,7 +741,9 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private void saveData() {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
             out.writeObject(users);
+            DigiView.log("DATA", "Saved " + users.size() + " user account(s) to " + DATA_FILE.getAbsolutePath());
         } catch (IOException ex) {
+            DigiView.logErr("DATA", "Unable to save local data: " + ex.getMessage(), ex);
             showThemedMessage("❌", "Save Error", "Unable to save local data: " + ex.getMessage());
         }
     }
@@ -1877,9 +1815,11 @@ private JPanel authCard(String heading, String subtitle) {
 
     private void showPage(String page) {
         if (currentUser == null) {
+            DigiView.log("NAV", "showPage('" + page + "') invoked with null user -> redirecting to showAuth()");
             showAuth();
             return;
         }
+        DigiView.log("NAV", "Page view switched to: " + page + " (User: " + currentUser.username + ", XP: " + currentUser.xp + ")");
         currentPage = page;
         if (pageTitle != null) pageTitle.setText(page);
         refreshHeaderStats();
@@ -2698,7 +2638,6 @@ private JPanel authCard(String heading, String subtitle) {
 
             submit.setEnabled(false);
 
-            
             for (AnswerOption o : options) {
                 if (o.optionIndex == chosen) {
                     o.lock(correct ? AnswerOption.CORRECT : AnswerOption.WRONG);
@@ -2710,6 +2649,8 @@ private JPanel authCard(String heading, String subtitle) {
             if (!correct) {
                 quizHearts--;
             }
+
+            DigiView.log("QUIZ", "Q" + (index + 1) + "/" + questions.size() + " Answer Submitted: Chosen=" + chosen + " (" + (correct ? "CORRECT" : "WRONG") + ") | Hearts: " + quizHearts + " | Current Score: " + liveScore[0]);
 
             updateHeartsLabel(heartsLabel);
 
@@ -2762,7 +2703,7 @@ private JPanel authCard(String heading, String subtitle) {
     }
     
     private void showQuizResult( int score, int total, int percent, int difficulty ) {
-        
+        DigiView.log("QUIZ", "Quiz Finished: Level=" + (difficulty == 1 ? "Easy" : difficulty == 2 ? "Medium" : "Hard") + " | Score=" + score + "/" + total + " (" + percent + "%) | Status=" + (percent >= 70 ? "PASSED" : "FAILED"));
         
         JPanel p = verticalPanel();
         JPanel card = panel(); card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS)); 
@@ -2780,13 +2721,13 @@ if (percent < 70) {
         "You need 70% to pass. Review the lessons and try again.";
 } else if (difficulty == 1) {
     resultMessage =
-        "Easy passed! Medium and Hard Quizzes are now unlocked.";
+        "Easy passed! Medium Quiz is now unlocked.";
 } else if (difficulty == 2) {
     resultMessage =
-        "Medium passed! Great job!";
+        "Medium passed! Hard Quiz is now unlocked.";
 } else {
     resultMessage =
-        "Hard passed! Congratulations on completing all levels.";
+        "Hard passed! Congratulations on mastering all levels.";
 }
 
 card.add(label(resultMessage, 14, MUTED, false));
@@ -2802,28 +2743,15 @@ card.add(label(resultMessage, 14, MUTED, false));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        int taken = currentUser.history.size();
-        int xp = currentUser.xp;
-        boolean passedAny = currentUser.history.stream().anyMatch(r -> r.percent >= 70);
-        boolean perfect = currentUser.history.stream().anyMatch(r -> r.percent == 100)
-                || currentUser.achievements.contains("Perfect Score");
-
-
-        Object[][] items = {
-            {"\uD83C\uDFAF", "First Quiz", "Complete at least one quiz.", taken, 1},
-            {"\u2B50", "HTML Quiz Pass", "Earn 70% or higher on a quiz.", passedAny ? 1 : 0, 1},
-            {"\uD83C\uDFC6", "Perfect Score", "Get every question correct in a quiz.", perfect ? 1 : 0, 1},
-            {"\uD83C\uDF31", "Easy Master", "Pass the Easy quiz.", hasPassed("Easy") ? 1 : 0, 1},
-            {"\u26A1", "Medium Master", "Pass the Medium quiz.", hasPassed("Medium") ? 1 : 0, 1},
-            {"\uD83D\uDD25", "Hard Master", "Pass the Hard quiz.", hasPassed("Hard") ? 1 : 0, 1},
-            {"\uD83D\uDCC8", "Level Up", "Reach Level 2 (100 XP).", xp, 100},
-            {"\uD83D\uDCDA", "Persistent Learner", "Complete 5 quizzes.", taken, 5},
-            {"\uD83D\uDC8E", "XP Collector", "Earn 500 XP.", xp, 500}
-        };
+        List<Achievement> items = AchievementRegistry.evaluateAchievements(
+            currentUser.history,
+            currentUser.xp,
+            currentUser.achievements
+        );
 
         int unlockedCount = 0;
-        for (Object[] it : items) {
-            if ((int) it[3] >= (int) it[4]) unlockedCount++;
+        for (Achievement it : items) {
+            if (it.isUnlocked()) unlockedCount++;
         }
 
 
@@ -2840,13 +2768,13 @@ card.add(label(resultMessage, 14, MUTED, false));
         heroTitle.setForeground(TEXT);
         heroTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel heroDesc = new JLabel(unlockedCount + " of " + items.length
+        JLabel heroDesc = new JLabel(unlockedCount + " of " + items.size()
                 + " unlocked \u2014 achievements are based on your quiz results.");
         heroDesc.setFont(new Font("SansSerif", Font.PLAIN, 15));
         heroDesc.setForeground(new Color(190, 205, 225));
         heroDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        ProgressPill overall = new ProgressPill(unlockedCount * 100 / items.length);
+        ProgressPill overall = new ProgressPill(unlockedCount * 100 / items.size());
         overall.setAlignmentX(Component.LEFT_ALIGNMENT);
         overall.setPreferredSize(new Dimension(500, 14));
         overall.setMaximumSize(new Dimension(500, 14));
@@ -2864,17 +2792,17 @@ card.add(label(resultMessage, 14, MUTED, false));
 
         int effW = getEffectiveContentWidth();
         int aCols = (effW >= 960) ? 3 : (effW >= 600 ? 2 : 1);
-        int aRows = (items.length + aCols - 1) / aCols;
+        int aRows = (items.size() + aCols - 1) / aCols;
         JPanel grid = new JPanel(new GridLayout(0, aCols, 18, 18));
         grid.setOpaque(false);
 
-        for (Object[] it : items) {
-            String icon = (String) it[0];
-            String name = (String) it[1];
-            String desc = (String) it[2];
-            int current = (int) it[3];
-            int target = (int) it[4];
-            boolean unlocked = current >= target;
+        for (Achievement it : items) {
+            String icon = it.icon;
+            String name = it.title;
+            String desc = it.description;
+            int current = it.currentProgress;
+            int target = it.targetProgress;
+            boolean unlocked = it.isUnlocked();
 
             RoundedPanel card = new RoundedPanel(26,
                 unlocked ? D_CARD : new Color(11, 21, 38),
@@ -2905,7 +2833,7 @@ card.add(label(resultMessage, 14, MUTED, false));
 
       
             int shown = Math.min(current, target);
-            int percent = Math.min(100, current * 100 / target);
+            int percent = it.getProgressPercent();
 
             JLabel progressText = new JLabel(shown + " / " + target);
             progressText.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -3807,38 +3735,6 @@ card.add(label(resultMessage, 14, MUTED, false));
             g2.translate(Math.round(6 * t), 0);
             super.paintComponent(g2);
             g2.dispose();
-        }
-    }
-    
-    
-    private static class Lesson {
-        String title, icon, explanation, code;
-        Lesson(String title, String icon, String explanation, String code) {
-            this.title=title; this.icon=icon; this.explanation=explanation; this.code=code.replace("\\n", "\n");
-        }
-    }
-    private static class Question {
-        String text; List<String> options; int answer, difficulty;
-        Question(String text, List<String> options, int answer, int difficulty) {
-            this.text=text; this.options=options; this.answer=answer; this.difficulty=difficulty;
-        }
-    }
-    private static class QuizRecord implements Serializable {
-        private static final long serialVersionUID = 1L;
-        String quiz, date; int score, total, percent;
-        QuizRecord(String quiz, int score, int total, int percent, String date) {
-            this.quiz=quiz; this.score=score; this.total=total; this.percent=percent; this.date=date;
-        }
-    }
-    private static class User implements Serializable {
-        private static final long serialVersionUID = 1L;
-        String fullName, gender, strand, gradeSection, username, password;
-        int age, xp;
-        List<QuizRecord> history = new ArrayList<>();
-        Set<String> achievements = new LinkedHashSet<>();
-        User(String fullName, int age, String gender, String strand, String gradeSection, String username, String password) {
-            this.fullName=fullName; this.age=age; this.gender=gender; this.strand=strand; this.gradeSection=gradeSection;
-            this.username=username; this.password=password;
         }
     }
 }
