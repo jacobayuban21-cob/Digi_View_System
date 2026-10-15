@@ -166,16 +166,25 @@ A pure-Java shared module was extracted to serve as the **single source of truth
 
 ---
 
-## 📋 Git Commit Log (v1.0.0 — Initial Release)
+## 📋 Git Commit Log
+
+### 🌟 v1.1.0 — Minor Feature Release Commits
 
 | Commit | Summary |
 | :--- | :--- |
+| `e8171c8` | chore(release): bump version to v1.1.0 across desktop, android, backend, and release notes |
+| `e442ffc` | docs: document universal shared core architecture and update release notes |
 | `0d569f8` | chore(ide): add eclipse .project and .classpath descriptors for multi-source classpath |
 | `51a8f0b` | fix(ide): move shared module to project root and configure vscode sourcePaths to resolve IDE squiggles |
 | `2949ac5` | refactor: extract shared blueprints and feature repositories for desktop and mobile |
 | `dcaa53c` | feat: implement active runtime log listener and development console in batch launcher |
 | `2e95a33` | fix: hide correct answers on failed quiz attempts across all difficulties |
 | `2dae401` | fix: harden backend JPA dialect, enforce 70% quiz progression, remove demo login, and compile DigiView.exe |
+
+### 🚀 v1.0.0 — Initial Release Commits
+
+| Commit | Summary |
+| :--- | :--- |
 | `ef02522` | feat: display version v1.0.0 across desktop, android, and web server interfaces |
 | `bc6ff33` | fix: resolve server icon and image 404s with dedicated AssetController and static mappings |
 | `009b791` | docs: update release notes version to initial v1.0.0 |
