@@ -1,19 +1,19 @@
-# 🚀 DigiView LMS — Release Notes (v1.0.0 — Initial Release)
+# 🚀 DigiView LMS — Release Notes (v1.1.0 — Minor Feature Release)
 
-**Release Date:** October 14, 2026  
-**Version:** `1.0.0` (Initial Production Release)  
+**Release Date:** October 15, 2026  
+**Version:** `1.1.0` (Minor Feature Release)  
 **Branch:** `dev`  
 **Live Backend Service:** [https://digi-view-system.onrender.com](https://digi-view-system.onrender.com)  
 **Distribution Artifacts:**
-- 📦 **Desktop Portable ZIP:** `dist/DigiView-Portable.zip` (Self-contained JRE + Standalone JAR)
+- 📦 **Desktop Portable ZIP:** `dist/DigiView-Portable.zip` (Self-contained JRE + Native `.exe` + Standalone JAR)
 - ☕ **Desktop Runnable JAR:** `dist/DigiViewSystem.jar`
-- 📱 **Android Package:** `dist/DigiView-Android.apk`
+- 📱 **Android Package:** `dist/DigiView-Android.apk` (v1.1.0, Build 2)
 
 ---
 
 ## 🌟 Executive Summary
 
-The **DigiView LMS v1.0.0 Initial Release** establishes the complete educational learning ecosystem across Desktop, Mobile, and Cloud. Both the **Desktop Swing application** and the **Android mobile app** feature 100% visual and functional parity—including shared audio engines, unified dark-mode themes, automatic database sync with Supabase PostgreSQL, official logo integration, and a universal **Root Redirection system** allowing symbol-based path aliasing (`@`).
+The **DigiView LMS v1.1.0 Minor Release** delivers a transformative architectural upgrade: a **unified cross-platform core engine (`shared/`)** providing a single source of truth for all data models, curriculum lessons, and business rules across Desktop and Mobile. In addition to massive code deduplication, this release introduces **quiz question answer withholding** (prompting learners to discover solutions organically), an active **live development console & runtime log monitor**, native **Windows executable packaging (`DigiView.exe`)**, and first-class **multi-source IDE project descriptors**.
 
 ---
 

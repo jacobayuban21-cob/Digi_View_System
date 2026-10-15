@@ -5,7 +5,7 @@ cd /d "%~dp0"
 cls
 color 0B
 echo ===============================================================================
-echo   DIGIVIEW LMS -- LIVE RUNTIME LOG MONITOR ^& DEBUG CONSOLE (v1.0.0)
+echo   DIGIVIEW LMS -- LIVE RUNTIME LOG MONITOR ^& DEBUG CONSOLE (v1.1.0)
 echo ===============================================================================
 echo   Mode     : Active Real-Time Log Listener
 echo   Target   : Desktop Java Runtime (Internal Log Stream)
