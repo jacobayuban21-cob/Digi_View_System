@@ -124,7 +124,9 @@ A universal path-resolution and routing system has been implemented across the e
   * **Beginner / Easy:** Open by default for all learners.
   * **Intermediate / Medium:** Locked until the learner scores at least **70%** on the Beginner / Easy Quiz.
   * **Advanced / Hard:** Locked until the learner scores at least **70%** on the Intermediate / Medium Quiz.
-  * Visual lock badges and clear guidance are shown across both Desktop and Android interfaces. Attempting to enter locked difficulties triggers a themed informative alert.
+* **Hidden Correct Answers on Failed Attempts:**
+  * When a learner answers a quiz question incorrectly, the system marks their chosen answer as incorrect and deducts a heart, but deliberately **withholds the correct answer** across all difficulty tiers (Easy, Medium, Hard).
+  * Encourages learners to reflect on their choices, re-study lesson concepts, and discover the correct answer organically.
 * **Native Windows Portable Executable (`DigiView.exe`):**
   * Replaced the `.bat` console launcher with a compiled native Windows GUI application (`DigiView.exe`).
   * Embeds the official DigiView icon directly into the executable file and launches silently without opening a terminal window.

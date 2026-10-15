@@ -963,11 +963,6 @@ public class MainActivity extends AppCompatActivity {
                 activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_danger);
                 activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
             }
-            activeOptionLayouts[q.answer].setBackgroundResource(R.drawable.bg_option_correct);
-            if (activeOptionBadges[q.answer] != null) {
-                activeOptionBadges[q.answer].setBackgroundResource(R.drawable.bg_badge_success);
-                activeOptionBadges[q.answer].setTextColor(Color.WHITE);
-            }
             tvActiveFeedback.setText("Incorrect. One heart deducted.");
             tvActiveFeedback.setTextColor(getResources().getColor(R.color.red, getTheme()));
         }

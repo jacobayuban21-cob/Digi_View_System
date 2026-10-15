@@ -2780,13 +2780,13 @@ if (percent < 70) {
         "You need 70% to pass. Review the lessons and try again.";
 } else if (difficulty == 1) {
     resultMessage =
-        "Easy passed! Medium and Hard Quizzes are now unlocked.";
+        "Easy passed! Medium Quiz is now unlocked.";
 } else if (difficulty == 2) {
     resultMessage =
-        "Medium passed! Great job!";
+        "Medium passed! Hard Quiz is now unlocked.";
 } else {
     resultMessage =
-        "Hard passed! Congratulations on completing all levels.";
+        "Hard passed! Congratulations on mastering all levels.";
 }
 
 card.add(label(resultMessage, 14, MUTED, false));
