@@ -110,8 +110,27 @@ A universal path-resolution and routing system has been implemented across the e
     digiview health     # Query live server telemetry & database status
     ```
 * **Release Artifacts Generated:**
-  * Standalone Portable Release: `dist/DigiView-Portable.zip` (includes trimmed custom Java runtime via `jlink`).
-  * Android Release Build: `dist/DigiView-Android.apk` (7.7 MB, tested & verified on physical device).
+  * Standalone Portable Release: `dist/DigiView-Portable.zip` (includes native `DigiView.exe` launcher with embedded icon, `DigiViewSystem.jar`, and trimmed portable JRE).
+  * Android Release Build: `dist/DigiView-Android.apk` (assembled and verified).
+
+---
+
+## 🔒 6. Security & Quiz Progression Hardening
+
+* **Removal of Default Login Autofill:**
+  * Completely removed the `student / admin123` quick-fill helper and prompt from mobile and desktop authentication screens.
+  * Ensures students and instructors perform authentic credential-based entry.
+* **Strict Quiz Difficulty Unlocking (70% Passing Threshold):**
+  * **Beginner / Easy:** Open by default for all learners.
+  * **Intermediate / Medium:** Locked until the learner scores at least **70%** on the Beginner / Easy Quiz.
+  * **Advanced / Hard:** Locked until the learner scores at least **70%** on the Intermediate / Medium Quiz.
+  * Visual lock badges and clear guidance are shown across both Desktop and Android interfaces. Attempting to enter locked difficulties triggers a themed informative alert.
+* **Native Windows Portable Executable (`DigiView.exe`):**
+  * Replaced the `.bat` console launcher with a compiled native Windows GUI application (`DigiView.exe`).
+  * Embeds the official DigiView icon directly into the executable file and launches silently without opening a terminal window.
+* **Backend Cloud Resilience on Render:**
+  * Configured explicit PostgreSQL dialect (`org.hibernate.dialect.PostgreSQLDialect`) to prevent dialect detection crashes during startup.
+  * Configured HikariCP pool resilience (`initialization-fail-timeout=-1`, `prepareThreshold=0`, `keepalive-time=30000`) for seamless compatibility with Supabase's transaction poolers.
 
 ---
 

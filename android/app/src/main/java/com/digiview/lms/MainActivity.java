@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout authScreenContainer;
     private View authLoginCard, authRegisterCard;
     private EditText etLoginUsername, etLoginPassword;
-    private TextView tvLoginServerText, tvQuickDemoLogin;
+    private TextView tvLoginServerText;
     private View btnLoginServerPill;
     private MaterialButton btnDoLogin, btnGoToRegister;
     private EditText etRegFullName, etRegGrade, etRegSection, etRegPassword, etRegConfirmPassword;
@@ -759,10 +759,63 @@ public class MainActivity extends AppCompatActivity {
             SoundManager.getInstance(this).playClick();
             quizResultView.setVisibility(View.GONE);
             quizDifficultyView.setVisibility(View.VISIBLE);
+            refreshQuizTierLocks();
         });
+
+        refreshQuizTierLocks();
+    }
+
+    private void refreshQuizTierLocks() {
+        if (quizDifficultyView == null) return;
+        boolean intermediateUnlocked = hasPassedDifficulty("Beginner") || hasPassedDifficulty("Easy");
+        boolean advancedUnlocked = hasPassedDifficulty("Intermediate") || hasPassedDifficulty("Medium");
+
+        View cardInt = quizDifficultyView.findViewById(R.id.btnTierIntermediate);
+        TextView tvLockInt = quizDifficultyView.findViewById(R.id.tvLockIntermediate);
+        if (cardInt != null) {
+            cardInt.setAlpha(intermediateUnlocked ? 1.0f : 0.65f);
+        }
+        if (tvLockInt != null) {
+            tvLockInt.setText(intermediateUnlocked ? "✓ Unlocked" : "🔒 Reach 70% in Beginner");
+            tvLockInt.setTextColor(intermediateUnlocked ? Color.parseColor("#34D399") : Color.parseColor("#F59E0B"));
+        }
+
+        View cardAdv = quizDifficultyView.findViewById(R.id.btnTierAdvanced);
+        TextView tvLockAdv = quizDifficultyView.findViewById(R.id.tvLockAdvanced);
+        if (cardAdv != null) {
+            cardAdv.setAlpha(advancedUnlocked ? 1.0f : 0.65f);
+        }
+        if (tvLockAdv != null) {
+            tvLockAdv.setText(advancedUnlocked ? "✓ Unlocked" : "🔒 Reach 70% in Intermediate");
+            tvLockAdv.setTextColor(advancedUnlocked ? Color.parseColor("#34D399") : Color.parseColor("#F87171"));
+        }
     }
 
     private void promptStartQuiz(String diffName, int diffLevel) {
+        if (diffLevel == 2 && !hasPassedDifficulty("Beginner") && !hasPassedDifficulty("Easy")) {
+            showThemedConfirmDialog(
+                    "🔒",
+                    "Difficulty Locked",
+                    "The Intermediate Quiz is locked!\nYou must achieve at least a 70% score in the Beginner / Easy Quiz to unlock this difficulty.",
+                    "GOT IT",
+                    null,
+                    null
+            );
+            return;
+        }
+
+        if (diffLevel == 3 && !hasPassedDifficulty("Intermediate") && !hasPassedDifficulty("Medium")) {
+            showThemedConfirmDialog(
+                    "🔒",
+                    "Difficulty Locked",
+                    "The Advanced Quiz is locked!\nYou must achieve at least a 70% score in the Intermediate / Medium Quiz to unlock this difficulty.",
+                    "GOT IT",
+                    null,
+                    null
+            );
+            return;
+        }
+
         showThemedConfirmDialog(
                 "🚀",
                 "Start " + diffName + " Quiz",
@@ -1004,6 +1057,7 @@ public class MainActivity extends AppCompatActivity {
         QuizRecord r = new QuizRecord(currentUsername, title, score, total, percent, formattedDate);
         historyRecords.add(0, r);
         saveUserData();
+        refreshQuizTierLocks();
 
         // Automatic Server Submission and Authoritative Progress Sync
         try {
@@ -1158,9 +1212,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean hasPassedDifficulty(String diff) {
+        if (historyRecords == null) return false;
+        String target = diff.toLowerCase(Locale.ROOT);
+        String alt = (target.contains("easy") || target.contains("beginner")) ? "beginner" :
+                     ((target.contains("medium") || target.contains("intermediate")) ? "intermediate" : "advanced");
         for (QuizRecord r : historyRecords) {
-            if (r.getQuiz().toLowerCase(Locale.ROOT).contains(diff.toLowerCase(Locale.ROOT))
-                    && !r.getQuiz().contains("Exited")
+            if (r == null || r.getQuiz() == null) continue;
+            String q = r.getQuiz().toLowerCase(Locale.ROOT);
+            if ((q.contains(target) || q.contains(alt) || (target.equals("beginner") && q.contains("easy")) || (target.equals("intermediate") && q.contains("medium")) || (target.equals("advanced") && q.contains("hard")))
+                    && !q.contains("exited")
+                    && !q.contains("failed")
                     && r.getPercent() >= 70) {
                 return true;
             }
@@ -1259,7 +1320,6 @@ public class MainActivity extends AppCompatActivity {
         tvLoginServerText = findViewById(R.id.tvLoginServerText);
         btnDoLogin = findViewById(R.id.btnDoLogin);
         btnGoToRegister = findViewById(R.id.btnGoToRegister);
-        tvQuickDemoLogin = findViewById(R.id.tvQuickDemoLogin);
 
         etRegFullName = findViewById(R.id.etRegFullName);
         etRegGrade = findViewById(R.id.etRegGrade);
@@ -1294,15 +1354,6 @@ public class MainActivity extends AppCompatActivity {
                 authLoginCard.setVisibility(View.VISIBLE);
                 Animation anim = AnimationUtils.loadAnimation(this, R.anim.fade_in);
                 authLoginCard.startAnimation(anim);
-            });
-        }
-
-        if (tvQuickDemoLogin != null) {
-            tvQuickDemoLogin.setOnClickListener(v -> {
-                SoundManager.getInstance(this).playClick();
-                if (etLoginUsername != null) etLoginUsername.setText("student");
-                if (etLoginPassword != null) etLoginPassword.setText("admin123");
-                Toast.makeText(this, "Default credentials filled!", Toast.LENGTH_SHORT).show();
             });
         }
 

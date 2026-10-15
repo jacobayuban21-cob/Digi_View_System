@@ -404,12 +404,19 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     heartsLabel.repaint();
 }
         
-        private boolean hasPassed(String quizName) {
-    return currentUser.history.stream().anyMatch(
-        record -> record.quiz.equals(quizName)
-            && record.percent >= 70
-    );
-}
+    private boolean hasPassed(String quizName) {
+        if (currentUser == null || currentUser.history == null) return false;
+        String target = quizName.toLowerCase();
+        String alt = target.contains("easy") || target.contains("beginner") ? "beginner" :
+                     (target.contains("medium") || target.contains("intermediate") ? "intermediate" : "advanced");
+        return currentUser.history.stream().anyMatch(
+            record -> record != null && record.quiz != null
+                && (record.quiz.toLowerCase().contains(target) || record.quiz.toLowerCase().contains(alt))
+                && !record.quiz.toLowerCase().contains("exited")
+                && !record.quiz.toLowerCase().contains("failed")
+                && record.percent >= 70
+        );
+    }
 
     private JPanel createLogo() {
     JPanel logoPanel = new JPanel(
@@ -2321,6 +2328,7 @@ private JPanel authCard(String heading, String subtitle) {
         int[] counts = {25, 25, 20};
 
         boolean easyPassed = hasPassed("Easy");
+        boolean mediumPassed = hasPassed("Medium");
 
         int qCols = (effW >= 860) ? 3 : (effW >= 560 ? 2 : 1);
         int qRows = (names.length + qCols - 1) / qCols;
@@ -2330,9 +2338,9 @@ private JPanel authCard(String heading, String subtitle) {
         for (int i = 0; i < names.length; i++) {
             final int level = i + 1;
 
-            boolean unlocked = level == 1
+            boolean unlocked = (level == 1)
                 || (level == 2 && easyPassed)
-                || (level == 3 && easyPassed);
+                || (level == 3 && mediumPassed);
 
             RoundedPanel card = new RoundedPanel(26, D_CARD, D_LINE);
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -2379,10 +2387,19 @@ private JPanel authCard(String heading, String subtitle) {
             } else {
                 RoundedPanel locked = new RoundedPanel(16, new Color(16, 28, 48), D_LINE);
                 locked.setLayout(new BorderLayout());
-                JLabel lockedText = new JLabel("Pass previous level", SwingConstants.CENTER);
-                lockedText.setFont(new Font("SansSerif", Font.BOLD, 14));
-                lockedText.setForeground(new Color(150, 165, 190));
+                String reqText = (level == 2) ? "🔒 Reach 70% in Easy" : "🔒 Reach 70% in Medium";
+                JLabel lockedText = new JLabel(reqText, SwingConstants.CENTER);
+                lockedText.setFont(new Font("SansSerif", Font.BOLD, 13));
+                lockedText.setForeground(new Color(245, 158, 11));
                 locked.add(lockedText, BorderLayout.CENTER);
+                locked.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                locked.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        playClickSound();
+                        startQuiz(level);
+                    }
+                });
                 action = locked;
             }
 
@@ -2438,17 +2455,27 @@ private JPanel authCard(String heading, String subtitle) {
 
     private void startQuiz(int difficulty) {
         if (currentUser == null) {
-        message("Please log in first.", JOptionPane.WARNING_MESSAGE);
-        return;
-    }
+            message("Please log in first.", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-    if (difficulty == 2 && !hasPassed("Easy")) {
-        message(
-            "Pass the Easy Quiz first to unlock Medium.",
-            JOptionPane.WARNING_MESSAGE
-        );
-        return;
-    }
+        if (difficulty == 2 && !hasPassed("Easy")) {
+            showThemedMessage(
+                "🔒",
+                "Difficulty Locked",
+                "You must reach at least 70% in the Easy Quiz to unlock Medium."
+            );
+            return;
+        }
+
+        if (difficulty == 3 && !hasPassed("Medium")) {
+            showThemedMessage(
+                "🔒",
+                "Difficulty Locked",
+                "You must reach at least 70% in the Medium Quiz to unlock Hard."
+            );
+            return;
+        }
 
     
 
