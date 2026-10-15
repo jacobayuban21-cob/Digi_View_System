@@ -54,6 +54,8 @@ if %errorlevel% equ 0 (
 
 echo.
 echo [1/4] Compiling Java classes for universal JVM compatibility...
+if exist "bin\System" rmdir /s /q "bin\System"
+if exist "bin\com" rmdir /s /q "bin\com"
 if not exist "bin" mkdir bin
 javac !JVM_COMPAT_FLAG! -encoding UTF-8 -sourcepath "shared;src" -d bin src\System\ApiClient.java src\System\DigiView.java
 if %errorlevel% neq 0 (

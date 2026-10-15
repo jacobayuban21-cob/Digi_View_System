@@ -39,6 +39,11 @@ if "!SDK_PATH!"=="" (
         echo [OK] Using existing android\local.properties
         goto :sdk_configured
     )
+    if exist "%DIST_DIR%\DigiView-Android.apk" (
+        echo [WARNING] Android SDK was not found on this machine.
+        echo [INFO] Preserving existing release APK: dist\DigiView-Android.apk
+        exit /b 0
+    )
     echo [ERROR] Android SDK was not found automatically.
     echo Please set the ANDROID_HOME environment variable or install Android Studio.
     echo Default expected location: %LOCALAPPDATA%\Android\Sdk

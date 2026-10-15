@@ -20,13 +20,16 @@ if %ERRORLEVEL% neq 0 (
 :: =========================================================================
 :: DIRECT CLI ARGUMENT ROUTING
 :: =========================================================================
+:: No arguments -> Open interactive menu directly
+if "%~1"==""               goto :interactive_menu
+
 :: Root Redirection Symbols (@, ~, /@, root)
-if "%~1"=="@"          goto :interactive_menu
-if "%~1"=="~"          goto :interactive_menu
-if "%~1"=="/@"         goto :interactive_menu
-if "%~1"=="root"       goto :interactive_menu
-if "%~1"=="/"          goto :interactive_menu
-if "%~1"==".\"         goto :interactive_menu
+if "%~1"=="@"              goto :interactive_menu
+if "%~1"=="~"              goto :interactive_menu
+if "%~1"=="/@"             goto :interactive_menu
+if "%~1"=="root"           goto :interactive_menu
+if "%~1"=="/"              goto :interactive_menu
+if "%~1"==".\"             goto :interactive_menu
 
 if /i "%~1"=="run"         goto :cmd_run_desktop
 if /i "%~1"=="desktop"     goto :cmd_run_desktop
@@ -63,7 +66,7 @@ if not "%~1"=="" (
     echo   digiview apk         - Build Android APK to dist\
     echo   digiview install     - Install APK on connected device/emulator
     echo   digiview mobile      - Build, install and launch on Android
-    echo   digiview dist        - Build all release artifacts (APK, JAR, Portable ZIP)
+    echo   digiview dist        - Build all release artifacts [APK, JAR, Portable ZIP]
     echo   digiview health      - Check backend server health and uptime
     echo   digiview clean       - Clean temporary build caches
     echo   digiview help        - Show help guide
@@ -109,56 +112,62 @@ echo ======================================================================
 set "CHOICE="
 set /p "CHOICE=Enter option [0-14, or 'apk', 'install', 'dist', 'run', 'exit']: "
 
-if "%CHOICE%"=="" goto :interactive_menu
-if "%CHOICE%"=="0" goto :cmd_exit
-if /i "%CHOICE%"=="exit" goto :cmd_exit
-if /i "%CHOICE%"=="quit" goto :cmd_exit
-if /i "%CHOICE%"=="q" goto :cmd_exit
+if not defined CHOICE goto :interactive_menu
+set "CHOICE=!CHOICE: =!"
+if "!CHOICE!"=="" goto :interactive_menu
 
-if "%CHOICE%"=="1" goto :cmd_run_desktop
-if /i "%CHOICE%"=="run" goto :cmd_run_desktop
-if /i "%CHOICE%"=="desktop" goto :cmd_run_desktop
+if "!CHOICE!"=="0" goto :cmd_exit
+if /i "!CHOICE!"=="exit" goto :cmd_exit
+if /i "!CHOICE!"=="quit" goto :cmd_exit
+if /i "!CHOICE!"=="q" goto :cmd_exit
 
-if "%CHOICE%"=="2" goto :cmd_build_portable
-if /i "%CHOICE%"=="portable" goto :cmd_build_portable
+if "!CHOICE!"=="1" goto :cmd_run_desktop
+if /i "!CHOICE!"=="run" goto :cmd_run_desktop
+if /i "!CHOICE!"=="desktop" goto :cmd_run_desktop
 
-if "%CHOICE%"=="3" goto :cmd_run_server
-if /i "%CHOICE%"=="server" goto :cmd_run_server
-if /i "%CHOICE%"=="backend" goto :cmd_run_server
+if "!CHOICE!"=="2" goto :cmd_build_portable
+if /i "!CHOICE!"=="portable" goto :cmd_build_portable
 
-if "%CHOICE%"=="4" goto :cmd_build_server_jar
-if "%CHOICE%"=="5" goto :cmd_check_health
-if /i "%CHOICE%"=="health" goto :cmd_check_health
+if "!CHOICE!"=="3" goto :cmd_run_server
+if /i "!CHOICE!"=="server" goto :cmd_run_server
+if /i "!CHOICE!"=="backend" goto :cmd_run_server
 
-if "%CHOICE%"=="6" goto :cmd_run_tests
-if /i "%CHOICE%"=="test" goto :cmd_run_tests
+if "!CHOICE!"=="4" goto :cmd_build_server_jar
+if /i "!CHOICE!"=="jar" goto :cmd_build_server_jar
 
-if "%CHOICE%"=="7" goto :cmd_build_apk
-if /i "%CHOICE%"=="apk" goto :cmd_build_apk
+if "!CHOICE!"=="5" goto :cmd_check_health
+if /i "!CHOICE!"=="health" goto :cmd_check_health
 
-if "%CHOICE%"=="8" goto :cmd_install_apk
-if /i "%CHOICE%"=="install" goto :cmd_install_apk
+if "!CHOICE!"=="6" goto :cmd_run_tests
+if /i "!CHOICE!"=="test" goto :cmd_run_tests
 
-if "%CHOICE%"=="9" goto :cmd_run_mobile
-if /i "%CHOICE%"=="mobile" goto :cmd_run_mobile
+if "!CHOICE!"=="7" goto :cmd_build_apk
+if /i "!CHOICE!"=="apk" goto :cmd_build_apk
 
-if "%CHOICE%"=="10" goto :cmd_devices
-if /i "%CHOICE%"=="devices" goto :cmd_devices
+if "!CHOICE!"=="8" goto :cmd_install_apk
+if /i "!CHOICE!"=="install" goto :cmd_install_apk
 
-if "%CHOICE%"=="11" goto :cmd_logs
-if /i "%CHOICE%"=="logs" goto :cmd_logs
+if "!CHOICE!"=="9" goto :cmd_run_mobile
+if /i "!CHOICE!"=="mobile" goto :cmd_run_mobile
 
-if "%CHOICE%"=="12" goto :cmd_dist_all
-if /i "%CHOICE%"=="dist" goto :cmd_dist_all
-if /i "%CHOICE%"=="release" goto :cmd_dist_all
+if "!CHOICE!"=="10" goto :cmd_devices
+if /i "!CHOICE!"=="devices" goto :cmd_devices
 
-if "%CHOICE%"=="13" goto :cmd_clean_all
-if /i "%CHOICE%"=="clean" goto :cmd_clean_all
+if "!CHOICE!"=="11" goto :cmd_logs
+if /i "!CHOICE!"=="logs" goto :cmd_logs
 
-if "%CHOICE%"=="14" goto :cmd_git_status
-if /i "%CHOICE%"=="status" goto :cmd_git_status
+if "!CHOICE!"=="12" goto :cmd_dist_all
+if /i "!CHOICE!"=="dist" goto :cmd_dist_all
+if /i "!CHOICE!"=="release" goto :cmd_dist_all
 
-echo [ERROR] Invalid selection: '%CHOICE%'
+if "!CHOICE!"=="13" goto :cmd_clean_all
+if /i "!CHOICE!"=="clean" goto :cmd_clean_all
+
+if "!CHOICE!"=="14" goto :cmd_git_status
+if /i "!CHOICE!"=="status" goto :cmd_git_status
+
+echo.
+echo [ERROR] Invalid selection: '!CHOICE!'
 timeout /t 2 >nul
 goto :interactive_menu
 
@@ -208,11 +217,24 @@ exit /b 0
 :cmd_build_server_jar
 echo.
 echo [*] Packaging Spring Boot app.jar with static Dino Health Dashboard...
+set "ORIG_JH=%JAVA_HOME%"
+for /d %%D in ("%ProgramFiles%\Microsoft\jdk-17*" "%ProgramFiles%\Java\jdk-17*" "%ProgramFiles%\Eclipse Adoptium\jdk-17*" "%ProgramFiles%\Amazon Corretto\jdk-17*" "%ProgramFiles%\Zulu\zulu-17*" "%ProgramFiles%\Microsoft\jdk-21*" "%ProgramFiles%\Java\jdk-21*" "%ProgramFiles%\Eclipse Adoptium\jdk-21*" "%ProgramFiles%\Amazon Corretto\jdk-21*") do (
+    if exist "%%D\bin\java.exe" (
+        set "JAVA_HOME=%%D"
+        goto :gradle_jh_set_4
+    )
+)
+:gradle_jh_set_4
 cd /d "%PROJECT_ROOT%backend"
 call gradlew.bat bootJar
 cd /d "%PROJECT_ROOT%"
+if defined ORIG_JH (set "JAVA_HOME=%ORIG_JH%") else (set "JAVA_HOME=")
 if exist "backend\build\libs\app.jar" (
     echo [SUCCESS] Backend JAR built: backend\build\libs\app.jar
+) else if exist "%DIST_DIR%\DigiView-Backend.jar" (
+    echo [INFO] Preserving existing backend package: dist\DigiView-Backend.jar
+) else (
+    echo [WARNING] Backend JAR could not be packaged. Gradle requires Java 17 or 21 LTS.
 )
 if "%~1"=="" (
     echo.
@@ -331,11 +353,25 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo [3/3] Packaging Spring Boot Backend Production JAR...
+set "ORIG_JH=%JAVA_HOME%"
+for /d %%D in ("%ProgramFiles%\Microsoft\jdk-17*" "%ProgramFiles%\Java\jdk-17*" "%ProgramFiles%\Eclipse Adoptium\jdk-17*" "%ProgramFiles%\Amazon Corretto\jdk-17*" "%ProgramFiles%\Zulu\zulu-17*" "%ProgramFiles%\Microsoft\jdk-21*" "%ProgramFiles%\Java\jdk-21*" "%ProgramFiles%\Eclipse Adoptium\jdk-21*" "%ProgramFiles%\Amazon Corretto\jdk-21*") do (
+    if exist "%%D\bin\java.exe" (
+        set "JAVA_HOME=%%D"
+        goto :gradle_jh_set_dist
+    )
+)
+:gradle_jh_set_dist
 cd /d "%PROJECT_ROOT%backend"
 call gradlew.bat bootJar
 cd /d "%PROJECT_ROOT%"
+if defined ORIG_JH (set "JAVA_HOME=%ORIG_JH%") else (set "JAVA_HOME=")
 if exist "backend\build\libs\app.jar" (
     copy /y "backend\build\libs\app.jar" "%DIST_DIR%\DigiView-Backend.jar" >nul 2>&1
+    echo [SUCCESS] Backend production JAR built: dist\DigiView-Backend.jar
+) else if exist "%DIST_DIR%\DigiView-Backend.jar" (
+    echo [INFO] Preserved existing backend package: dist\DigiView-Backend.jar
+) else (
+    echo [WARNING] Backend JAR could not be packaged. Gradle requires Java 17 or 21 LTS.
 )
 
 echo.

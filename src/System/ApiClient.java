@@ -51,6 +51,11 @@ public class ApiClient {
         return url;
     }
 
+    public static void log(String tag, String message) {
+        String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date());
+        System.out.printf("[%s] [%-8s] %s%n", timestamp, tag, message);
+    }
+
     public static void setBaseUrl(String url) {
         baseUrl = cleanUrl(url);
     }
@@ -149,7 +154,7 @@ public class ApiClient {
 
             int code = conn.getResponseCode();
             long latency = System.currentTimeMillis() - start;
-            DigiView.log("API", "GET " + urlStr + "/health -> HTTP " + code + " (" + latency + "ms)");
+            log("API", "GET " + urlStr + "/health -> HTTP " + code + " (" + latency + "ms)");
             if (code >= 200 && code < 400) {
                 return new ConnectionTestResult(true, code, latency, "Server is UP and responsive.");
             } else {
@@ -157,7 +162,7 @@ public class ApiClient {
             }
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - start;
-            DigiView.log("API", "GET " + urlStr + "/health -> FAILED (" + latency + "ms): " + e.getMessage());
+            log("API", "GET " + urlStr + "/health -> FAILED (" + latency + "ms): " + e.getMessage());
             return new ConnectionTestResult(false, -1, latency, "Could not connect: " + e.getMessage());
         }
     }
@@ -231,7 +236,7 @@ public class ApiClient {
             String msg = parseJsonString(responseStr, "message");
             if (msg.isEmpty()) msg = success ? "Success" : "Invalid username or password.";
 
-            DigiView.log("API", "POST /api/auth/login for '" + username + "' -> HTTP " + code + " (" + (success ? "AUTHORIZED" : msg) + ")");
+            log("API", "POST /api/auth/login for '" + username + "' -> HTTP " + code + " (" + (success ? "AUTHORIZED" : msg) + ")");
 
             if (success) {
                 String u = parseJsonString(responseStr, "username");
@@ -248,7 +253,7 @@ public class ApiClient {
                 return AuthResult.failure(msg);
             }
         } catch (Exception e) {
-            DigiView.log("API", "POST /api/auth/login failed: " + e.getMessage());
+            log("API", "POST /api/auth/login failed: " + e.getMessage());
             return AuthResult.failure("Could not connect to DigiView server: " + e.getMessage());
         }
     }
@@ -281,7 +286,7 @@ public class ApiClient {
             String msg = parseJsonString(responseStr, "message");
             if (msg.isEmpty()) msg = success ? "Success" : "Registration failed.";
 
-            DigiView.log("API", "POST /api/auth/register for '" + username + "' -> HTTP " + code + " (" + (success ? "CREATED" : msg) + ")");
+            log("API", "POST /api/auth/register for '" + username + "' -> HTTP " + code + " (" + (success ? "CREATED" : msg) + ")");
 
             if (success) {
                 String u = parseJsonString(responseStr, "username");
@@ -298,7 +303,7 @@ public class ApiClient {
                 return AuthResult.failure(msg);
             }
         } catch (Exception e) {
-            DigiView.log("API", "POST /api/auth/register failed: " + e.getMessage());
+            log("API", "POST /api/auth/register failed: " + e.getMessage());
             return AuthResult.failure("Could not connect to DigiView server: " + e.getMessage());
         }
     }
@@ -329,10 +334,10 @@ public class ApiClient {
 
             int code = conn.getResponseCode();
             boolean ok = code >= 200 && code < 300;
-            DigiView.log("API", "POST /api/quiz/record for user '" + username + "' (" + quiz + ", " + score + "/" + total + ") -> HTTP " + code);
+            log("API", "POST /api/quiz/record for user '" + username + "' (" + quiz + ", " + score + "/" + total + ") -> HTTP " + code);
             return ok;
         } catch (Exception e) {
-            DigiView.log("API", "POST /api/quiz/record failed: " + e.getMessage());
+            log("API", "POST /api/quiz/record failed: " + e.getMessage());
             return false;
         }
     }
@@ -344,10 +349,10 @@ public class ApiClient {
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(4000);
             int code = conn.getResponseCode();
-            DigiView.log("API", "POST /api/users/" + username + "/xp?amount=" + xpAmount + " -> HTTP " + code);
+            log("API", "POST /api/users/" + username + "/xp?amount=" + xpAmount + " -> HTTP " + code);
             return code == 200;
         } catch (Exception e) {
-            DigiView.log("API", "POST syncXp failed: " + e.getMessage());
+            log("API", "POST syncXp failed: " + e.getMessage());
             return false;
         }
     }
@@ -359,10 +364,10 @@ public class ApiClient {
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(4000);
             int code = conn.getResponseCode();
-            DigiView.log("API", "POST /api/users/" + username + "/achievement (" + achievement + ") -> HTTP " + code);
+            log("API", "POST /api/users/" + username + "/achievement (" + achievement + ") -> HTTP " + code);
             return code == 200;
         } catch (Exception e) {
-            DigiView.log("API", "POST unlockAchievement failed: " + e.getMessage());
+            log("API", "POST unlockAchievement failed: " + e.getMessage());
             return false;
         }
     }
