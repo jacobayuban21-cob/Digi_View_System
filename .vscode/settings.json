@@ -1,7 +1,5 @@
 {
-    "java.project.sourcePaths": [
-        "src",
-        "shared"
-    ],
-    "java.project.outputPath": "bin"
+  "java.project.sourcePaths": ["src", "shared"],
+  "java.project.outputPath": "bin",
+  "java.compile.nullAnalysis.mode": "automatic"
 }
