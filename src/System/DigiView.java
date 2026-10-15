@@ -26,9 +26,42 @@ import javax.swing.border.LineBorder;
  * @author Jacob
  */
 public class DigiView {
-public static void main(String[] args) {
-    javax.swing.SwingUtilities.invokeLater(() -> {
-        new DigiViewLMS().setVisible(true);
+
+    public static void log(String tag, String message) {
+        String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date());
+        System.out.printf("[%s] [%-8s] %s%n", timestamp, tag, message);
+    }
+
+    public static void logErr(String tag, String message, Throwable t) {
+        String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date());
+        System.err.printf("[%s] [ERROR   ] [%s] %s%n", timestamp, tag, message);
+        if (t != null) {
+            t.printStackTrace(System.err);
+        }
+    }
+
+    public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            logErr("THREAD", "Uncaught exception on thread: " + thread.getName(), throwable);
+        });
+
+        log("SYSTEM", "==========================================================");
+        log("SYSTEM", "  DigiView LMS Desktop v1.0.0 (Initial Production Release)");
+        log("SYSTEM", "  Java Runtime : " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")");
+        log("SYSTEM", "  OS Platform  : " + System.getProperty("os.name") + " " + System.getProperty("os.version") + " (" + System.getProperty("os.arch") + ")");
+        log("SYSTEM", "  Working Dir  : " + new File(".").getAbsolutePath());
+        log("SYSTEM", "  Cloud Server : " + ApiClient.getBaseUrl());
+        log("SYSTEM", "==========================================================");
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            try {
+                log("UI", "Initializing DigiView LMS desktop application...");
+                DigiViewLMS app = new DigiViewLMS();
+                app.setVisible(true);
+                log("UI", "Main window displayed successfully. Ready for user interaction.");
+            } catch (Throwable t) {
+                logErr("STARTUP", "Failed to initialize desktop application UI", t);
+            }
         });
     }
 }
@@ -239,7 +272,9 @@ class DigiViewLMS extends JFrame {
     private void initAudio() {
         activeInstance = this;
         new Thread(() -> {
+            DigiView.log("AUDIO", "Initializing audio subsystem and preloading sound clips...");
             // 1. Preload Click Sound into memory and pool of 6 clips
+            int poolLoaded = 0;
             try {
                 InputStream is = getAudioResourceStream("mixkit-select-click-1109.wav");
                 if (is != null) {
@@ -257,13 +292,17 @@ class DigiViewLMS extends JFrame {
                             Clip clip = AudioSystem.getClip();
                             clip.open(ais);
                             clickClips[i] = clip;
+                            poolLoaded++;
                         } catch (Exception e) {
-                            System.err.println("Click clip pool item " + i + " init failed: " + e.getMessage());
+                            DigiView.logErr("AUDIO", "Click clip pool item " + i + " init failed: " + e.getMessage(), null);
                         }
                     }
+                    DigiView.log("AUDIO", "Click audio pool ready: " + poolLoaded + "/" + CLICK_POOL_SIZE + " clips allocated.");
+                } else {
+                    DigiView.log("AUDIO", "Warning: mixkit-select-click-1109.wav not found.");
                 }
             } catch (Exception e) {
-                System.err.println("Failed to preload click audio: " + e.getMessage());
+                DigiView.logErr("AUDIO", "Failed to preload click audio: " + e.getMessage(), e);
             }
 
             // 2. Global AWT Event Listener for instant, 100% consistent click feedback
@@ -330,7 +369,7 @@ class DigiViewLMS extends JFrame {
             if (musicClip == null) {
                 InputStream is = getAudioResourceStream("freesound_community-relax-32200.wav");
                 if (is == null) {
-                    System.out.println("Music file not found: freesound_community-relax-32200.wav");
+                    DigiView.log("AUDIO", "Background music file not found: freesound_community-relax-32200.wav");
                     return;
                 }
                 AudioInputStream ais = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
@@ -347,8 +386,9 @@ class DigiViewLMS extends JFrame {
 
             musicClip.setFramePosition(0);
             musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            DigiView.log("AUDIO", "Background study music playing in continuous loop (freesound_community-relax-32200.wav).");
         } catch (Throwable t) {
-            System.err.println("Background music start failed: " + t.getMessage());
+            DigiView.logErr("AUDIO", "Background music start failed: " + t.getMessage(), t);
         }
     }
 
@@ -356,12 +396,14 @@ class DigiViewLMS extends JFrame {
         try {
             if (musicClip != null && musicClip.isRunning()) {
                 musicClip.stop();
+                DigiView.log("AUDIO", "Background music paused.");
             }
         } catch (Exception ignored) {}
     }
 
     public synchronized void toggleBackgroundMusic() {
         musicEnabled = !musicEnabled;
+        DigiView.log("AUDIO", "Background music toggled: " + (musicEnabled ? "ON" : "OFF"));
         if (musicEnabled) {
             startBackgroundMusic();
         } else {
@@ -785,7 +827,10 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     private void loadData() {
-        if (!DATA_FILE.exists()) return;
+        if (!DATA_FILE.exists()) {
+            DigiView.log("DATA", "Local data file not found (" + DATA_FILE.getAbsolutePath() + "). Starting with clean state.");
+            return;
+        }
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE))) {
             Object data = in.readObject();
             if (data instanceof Map<?, ?>) {
@@ -797,7 +842,9 @@ private void updateHeartsLabel(JLabel heartsLabel) {
                     }
                 }
             }
+            DigiView.log("DATA", "Successfully loaded " + users.size() + " user account(s) from " + DATA_FILE.getAbsolutePath());
         } catch (Exception ex) {
+            DigiView.logErr("DATA", "Saved data could not be loaded: " + ex.getMessage(), ex);
             showThemedMessage("⚠️", "Digi-View", "Saved data could not be loaded. A new local data file will be used.");
         }
     }
@@ -805,7 +852,9 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private void saveData() {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
             out.writeObject(users);
+            DigiView.log("DATA", "Saved " + users.size() + " user account(s) to " + DATA_FILE.getAbsolutePath());
         } catch (IOException ex) {
+            DigiView.logErr("DATA", "Unable to save local data: " + ex.getMessage(), ex);
             showThemedMessage("❌", "Save Error", "Unable to save local data: " + ex.getMessage());
         }
     }
@@ -1877,9 +1926,11 @@ private JPanel authCard(String heading, String subtitle) {
 
     private void showPage(String page) {
         if (currentUser == null) {
+            DigiView.log("NAV", "showPage('" + page + "') invoked with null user -> redirecting to showAuth()");
             showAuth();
             return;
         }
+        DigiView.log("NAV", "Page view switched to: " + page + " (User: " + currentUser.username + ", XP: " + currentUser.xp + ")");
         currentPage = page;
         if (pageTitle != null) pageTitle.setText(page);
         refreshHeaderStats();
@@ -2698,7 +2749,6 @@ private JPanel authCard(String heading, String subtitle) {
 
             submit.setEnabled(false);
 
-            
             for (AnswerOption o : options) {
                 if (o.optionIndex == chosen) {
                     o.lock(correct ? AnswerOption.CORRECT : AnswerOption.WRONG);
@@ -2710,6 +2760,8 @@ private JPanel authCard(String heading, String subtitle) {
             if (!correct) {
                 quizHearts--;
             }
+
+            DigiView.log("QUIZ", "Q" + (index + 1) + "/" + questions.size() + " Answer Submitted: Chosen=" + chosen + " (" + (correct ? "CORRECT" : "WRONG") + ") | Hearts: " + quizHearts + " | Current Score: " + liveScore[0]);
 
             updateHeartsLabel(heartsLabel);
 
@@ -2762,7 +2814,7 @@ private JPanel authCard(String heading, String subtitle) {
     }
     
     private void showQuizResult( int score, int total, int percent, int difficulty ) {
-        
+        DigiView.log("QUIZ", "Quiz Finished: Level=" + (difficulty == 1 ? "Easy" : difficulty == 2 ? "Medium" : "Hard") + " | Score=" + score + "/" + total + " (" + percent + "%) | Status=" + (percent >= 70 ? "PASSED" : "FAILED"));
         
         JPanel p = verticalPanel();
         JPanel card = panel(); card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS)); 

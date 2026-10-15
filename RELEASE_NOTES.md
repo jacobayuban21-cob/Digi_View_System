@@ -128,8 +128,12 @@ A universal path-resolution and routing system has been implemented across the e
   * When a learner answers a quiz question incorrectly, the system marks their chosen answer as incorrect and deducts a heart, but deliberately **withholds the correct answer** across all difficulty tiers (Easy, Medium, Hard).
   * Encourages learners to reflect on their choices, re-study lesson concepts, and discover the correct answer organically.
 * **Native Windows Portable Executable (`DigiView.exe`):**
-  * Replaced the `.bat` console launcher with a compiled native Windows GUI application (`DigiView.exe`).
-  * Embeds the official DigiView icon directly into the executable file and launches silently without opening a terminal window.
+  * Replaced the standard console launcher with a compiled native Windows GUI application (`DigiView.exe`).
+  * Embeds the official DigiView icon directly into the executable file and launches silently without opening a terminal window for standard end users.
+* **Live Runtime Log Monitor & Development Console (`DigiView-Debug.bat` / `run.bat`):**
+  * Retains the terminal window during execution and actively streams real-time internal logs from the desktop application and launcher.
+  * Captures application startup diagnostics (OS, architecture, Java version, working directory, cloud API URL), audio pool preloading, background music looping, user authentication, live API request/response statuses, page navigation, quiz answers & heart deductions, and unhandled thread exceptions.
+  * Pauses upon application exit so developers can review all diagnostics and inspect `digiview-runtime.log`.
 * **Backend Cloud Resilience on Render:**
   * Configured explicit PostgreSQL dialect (`org.hibernate.dialect.PostgreSQLDialect`) to prevent dialect detection crashes during startup.
   * Configured HikariCP pool resilience (`initialization-fail-timeout=-1`, `prepareThreshold=0`, `keepalive-time=30000`) for seamless compatibility with Supabase's transaction poolers.
