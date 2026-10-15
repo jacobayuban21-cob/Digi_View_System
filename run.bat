@@ -14,7 +14,7 @@ echo.
 if not exist "bin\System\DigiView.class" (
     echo [*] Compiling DigiView Java sources...
     if not exist "bin" mkdir bin
-    javac -encoding UTF-8 -d bin src\System\*.java
+    javac -encoding UTF-8 -sourcepath "src\Shared;src" -d bin src\System\*.java
     if errorlevel 1 (
         echo [ERROR] Compilation failed.
         pause
