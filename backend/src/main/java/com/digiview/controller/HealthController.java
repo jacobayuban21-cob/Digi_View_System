@@ -109,7 +109,7 @@ public class HealthController {
         Map<String, Object> report = new HashMap<>();
         report.put("status", "UP");
         report.put("service", "DigiView LMS Backend");
-        report.put("version", "1.0.0");
+        report.put("version", "1.1.0");
         report.put("timestamp", Instant.now().toString());
         report.put("uptimeSeconds", uptimeSeconds);
         report.put("uptimeFormatted", formatUptime(uptimeSeconds));

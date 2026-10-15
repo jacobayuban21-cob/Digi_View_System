@@ -1,19 +1,19 @@
-# 🚀 DigiView LMS — Release Notes (v1.0.0 — Initial Release)
+# 🚀 DigiView LMS — Release Notes (v1.1.0 — Minor Feature Release)
 
-**Release Date:** October 14, 2026  
-**Version:** `1.0.0` (Initial Production Release)  
+**Release Date:** October 15, 2026  
+**Version:** `1.1.0` (Minor Feature Release)  
 **Branch:** `dev`  
 **Live Backend Service:** [https://digi-view-system.onrender.com](https://digi-view-system.onrender.com)  
 **Distribution Artifacts:**
-- 📦 **Desktop Portable ZIP:** `dist/DigiView-Portable.zip` (Self-contained JRE + Standalone JAR)
+- 📦 **Desktop Portable ZIP:** `dist/DigiView-Portable.zip` (Self-contained JRE + Native `.exe` + Standalone JAR)
 - ☕ **Desktop Runnable JAR:** `dist/DigiViewSystem.jar`
-- 📱 **Android Package:** `dist/DigiView-Android.apk`
+- 📱 **Android Package:** `dist/DigiView-Android.apk` (v1.1.0, Build 2)
 
 ---
 
 ## 🌟 Executive Summary
 
-The **DigiView LMS v1.0.0 Initial Release** establishes the complete educational learning ecosystem across Desktop, Mobile, and Cloud. Both the **Desktop Swing application** and the **Android mobile app** feature 100% visual and functional parity—including shared audio engines, unified dark-mode themes, automatic database sync with Supabase PostgreSQL, official logo integration, and a universal **Root Redirection system** allowing symbol-based path aliasing (`@`).
+The **DigiView LMS v1.1.0 Minor Release** delivers a transformative architectural upgrade: a **unified cross-platform core engine (`shared/`)** providing a single source of truth for all data models, curriculum lessons, and business rules across Desktop and Mobile. In addition to massive code deduplication, this release introduces **quiz question answer withholding** (prompting learners to discover solutions organically), an active **live development console & runtime log monitor**, native **Windows executable packaging (`DigiView.exe`)**, and first-class **multi-source IDE project descriptors**.
 
 ---
 
@@ -96,25 +96,6 @@ A universal path-resolution and routing system has been implemented across the e
 
 ---
 
-## 🛠️ 6. Master CLI & Build Systems
-
-* **The Unified CLI (`digiview.bat`):**
-  * Interactive menu and one-line terminal commands:
-    ```cmd
-    digiview run        # Launch Desktop Swing LMS
-    digiview server     # Start Spring Boot Server (:8085)
-    digiview apk        # Build Android APK to dist\
-    digiview install    # Install APK onto connected Android device
-    digiview mobile     # Build, install, and launch on Android
-    digiview dist       # Build all distributions (JAR, ZIP, APK)
-    digiview health     # Query live server telemetry & database status
-    ```
-* **Release Artifacts Generated:**
-  * Standalone Portable Release: `dist/DigiView-Portable.zip` (includes native `DigiView.exe` launcher with embedded icon, `DigiViewSystem.jar`, and trimmed portable JRE).
-  * Android Release Build: `dist/DigiView-Android.apk` (assembled and verified).
-
----
-
 ## 🔒 6. Security & Quiz Progression Hardening
 
 * **Removal of Default Login Autofill:**
@@ -127,6 +108,50 @@ A universal path-resolution and routing system has been implemented across the e
 * **Hidden Correct Answers on Failed Attempts:**
   * When a learner answers a quiz question incorrectly, the system marks their chosen answer as incorrect and deducts a heart, but deliberately **withholds the correct answer** across all difficulty tiers (Easy, Medium, Hard).
   * Encourages learners to reflect on their choices, re-study lesson concepts, and discover the correct answer organically.
+* **Backend Cloud Resilience on Render:**
+  * Configured explicit PostgreSQL dialect (`org.hibernate.dialect.PostgreSQLDialect`) to prevent dialect detection crashes during startup.
+  * Configured HikariCP pool resilience (`initialization-fail-timeout=-1`, `prepareThreshold=0`, `keepalive-time=30000`) for seamless compatibility with Supabase transaction poolers.
+
+---
+
+## 🧩 7. Universal Shared Core Architecture (`shared/`)
+
+A pure-Java shared module was extracted to serve as the **single source of truth** for all platform clients, eliminating duplicate code across Desktop and Mobile:
+
+* **Universal Blueprints (`shared/com/digiview/core/model/`):**
+  * [`Question.java`](shared/com/digiview/core/model/Question.java) — Universal quiz question structure (`text`, `options`, `answer`, `difficulty`).
+  * [`Lesson.java`](shared/com/digiview/core/model/Lesson.java) — Universal lesson curriculum blueprint (`title`, `icon`, `explanation`, `code`).
+  * [`QuizRecord.java`](shared/com/digiview/core/model/QuizRecord.java) — Universal attempt history record with `Serializable` support, full getters/setters, and `isPassed()`.
+  * [`Achievement.java`](shared/com/digiview/core/model/Achievement.java) — Universal achievement blueprint with `isUnlocked()` and `getProgressPercent()`.
+  * [`User.java`](shared/com/digiview/core/model/User.java) — Universal account blueprint with demographic fields, XP, history records, and unlocked achievement sets.
+* **Authoritative Feature Repositories (`shared/com/digiview/core/data/`):**
+  * [`QuestionBank.java`](shared/com/digiview/core/data/QuestionBank.java) — Single authoritative repository containing all 70 curriculum questions across Easy, Medium, and Hard tiers.
+  * [`LessonCurriculum.java`](shared/com/digiview/core/data/LessonCurriculum.java) — Authoritative repository housing all 8 core HTML lessons.
+  * [`AchievementRegistry.java`](shared/com/digiview/core/data/AchievementRegistry.java) — Canonical evaluator computing unlocked status for all 9 achievements dynamically from quiz records and XP.
+* **Universal Business Logic Engine (`shared/com/digiview/core/logic/`):**
+  * [`QuizProgressionRules.java`](shared/com/digiview/core/logic/QuizProgressionRules.java) — Single rules engine enforcing the 70% passing threshold, tier lock gating (`isTierUnlocked`), heart deductions, level calculations, and descriptive lock messages.
+* **Massive Code Deduplication:**
+  * Removed hundreds of lines of duplicate questions, lessons, and inner classes from Desktop [`DigiView.java`](src/System/DigiView.java) and Android [`MainActivity.java`](android/app/src/main/java/com/digiview/lms/MainActivity.java).
+  * Both clients now consume identical models, guaranteeing 100% data parity and behavioral consistency.
+* **First-Class IDE Integration:**
+  * Promoted `shared/` to the project root alongside `android/`, `backend/`, and `src/`.
+  * Configured [`.vscode/settings.json`](.vscode/settings.json) and generated official Eclipse [`.classpath`](.classpath) and [`.project`](.project) descriptors, eliminating all IDE package mismatch and import resolution squiggles.
+
+---
+
+## 🛠️ 8. Master CLI, Diagnostics, & Build Systems
+
+* **The Unified CLI (`digiview.bat`):**
+  * Interactive menu and one-line terminal commands:
+    ```cmd
+    digiview run        # Launch Desktop Swing LMS
+    digiview server     # Start Spring Boot Server (:8085)
+    digiview apk        # Build Android APK to dist\
+    digiview install    # Install APK onto connected Android device
+    digiview mobile     # Build, install, and launch on Android
+    digiview dist       # Build all distributions (JAR, ZIP, APK)
+    digiview health     # Query live server telemetry & database status
+    ```
 * **Native Windows Portable Executable (`DigiView.exe`):**
   * Replaced the standard console launcher with a compiled native Windows GUI application (`DigiView.exe`).
   * Embeds the official DigiView icon directly into the executable file and launches silently without opening a terminal window for standard end users.
@@ -134,16 +159,35 @@ A universal path-resolution and routing system has been implemented across the e
   * Retains the terminal window during execution and actively streams real-time internal logs from the desktop application and launcher.
   * Captures application startup diagnostics (OS, architecture, Java version, working directory, cloud API URL), audio pool preloading, background music looping, user authentication, live API request/response statuses, page navigation, quiz answers & heart deductions, and unhandled thread exceptions.
   * Pauses upon application exit so developers can review all diagnostics and inspect `digiview-runtime.log`.
-* **Backend Cloud Resilience on Render:**
-  * Configured explicit PostgreSQL dialect (`org.hibernate.dialect.PostgreSQLDialect`) to prevent dialect detection crashes during startup.
-  * Configured HikariCP pool resilience (`initialization-fail-timeout=-1`, `prepareThreshold=0`, `keepalive-time=30000`) for seamless compatibility with Supabase's transaction poolers.
+* **Release Artifacts Generated:**
+  * Standalone Portable Release: `dist/DigiView-Portable.zip` (includes native `DigiView.exe` launcher with embedded icon, `DigiViewSystem.jar`, and trimmed portable JRE).
+  * Android Release Build: `dist/DigiView-Android.apk` (assembled and verified).
+  * Desktop Standalone JAR: `dist/DigiViewSystem.jar`.
 
 ---
 
-## 📋 Git Commit Log (v1.0.0 — Initial Release)
+## 📋 Git Commit Log
+
+### 🌟 v1.1.0 — Minor Feature Release Commits
 
 | Commit | Summary |
 | :--- | :--- |
+| `e8171c8` | chore(release): bump version to v1.1.0 across desktop, android, backend, and release notes |
+| `e442ffc` | docs: document universal shared core architecture and update release notes |
+| `0d569f8` | chore(ide): add eclipse .project and .classpath descriptors for multi-source classpath |
+| `51a8f0b` | fix(ide): move shared module to project root and configure vscode sourcePaths to resolve IDE squiggles |
+| `2949ac5` | refactor: extract shared blueprints and feature repositories for desktop and mobile |
+| `dcaa53c` | feat: implement active runtime log listener and development console in batch launcher |
+| `2e95a33` | fix: hide correct answers on failed quiz attempts across all difficulties |
+| `2dae401` | fix: harden backend JPA dialect, enforce 70% quiz progression, remove demo login, and compile DigiView.exe |
+
+### 🚀 v1.0.0 — Initial Release Commits
+
+| Commit | Summary |
+| :--- | :--- |
+| `ef02522` | feat: display version v1.0.0 across desktop, android, and web server interfaces |
+| `bc6ff33` | fix: resolve server icon and image 404s with dedicated AssetController and static mappings |
+| `009b791` | docs: update release notes version to initial v1.0.0 |
 | `fdb4021` | Apply official image logos to Android, Desktop UI, and favicon to backend server |
 | `0758eb1` | Implement root redirection with symbol alias `@` across web, desktop, and mobile |
 | `0959dcc` | Integrate public sounds and icons across desktop, packager, and Android launcher |

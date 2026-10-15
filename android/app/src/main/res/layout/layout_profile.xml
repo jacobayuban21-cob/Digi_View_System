@@ -373,7 +373,7 @@
             android:id="@+id/tvProfileVersion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DigiView Android v1.0.0 (Initial Release)"
+            android:text="DigiView Android v1.1.0 (Minor Update)"
             android:textColor="@color/muted"
             android:textSize="11.5sp"
             android:layout_gravity="center_horizontal"
