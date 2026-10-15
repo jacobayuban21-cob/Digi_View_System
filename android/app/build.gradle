@@ -28,7 +28,7 @@ android {
     }
     sourceSets {
         main {
-            java.srcDirs += file('../../src/Shared')
+            java.srcDirs += file('../../shared')
         }
     }
     buildFeatures {
