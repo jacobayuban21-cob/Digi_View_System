@@ -2387,7 +2387,6 @@ private JPanel authCard(String heading, String subtitle) {
         int[] counts = {25, 25, 20};
 
         boolean easyPassed = hasPassed("Easy");
-        boolean mediumPassed = hasPassed("Medium");
 
         int qCols = (effW >= 860) ? 3 : (effW >= 560 ? 2 : 1);
         int qRows = (names.length + qCols - 1) / qCols;
@@ -2397,9 +2396,7 @@ private JPanel authCard(String heading, String subtitle) {
         for (int i = 0; i < names.length; i++) {
             final int level = i + 1;
 
-            boolean unlocked = (level == 1)
-                || (level == 2 && easyPassed)
-                || (level == 3 && mediumPassed);
+            boolean unlocked = (level == 1) || easyPassed;
 
             RoundedPanel card = new RoundedPanel(26, D_CARD, D_LINE);
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -2446,7 +2443,7 @@ private JPanel authCard(String heading, String subtitle) {
             } else {
                 RoundedPanel locked = new RoundedPanel(16, new Color(16, 28, 48), D_LINE);
                 locked.setLayout(new BorderLayout());
-                String reqText = (level == 2) ? "🔒 Reach 70% in Easy" : "🔒 Reach 70% in Medium";
+                String reqText = "🔒 Reach 70% in Easy";
                 JLabel lockedText = new JLabel(reqText, SwingConstants.CENTER);
                 lockedText.setFont(new Font("SansSerif", Font.BOLD, 13));
                 lockedText.setForeground(new Color(245, 158, 11));
@@ -2498,7 +2495,7 @@ private JPanel authCard(String heading, String subtitle) {
         passTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel passDesc = new JLabel(
-            "<html>You need at least <b>70%</b> to pass a level and unlock the next difficulty.</html>");
+            "<html>You need at least <b>70%</b> in Easy mode to unlock Intermediate and Hard difficulties.</html>");
         passDesc.setFont(new Font("SansSerif", Font.PLAIN, 16));
         passDesc.setForeground(new Color(170, 185, 205));
         passDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -2518,20 +2515,11 @@ private JPanel authCard(String heading, String subtitle) {
             return;
         }
 
-        if (difficulty == 2 && !hasPassed("Easy")) {
+        if ((difficulty == 2 || difficulty == 3) && !hasPassed("Easy")) {
             showThemedMessage(
                 "🔒",
                 "Difficulty Locked",
-                "You must reach at least 70% in the Easy Quiz to unlock Medium."
-            );
-            return;
-        }
-
-        if (difficulty == 3 && !hasPassed("Medium")) {
-            showThemedMessage(
-                "🔒",
-                "Difficulty Locked",
-                "You must reach at least 70% in the Medium Quiz to unlock Hard."
+                "You must reach at least 70% in the Easy Quiz to unlock " + difficultyName(difficulty) + "."
             );
             return;
         }
@@ -2592,7 +2580,7 @@ private JPanel authCard(String heading, String subtitle) {
             isQuizActive = false;
             int percent = (int)Math.round(score * 100.0 / questions.size());
             currentUser.xp += score * 5;
-            String qName = difficultyName(difficulty);
+            String qName = (percent < 70) ? difficultyName(difficulty) + " (Failed)" : difficultyName(difficulty);
             currentUser.history.add(new QuizRecord(qName, score, questions.size(), percent, new Date().toString()));
             final String uName = currentUser.username;
             if (percent >= 70) {
@@ -2607,7 +2595,8 @@ private JPanel authCard(String heading, String subtitle) {
             final int sScore = score;
             final int tTotal = questions.size();
             final int pPercent = percent;
-            new Thread(() -> ApiClient.submitQuizRecord(uName, qName, sScore, tTotal, pPercent, new Date().toString())).start();
+            final String recordName = qName;
+            new Thread(() -> ApiClient.submitQuizRecord(uName, recordName, sScore, tTotal, pPercent, new Date().toString())).start();
             showQuizResult(score, questions.size(), percent, difficulty);
             return;
         }
@@ -2779,8 +2768,18 @@ private JPanel authCard(String heading, String subtitle) {
 
             if (quizHearts <= 0) {
                 isQuizActive = false;
+                int currentPercent = (int)Math.round(liveScore[0] * 100.0 / questions.size());
+                String qName = difficultyName(difficulty) + " (Failed)";
+                currentUser.history.add(new QuizRecord(qName, liveScore[0], questions.size(), currentPercent, new Date().toString()));
+                saveData();
+                final String uName = currentUser.username;
+                final int lScore = liveScore[0];
+                final int tTotal = questions.size();
+                final int cPercent = currentPercent;
+                new Thread(() -> ApiClient.submitQuizRecord(uName, qName, lScore, tTotal, cPercent, new Date().toString())).start();
+
                 message(
-                    "You ran out of hearts! Please try the quiz again.",
+                    "You ran out of hearts! Please review the lessons and try again.\nThis attempt has been marked as 'Needs Review' in your Quiz History.",
                     JOptionPane.WARNING_MESSAGE
                 );
 
@@ -2857,8 +2856,9 @@ if (percent < 70) {
 card.add(label(resultMessage, 14, MUTED, false));
         card.add(Box.createVerticalStrut(20));
         JButton again = button("Try Another Quiz", BLUE); again.addActionListener(e -> showPage("Quiz"));
+        JButton hist = button("View History", PANEL2); hist.addActionListener(e -> showPage("History"));
         JButton dashboard = button("Back to Dashboard", PANEL2); dashboard.addActionListener(e -> showPage("Dashboard"));
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT)); actions.setOpaque(false); actions.add(again); actions.add(dashboard); card.add(actions);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT)); actions.setOpaque(false); actions.add(again); actions.add(hist); actions.add(dashboard); card.add(actions);
         p.add(card); addToContent(p);
     }
 
@@ -3004,18 +3004,17 @@ card.add(label(resultMessage, 14, MUTED, false));
 
         List<QuizRecord> finished = new ArrayList<>();
         for (QuizRecord r : records) {
-            if (!r.quiz.endsWith("(Exited)")) finished.add(r);
+            if (!r.quiz.endsWith("(Exited)") && !r.quiz.contains("(Exited)")) finished.add(r);
         }
-        long passed = finished.stream().filter(r -> r.percent >= 70).count();
+        long passed = finished.stream().filter(r -> r.percent >= 70 && !r.quiz.contains("(Failed)")).count();
+        long needsReview = finished.stream().filter(r -> r.percent < 70 || r.quiz.contains("(Failed)")).count();
         int best = finished.stream().mapToInt(r -> r.percent).max().orElse(0);
-        int exited = records.size() - finished.size();
 
-        
         String[][] summary = {
             {"\uD83D\uDCDD", "Completed", String.valueOf(finished.size())},
             {"\uD83C\uDFC6", "Passed", String.valueOf(passed)},
-            {"\uD83C\uDFAF", "Best Score", best + "%"},
-            {"\uD83D\uDEAA", "Exited", String.valueOf(exited)}
+            {"\u26A0\uFE0F", "Needs Review", String.valueOf(needsReview)},
+            {"\uD83C\uDFAF", "Best Score", best + "%"}
         };
 
         int effW = getEffectiveContentWidth();
@@ -3077,10 +3076,19 @@ card.add(label(resultMessage, 14, MUTED, false));
 
     
     private JPanel buildHistoryRow(QuizRecord r) {
-        boolean exited = r.quiz.endsWith("(Exited)");
-        String level = r.quiz.replace(" (Exited)", "");
-        String icon = level.startsWith("Easy") ? "\uD83C\uDF31"
-                    : level.startsWith("Medium") ? "\u26A1" : "\uD83D\uDD25";
+        boolean exited = r.quiz.contains("(Exited)");
+        boolean failed = r.quiz.contains("(Failed)") || r.quiz.contains("(0 Hearts)") || (!exited && r.percent < 70);
+        String level = r.quiz
+                .replace(" (Exited)", "")
+                .replace("(Exited)", "")
+                .replace(" (Failed)", "")
+                .replace("(Failed)", "")
+                .replace(" (0 Hearts)", "")
+                .replace("(0 Hearts)", "")
+                .replace(" Quiz", "")
+                .trim();
+        String icon = (level.startsWith("Easy") || level.startsWith("Beginner")) ? "\uD83C\uDF31"
+                    : (level.startsWith("Medium") || level.startsWith("Intermediate")) ? "\u26A1" : "\uD83D\uDD25";
 
         RoundedPanel row = new RoundedPanel(22, D_CARD, D_LINE);
         row.setLayout(new BorderLayout(18, 0));
@@ -3120,7 +3128,7 @@ card.add(label(resultMessage, 14, MUTED, false));
 
         JLabel percent = new JLabel(exited ? "-" : r.percent + "%");
         percent.setFont(new Font("SansSerif", Font.BOLD, 14));
-        percent.setForeground(MUTED);
+        percent.setForeground(failed ? new Color(251, 191, 36) : MUTED);
 
         JPanel scoreLine = new JPanel(new BorderLayout());
         scoreLine.setOpaque(false);
@@ -3140,7 +3148,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         JComponent badge;
         if (exited) {
             badge = statusBadge("Exited", new Color(148, 163, 184));
-        } else if (r.percent >= 70) {
+        } else if (!failed && r.percent >= 70) {
             badge = statusBadge("Passed", GREEN);
         } else {
             badge = statusBadge("Needs Review", new Color(251, 191, 36));
@@ -3165,8 +3173,8 @@ card.add(label(resultMessage, 14, MUTED, false));
             new Color(color.getRed(), color.getGreen(), color.getBlue(), 40),
             new Color(color.getRed(), color.getGreen(), color.getBlue(), 150));
         badge.setLayout(new GridBagLayout());
-        badge.setBorder(new EmptyBorder(7, 18, 7, 18));
-        badge.setPreferredSize(new Dimension(130, 34));
+        badge.setBorder(new EmptyBorder(7, 14, 7, 14));
+        badge.setPreferredSize(new Dimension(140, 34));
 
         JLabel label = new JLabel(text);
         label.setFont(new Font("SansSerif", Font.BOLD, 13));

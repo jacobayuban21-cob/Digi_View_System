@@ -674,8 +674,8 @@ public class MainActivity extends AppCompatActivity {
             cardAdv.setAlpha(advancedUnlocked ? 1.0f : 0.65f);
         }
         if (tvLockAdv != null) {
-            tvLockAdv.setText(advancedUnlocked ? "✓ Unlocked" : "🔒 Reach 70% in Intermediate");
-            tvLockAdv.setTextColor(advancedUnlocked ? Color.parseColor("#34D399") : Color.parseColor("#F87171"));
+            tvLockAdv.setText(advancedUnlocked ? "✓ Unlocked" : "🔒 Reach 70% in Beginner");
+            tvLockAdv.setTextColor(advancedUnlocked ? Color.parseColor("#34D399") : Color.parseColor("#F59E0B"));
         }
     }
 
@@ -920,7 +920,11 @@ public class MainActivity extends AppCompatActivity {
             tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
         }
 
-        recordQuizAttempt(activeDifficultyName + " Quiz", activeScore, total, percent);
+        if (percent < 70) {
+            recordQuizAttempt(activeDifficultyName + " Quiz (Failed)", activeScore, total, percent);
+        } else {
+            recordQuizAttempt(activeDifficultyName + " Quiz", activeScore, total, percent);
+        }
     }
 
     private void recordQuizAttempt(String title, int score, int total, int percent) {
@@ -1541,32 +1545,44 @@ public class MainActivity extends AppCompatActivity {
             ProgressBar pb = card.findViewById(R.id.histProgressBar);
             TextView tvBadge = card.findViewById(R.id.tvHistBadge);
 
-            tvTitle.setText(r.getQuiz());
+            String titleClean = r.getQuiz()
+                    .replace(" (Exited)", "")
+                    .replace("(Exited)", "")
+                    .replace(" (Failed)", "")
+                    .replace("(Failed)", "")
+                    .replace(" (0 Hearts)", "")
+                    .replace("(0 Hearts)", "")
+                    .replace(" Quiz", "")
+                    .trim();
+            tvTitle.setText(titleClean + " Quiz");
             tvDate.setText(r.getDate());
             tvScore.setText("Score: " + r.getScore() + " / " + r.getTotal());
             tvPercent.setText(r.getPercent() + "%");
             pb.setProgress(r.getPercent());
 
-            if (r.getQuiz().contains("Beginner")) tvIcon.setText("🟢");
-            else if (r.getQuiz().contains("Intermediate")) tvIcon.setText("🟡");
+            if (r.getQuiz().contains("Beginner") || r.getQuiz().contains("Easy")) tvIcon.setText("🟢");
+            else if (r.getQuiz().contains("Intermediate") || r.getQuiz().contains("Medium")) tvIcon.setText("🟡");
             else tvIcon.setText("🔴");
 
-            if (r.getQuiz().contains("Exited")) {
+            boolean exited = r.getQuiz().contains("Exited");
+            boolean failed = r.getQuiz().contains("Failed") || r.getQuiz().contains("0 Hearts") || (!exited && r.getPercent() < 70);
+
+            if (exited) {
                 tvBadge.setText("EXITED");
-                tvBadge.setTextColor(getResources().getColor(R.color.red, getTheme()));
-                tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
-            } else if (r.getPercent() == 100) {
+                tvBadge.setTextColor(getResources().getColor(R.color.muted, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_selected);
+            } else if (!failed && r.getPercent() == 100) {
                 tvBadge.setText("PERFECT 🏆");
                 tvBadge.setTextColor(getResources().getColor(R.color.gold, getTheme()));
                 tvBadge.setBackgroundResource(R.drawable.bg_badge_gold);
-            } else if (r.getPercent() >= 70) {
+            } else if (!failed && r.getPercent() >= 70) {
                 tvBadge.setText("PASSED ✅");
                 tvBadge.setTextColor(getResources().getColor(R.color.green, getTheme()));
                 tvBadge.setBackgroundResource(R.drawable.bg_badge_success);
             } else {
-                tvBadge.setText("FAILED");
-                tvBadge.setTextColor(getResources().getColor(R.color.red, getTheme()));
-                tvBadge.setBackgroundResource(R.drawable.bg_badge_danger);
+                tvBadge.setText("NEEDS REVIEW");
+                tvBadge.setTextColor(getResources().getColor(R.color.amber, getTheme()));
+                tvBadge.setBackgroundResource(R.drawable.bg_badge_gold);
             }
 
             container.addView(card);

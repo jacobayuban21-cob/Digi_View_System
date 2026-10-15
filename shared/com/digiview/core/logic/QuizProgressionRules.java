@@ -55,15 +55,12 @@ public class QuizProgressionRules {
 
     /**
      * Determines whether a quiz difficulty tier is currently unlocked for the user.
-     * Rule: Level 1 is always unlocked. Level 2 requires Level 1 >= 70%. Level 3 requires Level 2 >= 70%.
+     * Rule: Level 1 is always unlocked. Level 2 (Medium) and Level 3 (Hard) require Level 1 (Easy) >= 70%.
      */
     public static boolean isTierUnlocked(int difficultyLevel, List<? extends QuizRecord> history) {
         if (difficultyLevel <= 1) return true; // Level 1 is always open
-        if (difficultyLevel == 2) {
+        if (difficultyLevel == 2 || difficultyLevel == 3) {
             return hasPassedTier(1, history);
-        }
-        if (difficultyLevel == 3) {
-            return hasPassedTier(2, history);
         }
         return true;
     }
@@ -76,7 +73,7 @@ public class QuizProgressionRules {
             return "Reach at least " + PASSING_PERCENT + "% in Beginner / Easy to unlock Intermediate!";
         }
         if (difficultyLevel == 3) {
-            return "Reach at least " + PASSING_PERCENT + "% in Intermediate / Medium to unlock Advanced!";
+            return "Reach at least " + PASSING_PERCENT + "% in Beginner / Easy to unlock Advanced / Hard!";
         }
         return "";
     }
