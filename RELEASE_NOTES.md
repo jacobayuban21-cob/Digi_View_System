@@ -159,10 +159,21 @@ A pure-Java shared module was extracted to serve as the **single source of truth
   * Retains the terminal window during execution and actively streams real-time internal logs from the desktop application and launcher.
   * Captures application startup diagnostics (OS, architecture, Java version, working directory, cloud API URL), audio pool preloading, background music looping, user authentication, live API request/response statuses, page navigation, quiz answers & heart deductions, and unhandled thread exceptions.
   * Pauses upon application exit so developers can review all diagnostics and inspect `digiview-runtime.log`.
+* **Universal JVM Compatibility & Multi-Version Desktop Packager (`build-release.bat`):**
+  * **Universal Bytecode Targeting:** Cross-compiles using dynamic flag detection (`--release 8` on modern JDK 9+ through 25+, or `-source 1.8 -target 1.8` on legacy JDK 8) to produce pure Java 8 bytecode (`major version: 52`). The resulting `dist/DigiViewSystem.jar` is natively compatible with and runnable on **all JVM versions (Java 8, 11, 17, 21, 25+)**.
+  * **Deep JVM Auto-Discovery in `DigiView.exe`:** Upgraded the native Windows launcher with a 6-tier runtime discovery engine:
+    1. *Bundled zero-install JRE* (`jre\bin\java(w).exe`).
+    2. *`JAVA_HOME`* environment variable (`%JAVA_HOME%\bin` and `%JAVA_HOME%\jre\bin`).
+    3. *`JRE_HOME` / `JDK_HOME`* environment variables.
+    4. *Windows Registry* (`HKLM\SOFTWARE\JavaSoft` & `HKLM\SOFTWARE\Eclipse Adoptium`).
+    5. *Standard `Program Files` vendors* (Oracle, Eclipse Adoptium/Temurin, Microsoft OpenJDK, Amazon Corretto, Azul Zulu, BellSoft Liberica, IBM Semeru).
+    6. *System `PATH`*.
+  * **Resilient `jlink` Bundling:** If `jlink` is present (JDK 9+), automatically creates the zero-install runtime; if absent (JDK 8), gracefully preserves the standalone package for host JVM execution.
+  * **NetBeans & Ant Multi-Source Integration:** Added `shared.dir=shared` to `nbproject/project.properties` and `<root id="shared.dir"/>` to `nbproject/project.xml` ensuring IDE clean & build parity.
 * **Release Artifacts Generated:**
   * Standalone Portable Release: `dist/DigiView-Portable.zip` (includes native `DigiView.exe` launcher with embedded icon, `DigiViewSystem.jar`, and trimmed portable JRE).
   * Android Release Build: `dist/DigiView-Android.apk` (assembled and verified).
-  * Desktop Standalone JAR: `dist/DigiViewSystem.jar`.
+  * Desktop Standalone JAR: `dist/DigiViewSystem.jar` (universal Java 8 - 25+ bytecode).
 
 ---
 
@@ -172,6 +183,8 @@ A pure-Java shared module was extracted to serve as the **single source of truth
 
 | Commit | Summary |
 | :--- | :--- |
+| `fd94ab1` | feat(builder): universal JVM compatibility (Java 8-25+) with deep launcher runtime discovery |
+| `515dd47` | docs: separate v1.1.0 and v1.0.0 commit logs |
 | `e8171c8` | chore(release): bump version to v1.1.0 across desktop, android, backend, and release notes |
 | `e442ffc` | docs: document universal shared core architecture and update release notes |
 | `0d569f8` | chore(ide): add eclipse .project and .classpath descriptors for multi-source classpath |

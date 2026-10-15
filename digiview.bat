@@ -84,7 +84,7 @@ echo ======================================================================
 echo.
 echo   [ DESKTOP SWING APPLICATION ]
 echo     [1]  Run Desktop App          (Compile and launch Swing GUI)
-echo     [2]  Build Desktop Portable   (JAR + Java 17 Zero-Install ZIP)
+echo     [2]  Build Desktop Universal  (Universal Java 8-25+ JAR + Zero-Install ZIP)
 echo.
 echo   [ SPRING BOOT AND SUPABASE BACKEND ]
 echo     [3]  Run Backend Server       (Start Spring Boot on :8085 with .env)
