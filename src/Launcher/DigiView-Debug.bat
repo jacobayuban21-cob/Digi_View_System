@@ -19,11 +19,11 @@ echo ===========================================================================
 echo.
 
 if exist "jre\bin\java.exe" (
-    "jre\bin\java.exe" -Ddigiview.debug=true -cp "DigiViewSystem.jar" System.DigiView %*
+    "jre\bin\java.exe" -Dhttps.protocols=TLSv1.2,TLSv1.3 -Djsse.enableSNIExtension=true -Dsun.security.ssl.allowUnsafeRenegotiation=true -Ddigiview.debug=true -cp "DigiViewSystem.jar" System.DigiView %*
 ) else if exist "DigiView.exe" (
     start /wait "" "DigiView.exe" --debug %*
 ) else (
-    java -Ddigiview.debug=true -cp "DigiViewSystem.jar" System.DigiView %*
+    java -Dhttps.protocols=TLSv1.2,TLSv1.3 -Djsse.enableSNIExtension=true -Dsun.security.ssl.allowUnsafeRenegotiation=true -Ddigiview.debug=true -cp "DigiViewSystem.jar" System.DigiView %*
 )
 
 echo.

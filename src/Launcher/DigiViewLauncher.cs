@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -116,6 +117,9 @@ namespace DigiViewLauncher
                     return 1;
                 }
 
+                // Proactively verify & configure Windows Defender Firewall permissions for DigiView & Java
+                AutoConfigureFirewall(baseDir, javaExe, hasConsole || isDebug);
+
                 if (hasConsole || isDebug)
                 {
                     Console.WriteLine("===============================================================================");
@@ -131,7 +135,7 @@ namespace DigiViewLauncher
 
                     ProcessStartInfo psi = new ProcessStartInfo();
                     psi.FileName = javaExe;
-                    psi.Arguments = "-Ddigiview.debug=true -cp \"DigiViewSystem.jar\" System.DigiView";
+                    psi.Arguments = "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Djsse.enableSNIExtension=true -Dsun.security.ssl.allowUnsafeRenegotiation=true -Ddigiview.debug=true -cp \"DigiViewSystem.jar\" System.DigiView";
                     psi.WorkingDirectory = baseDir;
                     psi.UseShellExecute = false;
                     psi.RedirectStandardOutput = true;
@@ -208,7 +212,7 @@ namespace DigiViewLauncher
                     // Silent GUI Launch (Explorer double-click)
                     ProcessStartInfo psi = new ProcessStartInfo();
                     psi.FileName = javaExe;
-                    psi.Arguments = "-cp \"DigiViewSystem.jar\" System.DigiView";
+                    psi.Arguments = "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Djsse.enableSNIExtension=true -Dsun.security.ssl.allowUnsafeRenegotiation=true -cp \"DigiViewSystem.jar\" System.DigiView";
                     psi.WorkingDirectory = baseDir;
                     psi.UseShellExecute = false;
                     psi.CreateNoWindow = true;
@@ -428,6 +432,108 @@ namespace DigiViewLauncher
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Proactively verifies and registers Windows Defender Firewall rules for DigiView and Java.
+        /// Also performs a pre-flight network connectivity check for the end user.
+        /// </summary>
+        private static void AutoConfigureFirewall(string baseDir, string javaExe, bool logToConsole)
+        {
+            try
+            {
+                string exePath = Process.GetCurrentProcess().MainModule.FileName;
+                bool ruleExists = false;
+
+                try
+                {
+                    ProcessStartInfo checkPsi = new ProcessStartInfo("netsh", "advfirewall firewall show rule name=\"DigiView LMS Application (Outbound)\"");
+                    checkPsi.CreateNoWindow = true;
+                    checkPsi.UseShellExecute = false;
+                    checkPsi.RedirectStandardOutput = true;
+                    using (Process p = Process.Start(checkPsi))
+                    {
+                        string output = p.StandardOutput.ReadToEnd();
+                        p.WaitForExit();
+                        if (output.Contains("DigiView LMS Application")) ruleExists = true;
+                    }
+                }
+                catch { }
+
+                if (ruleExists)
+                {
+                    if (logToConsole)
+                    {
+                        Console.WriteLine("[FIREWALL] Windows Defender Firewall rules: ALREADY CONFIGURED (Outbound/Inbound OK)");
+                    }
+                }
+                else
+                {
+                    if (logToConsole)
+                    {
+                        Console.WriteLine("[FIREWALL] Checking and registering Windows Defender Firewall rules...");
+                    }
+
+                    string[] progs = new string[] { exePath, javaExe };
+                    foreach (string prog in progs)
+                    {
+                        if (string.IsNullOrEmpty(prog) || !File.Exists(prog)) continue;
+                        string fname = Path.GetFileName(prog);
+                        RunSilentCommand("netsh", string.Format("advfirewall firewall add rule name=\"DigiView LMS ({0} Outbound)\" dir=out action=allow program=\"{1}\" enable=yes", fname, prog));
+                        RunSilentCommand("netsh", string.Format("advfirewall firewall add rule name=\"DigiView LMS ({0} Inbound)\" dir=in action=allow program=\"{1}\" enable=yes", fname, prog));
+                    }
+                    RunSilentCommand("netsh", "advfirewall firewall add rule name=\"DigiView LMS Port 8085 (Inbound)\" dir=in action=allow protocol=TCP localport=8085 enable=yes");
+                    RunSilentCommand("netsh", "advfirewall firewall add rule name=\"DigiView LMS Port 8085 (Outbound)\" dir=out action=allow protocol=TCP localport=8085 enable=yes");
+                }
+
+                // Pre-flight cloud server connectivity check
+                if (logToConsole)
+                {
+                    CheckCloudConnectivity();
+                }
+            }
+            catch { }
+        }
+
+        private static void CheckCloudConnectivity()
+        {
+            try
+            {
+                Console.Write("[NETWORK] Checking DigiView Cloud Server connectivity... ");
+                System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | SecurityProtocolType.Tls12;
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create("https://digi-view-system.onrender.com/health");
+                req.Timeout = 4000;
+                req.Method = "GET";
+                using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
+                {
+                    sw.Stop();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("ONLINE (HTTP {0}, {1}ms)", (int)res.StatusCode, sw.ElapsedMilliseconds);
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("NOTICE ({0})", ex.Message);
+                Console.ResetColor();
+            }
+        }
+
+        private static void RunSilentCommand(string fileName, string args)
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo(fileName, args);
+                psi.CreateNoWindow = true;
+                psi.UseShellExecute = false;
+                using (Process p = Process.Start(psi))
+                {
+                    p.WaitForExit(3000);
+                }
+            }
+            catch { }
         }
     }
 }

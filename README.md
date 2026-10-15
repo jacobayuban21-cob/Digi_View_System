@@ -16,7 +16,7 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
  │                    WHAT DO YOU WANT TO DO?                  │
  ├──────────────────────────────┬──────────────────────────────┤
  │ 👑 ALL COMMANDS & MENU       │ ➡️ Run digiview.bat          │
- │ 🎮 Just play / test desktop  │ ➡️ digiview run (or run.bat) │
+ │ 🎮 Just play / test desktop  │ ➡️ digiview run (or scripts\run.bat) │
  │ ⚙️ Run Backend + Database    │ ➡️ digiview server           │
  │ 📱 Build Android APK         │ ➡️ digiview apk              │
  │ 📲 Install on Android Phone  │ ➡️ digiview install          │
@@ -56,7 +56,7 @@ digiview exit       # Exit CLI
 The desktop app works completely offline out-of-the-box!
 
 ### Option A: The One-Click Launcher (Easiest)
-1. Double-click [`run.bat`](run.bat) in the project folder.
+1. Run `digiview run` in your terminal or double-click [`scripts/run.bat`](scripts/run.bat).
 2. The Swing window will open immediately!
 
 ### Option B: In VS Code / Antigravity IDE
@@ -138,7 +138,7 @@ The backend is pre-configured for **Render** via [`render.yaml`](render.yaml) an
 
 If you need to send the desktop app to a classmate, teacher, or another computer that **does not have Java installed** (or has an outdated Java version like Java 8):
 
-1. Double-click [`build-release.bat`](build-release.bat).
+1. Run `digiview dist` or double-click [`scripts/build-release.bat`](scripts/build-release.bat).
 2. It generates a self-contained bundle at:
    📁 **`dist\DigiView-Portable.zip`** *(~22 MB)*
 3. Send this ZIP file to anyone.
@@ -167,7 +167,7 @@ The native Android port is located in [`android/`](android/) and offers **100% f
 We created high-level automated scripts so you never have to remember complex Gradle flags or ADB commands:
 
 #### 1. The One-Click APK Builder
-Double-click [`build-android.bat`](build-android.bat).
+Run `digiview apk` or double-click [`scripts/build-android.bat`](scripts/build-android.bat).
 * Automatically detects your Android SDK and Java installation.
 * Automatically generates `local.properties`.
 * Compiles the Android project with Gradle.
@@ -175,18 +175,18 @@ Double-click [`build-android.bat`](build-android.bat).
   📁 **`dist\DigiView-Android.apk`**
 
 #### 2. The Android Management Toolkit
-Double-click [`manage-android.bat`](manage-android.bat) (or run it in your terminal).
+Run `digiview mobile` or double-click [`scripts/manage-android.bat`](scripts/manage-android.bat) (or run it in your terminal).
 
 It offers an interactive menu, or you can run single-word commands:
 
 | Command | What it does |
 | :--- | :--- |
-| `manage-android.bat build` | Compiles the Android app to `dist\DigiView-Android.apk` |
-| `manage-android.bat run` | Builds APK, installs it to your phone/emulator, and launches it automatically |
-| `manage-android.bat install` | Installs the existing `dist\DigiView-Android.apk` onto your connected device |
-| `manage-android.bat devices` | Shows all connected Android phones or active emulators (`adb devices -l`) |
-| `manage-android.bat logs` | Streams live app debug logs and crash diagnostics in real time (`adb logcat`) |
-| `manage-android.bat clean` | Cleans Android Gradle caches and temporary build folders |
+| `digiview apk` *(or `scripts\manage-android.bat build`)* | Compiles the Android app to `dist\DigiView-Android.apk` |
+| `digiview mobile` *(or `scripts\manage-android.bat run`)* | Builds APK, installs it to your phone/emulator, and launches it automatically |
+| `digiview install` *(or `scripts\manage-android.bat install`)* | Installs the existing `dist\DigiView-Android.apk` onto your connected device |
+| `digiview devices` *(or `scripts\manage-android.bat devices`)* | Shows all connected Android phones or active emulators (`adb devices -l`) |
+| `digiview logs` *(or `scripts\manage-android.bat logs`)* | Streams live app debug logs and crash diagnostics in real time (`adb logcat`) |
+| `digiview clean` *(or `scripts\manage-android.bat clean`)* | Cleans Android Gradle caches and temporary build folders |
 
 #### 3. Opening in Android Studio
 1. Open **Android Studio**.

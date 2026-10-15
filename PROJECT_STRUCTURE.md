@@ -47,15 +47,21 @@ Digi_View_System/
 ├── 📜 digiview.bat               # 👑 Unified Master CLI & interactive menu (install, apk, dist, run, server, exit)
 ├── 📜 README.md                  # Beginner-friendly guide & developer instructions
 ├── 📜 PROJECT_STRUCTURE.md       # Complete repository architecture and documentation
-├── 📜 build-android.bat          # 📱 One-click Android APK compiler (auto-SDK detection)
-├── 📜 manage-android.bat         # 📱 Android management toolkit (build, run, install, logs, devices)
-├── 📜 build-release.bat          # Bundles self-contained zero-install ZIP with Java 17 runtime
+├── 📜 RELEASE_NOTES.md           # Comprehensive release notes and system enhancements
 ├── 📜 build.xml                  # Apache Ant build script for NetBeans IDE
 ├── 📜 manifest.mf                # JAR Manifest defining main entry point System.DigiView
-├── 📜 run.bat                    # One-click desktop launcher (compiles & runs via javaw)
 ├── ⚙️ render.yaml               # ☁️ Render Cloud Blueprint specification (Infrastructure as Code)
-├── 💾 digiview-users.dat         # Local binary serialization file (offline-first fallback)
 ├── 🙈 .gitignore                 # Excludes build/, dist/, bin/, *.log, .gradle/, .env
+│
+├── 📁 config/                    # ⚙️ SYSTEM CONFIGURATIONS & PERSISTENT DATA
+│   ├── ⚙️ digiview-config.properties # Server endpoint & API URL persistence
+│   └── 💾 digiview-users.dat     # Local binary serialization file (offline-first fallback)
+│
+├── 📁 scripts/                   # 📜 AUTOMATION & PACKAGING BATCH SCRIPTS
+│   ├── 📜 run.bat                # One-click desktop development runner & live log listener
+│   ├── 📜 build-release.bat      # Universal multi-version desktop JAR & zero-install packager
+│   ├── 📜 build-android.bat      # 📱 One-click Android APK compiler (auto-SDK detection)
+│   └── 📜 manage-android.bat     # 📱 Android management toolkit (build, run, install, logs, devices)
 │
 ├── 📁 .vscode/                   # IDE Run & Debug configurations
 │   ├── ⚙️ launch.json            # F5 one-key launcher config
@@ -177,34 +183,48 @@ Digi_View_System/
 
 ## 🔎 Detailed Folder & File Breakdown
 
-### 1. Root Configuration & Launchers
+### 1. Root Files & Master CLI
 | File | Description |
 | :--- | :--- |
 | [`digiview.bat`](digiview.bat) | 👑 **Unified Master CLI & interactive menu**. Supports single-command execution: `digiview install`, `apk`, `dist`, `run`, `server`, `health`, `devices`, `logs`, `clean`, `exit`. |
 | [`README.md`](README.md) | Beginner-friendly project overview, architecture diagram, and step-by-step developer guide. |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Comprehensive architecture documentation with visual diagrams and file breakdowns. |
-| [`run.bat`](run.bat) | One-click desktop launcher. Automatically compiles changed Java files in `src/System/` and launches the Swing GUI using `javaw` without blocking the terminal. |
-| [`build-android.bat`](build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, creates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
-| [`manage-android.bat`](manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
-| [`build-release.bat`](build-release.bat) | Automated packaging pipeline. Compiles Java classes, packages `dist/DigiViewSystem.jar`, generates a minimal portable Java 17 runtime via `jlink`, and compresses everything into `dist/DigiView-Portable.zip` (~22 MB). |
+| [`RELEASE_NOTES.md`](RELEASE_NOTES.md) | Full release notes, version history, JVM compatibility guide, and changelogs. |
 | [`render.yaml`](render.yaml) | Infrastructure as Code (IaC) blueprint for one-click deployment to Render. Configures Docker runtime, health check path, and environment variables. |
 | [`build.xml`](build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
 | [`manifest.mf`](manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |
-| [`digiview-users.dat`](digiview-users.dat) | Local binary serialization file storing users, history, and achievements for offline-first resilience. |
 | [`.gitignore`](.gitignore) | Configured to ignore compiled bytecode (`bin/`, `build/`, `dist/`), temporary logs (`*.log`), secrets (`.env`), and build caches (`.gradle/`). |
 
 ---
 
-### 2. Desktop Application (`src/System/`)
+### 2. Configuration & Persistent Data (`config/`)
+| File | Description |
+| :--- | :--- |
+| [`config/digiview-config.properties`](config/digiview-config.properties) | Central persistent desktop configuration file. Stores backend server URL (`server.url`, `digiview.api.url`) so cloud connections persist across sessions. |
+| [`config/digiview-users.dat`](config/digiview-users.dat) | Local binary serialization file storing offline user accounts, history, and achievements for offline-first resilience. |
+
+---
+
+### 3. Automation & Packaging Scripts (`scripts/`)
+| File | Description |
+| :--- | :--- |
+| [`scripts/run.bat`](scripts/run.bat) | Development console and live log monitor runner. Compiles changed Java classes with universal `--release 8` flag and streams live JVM logs directly to the terminal. |
+| [`scripts/build-release.bat`](scripts/build-release.bat) | Universal desktop release packager. Compiles Java 8 bytecode (v52.0), packages `dist/DigiViewSystem.jar`, bundles zero-install runtime with `jlink`, compiles native `DigiView.exe`, and compresses `dist/DigiView-Portable.zip`. |
+| [`scripts/build-android.bat`](scripts/build-android.bat) | One-click Android APK builder. Automatically detects Android SDK, generates `local.properties`, runs Gradle compilation, and packages `dist/DigiView-Android.apk`. |
+| [`scripts/manage-android.bat`](scripts/manage-android.bat) | High-level Android toolkit CLI and interactive menu. Supports single-command execution: `build`, `run` (installs & launches on device), `install`, `devices`, `logs`, and `clean`. |
+
+---
+
+### 4. Desktop Application (`src/System/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
 | [`DigiView.java`](src/System/DigiView.java) | The central desktop application file (~3100 lines). Implements the complete Dark-themed Learning Management System using Java Swing: Dashboard, interactive Lessons with syntax blocks, interactive HTML Quiz with hearts and score locks, History attempt cards with progress bars and badges, and student Profile with 2x2 grid and Level XP progress. |
-| [`ApiClient.java`](src/System/ApiClient.java) | Pure Java HTTP networking client using `java.net.HttpURLConnection` (0 third-party dependencies, Java 8–21+ compatible). Asynchronously transmits registration, quiz attempts, and achievements to the Spring Boot backend in background daemon threads while preserving local file persistence (`digiview-users.dat`) as an offline fallback. |
+| [`ApiClient.java`](src/System/ApiClient.java) | Pure Java HTTP networking client using `java.net.HttpURLConnection` (0 third-party dependencies, Java 8–21+ compatible). Asynchronously transmits registration, quiz attempts, and achievements to the Spring Boot backend in background daemon threads while preserving local file persistence (`config/digiview-users.dat`) as an offline fallback. |
 | `sounds/` | Audio resources for UI interaction (`mixkit-select-click-1109.wav` on buttons and quiz options, background music, typing sounds). |
 
 ---
 
-### 3. Backend Service (`backend/`)
+### 5. Backend Service (`backend/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
 | [`Dockerfile`](backend/Dockerfile) | Production multi-stage Docker build. Compiles the Spring Boot JAR with Temurin 17 and packages a lightweight JRE image with tuned memory parameters (`-Xmx384m`) optimized for Render's 512MB RAM free tier. |
@@ -222,7 +242,7 @@ Digi_View_System/
 
 ---
 
-### 4. Android Mobile Client (`android/`)
+### 6. Android Mobile Client (`android/`)
 | File / Folder | Purpose & Details |
 | :--- | :--- |
 | [`colors.xml`](android/app/src/main/res/values/colors.xml) | Pixel-perfect port of desktop Swing color constants (`#050F23`, `#071120`, `#0E1B30`, `#1E304C`, `#38BDF8`, `#2563EB`, `#22C55E`, `#EF4444`). |
@@ -237,14 +257,15 @@ Digi_View_System/
 ## 🚀 How to Run Each Component
 
 ### A. Run Desktop App
+* **Via Master CLI:** Run `digiview run` in any terminal or command prompt.
 * **In Antigravity / VS Code:** Press **`F5`** or click **Run** above line 29 in [`src/System/DigiView.java`](src/System/DigiView.java).
 * **In NetBeans:** Press **`F6`** (Source/Binary level is set to universal `1.8`).
-* **From Windows Explorer:** Double-click [`run.bat`](run.bat).
+* **From Windows Explorer:** Double-click [`scripts/run.bat`](scripts/run.bat).
 
 ### B. Run Backend Server (Locally)
 1. Run [`backend/schema.sql`](backend/schema.sql) in your [Supabase SQL Editor](https://supabase.com) (or let Hibernate create tables automatically).
 2. Configure your credentials in `backend/.env`.
-3. Double-click [`backend/run-backend.bat`](backend/run-backend.bat) (or run `./gradlew.bat bootRun` in `backend/`).
+3. Double-click [`backend/run-backend.bat`](backend/run-backend.bat) (or run `digiview server`).
 
 ### C. Deploy Backend to Render (Cloud Hosting)
 1. In your [Render Dashboard](https://dashboard.render.com), click **New** &rarr; **Blueprint** (or **Web Service**).
@@ -254,5 +275,5 @@ Digi_View_System/
 5. Render deploys your backend live with automatic SSL (`https://digi-view-system.onrender.com`) and validates `/health`!
 
 ### D. Distribute Desktop App to Other PCs
-1. Run [`build-release.bat`](build-release.bat).
+1. Run `digiview dist` or [`scripts/build-release.bat`](scripts/build-release.bat).
 2. Share `dist/DigiView-Portable.zip`. Users simply unzip and run `DigiView.bat` without installing Java!

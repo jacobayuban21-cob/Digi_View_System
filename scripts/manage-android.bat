@@ -3,7 +3,8 @@ setlocal enabledelayedexpansion
 
 title DigiView Android Manager
 set "SCRIPT_DIR=%~dp0"
-set "DIST_DIR=%SCRIPT_DIR%dist"
+for %%I in ("%~dp0..") do set "PROJECT_ROOT=%%~fI\"
+set "DIST_DIR=%PROJECT_ROOT%dist"
 set "APK_PATH=%DIST_DIR%\DigiView-Android.apk"
 set "PACKAGE_NAME=com.digiview.lms"
 set "MAIN_ACTIVITY=.MainActivity"
@@ -185,7 +186,7 @@ exit /b 0
 :cmd_clean
 echo.
 echo [*] Cleaning Android build caches...
-pushd "%SCRIPT_DIR%android"
+pushd "%PROJECT_ROOT%android"
 if exist "gradlew.bat" call gradlew.bat clean
 popd
 if exist "%APK_PATH%" del /Q "%APK_PATH%"

@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 title DigiView LMS - Development Console & Runtime Log Listener
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 echo ===============================================================================
 echo   DIGIVIEW LMS -- UNIVERSAL DEVELOPMENT RUNNER ^& RUNTIME LOG LISTENER
@@ -76,7 +76,7 @@ echo [*] Retaining terminal window. Close DigiView application to finish.
 echo ===============================================================================
 echo.
 
-"%JAVA_CMD%" -Ddigiview.debug=true -cp bin System.DigiView
+"%JAVA_CMD%" -Dhttps.protocols=TLSv1.2,TLSv1.3 -Djsse.enableSNIExtension=true -Dsun.security.ssl.allowUnsafeRenegotiation=true -Ddigiview.debug=true -cp bin System.DigiView
 
 echo.
 echo ===============================================================================

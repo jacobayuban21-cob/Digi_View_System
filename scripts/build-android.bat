@@ -7,9 +7,10 @@ echo           DIGIVIEW ANDROID - ONE-CLICK BUILDER
 echo ============================================================
 echo.
 
-set "SCRIPT_DIR=%~dp0"
-set "ANDROID_DIR=%SCRIPT_DIR%android"
-set "DIST_DIR=%SCRIPT_DIR%dist"
+cd /d "%~dp0.."
+set "PROJECT_ROOT=%CD%\"
+set "ANDROID_DIR=%PROJECT_ROOT%android"
+set "DIST_DIR=%PROJECT_ROOT%dist"
 
 :: 1. Detect Android SDK
 echo [1/4] Checking Android SDK environment...

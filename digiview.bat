@@ -49,6 +49,9 @@ if /i "%~1"=="release"     goto :cmd_dist_all
 if /i "%~1"=="portable"    goto :cmd_build_portable
 if /i "%~1"=="test"        goto :cmd_run_tests
 if /i "%~1"=="health"      goto :cmd_check_health
+if /i "%~1"=="firewall"    goto :cmd_allow_firewall
+if /i "%~1"=="allow-firewall" goto :cmd_allow_firewall
+if /i "%~1"=="net"         goto :cmd_allow_firewall
 if /i "%~1"=="status"      goto :cmd_git_status
 if /i "%~1"=="clean"       goto :cmd_clean_all
 if /i "%~1"=="help"        goto :cmd_help
@@ -106,11 +109,12 @@ echo   [ FULL DISTRIBUTION AND MAINTENANCE ]
 echo     [12] Build ALL Distributions  (Desktop JAR + Portable ZIP + Android APK)
 echo     [13] Clean All Build Caches   (Desktop bin\, dist\, Android, Backend)
 echo     [14] Git Status and Sync Info (Check branch, commits, remote sync)
+echo     [15] Allow Firewall & Check Net (Windows Defender Firewall Whitelist + Pre-Flight)
 echo     [0]  Exit CLI
 echo.
 echo ======================================================================
 set "CHOICE="
-set /p "CHOICE=Enter option [0-14, or 'apk', 'install', 'dist', 'run', 'exit']: "
+set /p "CHOICE=Enter option [0-15, or 'apk', 'install', 'dist', 'run', 'firewall', 'exit']: "
 
 if not defined CHOICE goto :interactive_menu
 set "CHOICE=!CHOICE: =!"
@@ -120,6 +124,11 @@ if "!CHOICE!"=="0" goto :cmd_exit
 if /i "!CHOICE!"=="exit" goto :cmd_exit
 if /i "!CHOICE!"=="quit" goto :cmd_exit
 if /i "!CHOICE!"=="q" goto :cmd_exit
+
+if "!CHOICE!"=="15" goto :cmd_allow_firewall
+if /i "!CHOICE!"=="firewall" goto :cmd_allow_firewall
+if /i "!CHOICE!"=="allow-firewall" goto :cmd_allow_firewall
+if /i "!CHOICE!"=="net" goto :cmd_allow_firewall
 
 if "!CHOICE!"=="1" goto :cmd_run_desktop
 if /i "!CHOICE!"=="run" goto :cmd_run_desktop
@@ -179,7 +188,7 @@ goto :interactive_menu
 :cmd_run_desktop
 echo.
 echo [*] Launching Desktop Swing Application...
-call "%PROJECT_ROOT%run.bat"
+call "%PROJECT_ROOT%scripts\run.bat"
 if "%~1"=="" (
     echo.
     pause
@@ -191,7 +200,7 @@ exit /b 0
 :cmd_build_portable
 echo.
 echo [*] Building Portable Desktop Release...
-call "%PROJECT_ROOT%build-release.bat"
+call "%PROJECT_ROOT%scripts\build-release.bat"
 if "%~1"=="" (
     echo.
     pause
@@ -246,8 +255,8 @@ exit /b 0
 :: [5] Check Server Health
 :cmd_check_health
 echo.
-echo [*] Checking DigiView Server Health...
-powershell -NoProfile -Command "$urls = @('http://localhost:8085/api/health', 'http://localhost:8080/api/health'); $found = $false; foreach ($u in $urls) { try { $res = Invoke-RestMethod -Uri $u -TimeoutSec 3 -ErrorAction Stop; Write-Host '[SERVER ONLINE] ' -ForegroundColor Green -NoNewline; Write-Host $u; Write-Host ('Status: ' + $res.status + ' | Service: ' + $res.service + ' | Uptime: ' + $res.uptimeFormatted); if ($res.jvm) { Write-Host ('JVM Memory: ' + $res.jvm.usedMemoryMb + ' MB / ' + $res.jvm.maxMemoryMb + ' MB | Threads: ' + $res.jvm.threadCount); } if ($res.database) { Write-Host ('Database: ' + $res.database.status + ' (' + $res.database.databaseProduct + ')'); } $found = $true; break; } catch {} } if (-not $found) { Write-Host '[SERVER OFFLINE] Could not reach localhost:8085 or localhost:8080.' -ForegroundColor Yellow; Write-Host 'Tip: Run ''digiview server'' to start the backend locally, or check your Render deployment URL.'; }"
+echo [*] Checking DigiView Server Health (Render Cloud ^& Local)...
+powershell -NoProfile -Command "$urls = @('https://digi-view-system.onrender.com/api/health', 'http://localhost:8085/api/health', 'http://localhost:8080/api/health'); $found = $false; foreach ($u in $urls) { try { $res = Invoke-RestMethod -Uri $u -TimeoutSec 5 -ErrorAction Stop; Write-Host '[ONLINE] ' -ForegroundColor Green -NoNewline; Write-Host $u; Write-Host ('  Status: ' + $res.status + ' | Service: ' + $res.service + ' | Uptime: ' + $res.uptimeFormatted); if ($res.database) { Write-Host ('  Database: ' + $res.database.status + ' (' + $res.database.databaseProduct + ')'); } if ($res.jvm) { Write-Host ('  JVM Memory: ' + $res.jvm.usedMemoryMb + ' MB / ' + $res.jvm.maxMemoryMb + ' MB | Threads: ' + $res.jvm.threadCount); } $found = $true; } catch { if (-not $u.Contains('localhost')) { Write-Host ('[CLOUD NOTICE] ' + $u + ' -> ' + $_.Exception.Message) -ForegroundColor Yellow; } } } if (-not $found) { Write-Host '[NOTICE] No servers reachable right now. Use ''digiview server'' for local development.' -ForegroundColor DarkGray; }"
 if "%~1"=="" (
     echo.
     pause
@@ -273,7 +282,7 @@ exit /b 0
 :cmd_build_apk
 echo.
 echo [*] Compiling Android Application...
-call "%PROJECT_ROOT%build-android.bat" auto
+call "%PROJECT_ROOT%scripts\build-android.bat" auto
 if "%~1"=="" (
     echo.
     pause
@@ -285,7 +294,7 @@ exit /b 0
 :cmd_install_apk
 echo.
 echo [*] Installing Android APK onto connected device...
-call "%PROJECT_ROOT%manage-android.bat" install
+call "%PROJECT_ROOT%scripts\manage-android.bat" install
 if "%~1"=="" (
     echo.
     pause
@@ -297,7 +306,7 @@ exit /b 0
 :cmd_run_mobile
 echo.
 echo [*] Running Mobile App workflow on Android...
-call "%PROJECT_ROOT%manage-android.bat" run
+call "%PROJECT_ROOT%scripts\manage-android.bat" run
 if "%~1"=="" (
     echo.
     pause
@@ -309,7 +318,7 @@ exit /b 0
 :cmd_devices
 echo.
 echo [*] Querying ADB Connected Devices...
-call "%PROJECT_ROOT%manage-android.bat" devices
+call "%PROJECT_ROOT%scripts\manage-android.bat" devices
 if "%~1"=="" (
     echo.
     pause
@@ -321,7 +330,7 @@ exit /b 0
 :cmd_logs
 echo.
 echo [*] Streaming Android Logcat (Filter: DigiView)...
-call "%PROJECT_ROOT%manage-android.bat" logs
+call "%PROJECT_ROOT%scripts\manage-android.bat" logs
 if "%~1"=="" (
     echo.
     pause
@@ -339,14 +348,14 @@ echo.
 if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
 
 echo [1/3] Packaging Desktop Runnable JAR and Portable Zero-Java ZIP...
-call "%PROJECT_ROOT%build-release.bat"
+call "%PROJECT_ROOT%scripts\build-release.bat"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Portable packaging encountered an issue.
 )
 
 echo.
 echo [2/3] Compiling Native Android Application APK...
-call "%PROJECT_ROOT%build-android.bat" auto
+call "%PROJECT_ROOT%scripts\build-android.bat" auto
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Android build encountered an issue.
 )
@@ -428,6 +437,17 @@ if "%~1"=="" (
 )
 exit /b 0
 
+:: [15] Allow Windows Defender Firewall & Pre-Flight Check
+:cmd_allow_firewall
+echo.
+echo [*] Launching Windows Defender Firewall Auto-Configurator ^& Network Pre-Flight...
+call "%PROJECT_ROOT%scripts\allow-firewall.bat"
+if "%~1"=="" (
+    echo.
+    goto :interactive_menu
+)
+exit /b 0
+
 :: Help
 :cmd_help
 echo.
@@ -449,6 +469,7 @@ echo   logs               Stream live Android logcat output
 echo   dist, release      Build all packages (Desktop JAR, Portable ZIP, Android APK)
 echo   portable           Build standalone zero-install Java 17 ZIP
 echo   health             Check live server health and database status
+echo   firewall, net      Configure Windows Defender Firewall and check cloud connectivity
 echo   test               Run backend database integration tests
 echo   clean              Clean all compiler and build directories
 echo   status             View git branch status and recent commits

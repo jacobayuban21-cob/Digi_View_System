@@ -6,7 +6,7 @@ echo   DigiView System - Universal Desktop Release Packager
 echo   Target: Compatible with ALL JVM versions (Java 8 through 25+)
 echo ===================================================================
 
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 :: ---------------------------------------------------------------------
 :: 1. Auto-Detect Java Development Kit (JDK)
@@ -91,15 +91,18 @@ copy /y "src\System\sounds\*" "%RELEASE_DIR%\src\System\sounds\" >nul 2>&1
 if exist "public" (
     xcopy /s /e /y /i "public" "%RELEASE_DIR%\public\" >nul 2>&1
 )
+if exist "config" (
+    xcopy /s /e /y /i "config" "%RELEASE_DIR%\config\" >nul 2>&1
+)
 copy /y "dist\DigiViewSystem.jar" "%RELEASE_DIR%\" >nul
 
 :: Bundle zero-install JRE with jlink if available (JDK 9+)
 where jlink >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [*] Bundling zero-install Java runtime using jlink...
-    jlink --add-modules java.base,java.desktop --strip-debug --no-man-pages --no-header-files --output "%RELEASE_DIR%\jre"
+    echo [*] Bundling zero-install Java runtime using jlink with modern TLS/SSL modules...
+    jlink --add-modules java.base,java.desktop,java.logging,java.naming,java.net.http,java.security.jgss,java.security.sasl,java.sql,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.crypto.mscapi,jdk.unsupported --strip-debug --no-man-pages --no-header-files --output "%RELEASE_DIR%\jre"
     if %errorlevel% equ 0 (
-        echo [OK] Bundled portable JRE successfully created!
+        echo [OK] Bundled portable JRE with TLS 1.2/1.3 and EC cryptography successfully created!
     ) else (
         echo [WARNING] jlink bundling failed; package will use auto-detected host JVM.
     )
@@ -129,6 +132,7 @@ if exist "%CSC%" (
 :: Copy Debug and Console Log Listener batch files
 copy /y "src\Launcher\DigiView-Debug.bat" "%RELEASE_DIR%\DigiView-Debug.bat" >nul
 copy /y "src\Launcher\DigiView-Debug.bat" "%RELEASE_DIR%\DigiView.bat" >nul
+if exist "scripts\allow-firewall.bat" copy /y "scripts\allow-firewall.bat" "%RELEASE_DIR%\allow-firewall.bat" >nul
 
 echo.
 echo [4/4] Creating ZIP package for distribution...

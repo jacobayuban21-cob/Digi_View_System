@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.border.*;
 import java.awt.*;
+import java.awt.geom.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
@@ -103,6 +104,29 @@ class DigiViewLMS extends JFrame {
         @Override public boolean getScrollableTracksViewportHeight() {
             Container p = getParent();
             return p instanceof JViewport && p.getHeight() > getPreferredSize().height;
+        }
+    }
+
+    private static class ScrollableContentPanel extends JPanel implements Scrollable {
+        ScrollableContentPanel() {
+            super(new BorderLayout());
+            setOpaque(false);
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+        @Override public int getScrollableUnitIncrement(Rectangle r, int orientation, int direction) {
+            return 24;
+        }
+        @Override public int getScrollableBlockIncrement(Rectangle r, int orientation, int direction) {
+            return 96;
+        }
+        @Override public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+        @Override public boolean getScrollableTracksViewportHeight() {
+            return false;
         }
     }
 
@@ -465,29 +489,19 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     private JPanel createLogo() {
-    JPanel logoPanel = new JPanel(
-        new FlowLayout(FlowLayout.CENTER, 12, 0)
-    );
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 0));
+        logoPanel.setOpaque(false);
+        logoPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-    logoPanel.setOpaque(false);
-    logoPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logoPanel.add(new LogoBadge(52));
 
-    JLabel dv = new JLabel("DV", SwingConstants.CENTER);
-    dv.setFont(new Font("SansSerif", Font.BOLD, 22));
-    dv.setForeground(Color.WHITE);
-    dv.setOpaque(true);
-    dv.setBackground(new Color(8, 145, 178));
-    dv.setPreferredSize(new Dimension(52, 52));
+        JLabel title = new JLabel("Digi-View");
+        title.setFont(new Font("SansSerif", Font.BOLD, 26));
+        title.setForeground(TEXT);
 
-    JLabel title = new JLabel("Digi-View");
-    title.setFont(new Font("SansSerif", Font.BOLD, 25));
-    title.setForeground(TEXT);
-
-    logoPanel.add(dv);
-    logoPanel.add(title);
-
-    return logoPanel;
-}
+        logoPanel.add(title);
+        return logoPanel;
+    }
         private static class GradientPanel extends JPanel {
     GradientPanel(LayoutManager layout) {
         super(layout);
@@ -547,6 +561,8 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private int lastResponsiveWidth = -1;
 
     private JPanel root;
+    private JPanel mainPanel;
+    private JPanel sidebarPanel;
     private JPanel content;
     private JLabel pageTitle;
     private JLabel userBadge;
@@ -554,6 +570,10 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     private JPanel authPanel;
     private JTextField loginUsername;
     private JPasswordField loginPassword;
+
+    private javax.swing.Timer resizeDebounceTimer;
+    private Lesson activeLesson = null;
+    private boolean isQuizActive = false;
 
     private final List<Lesson> lessons = LessonCurriculum.getLessons();
     private final List<Question> easyQuestions = QuestionBank.getQuestionsForDifficulty(1);
@@ -600,33 +620,72 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         loadData();
         initAudio();
 
+        Rectangle maxBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        int initialW = Math.min(1280, Math.max(900, maxBounds.width - 40));
+        int initialH = Math.min(800, Math.max(600, maxBounds.height - 40));
+        int minW = Math.min(860, maxBounds.width - 20);
+        int minH = Math.min(580, maxBounds.height - 20);
+
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(860, 600));
-        setSize(1280, 800);
+        setMinimumSize(new Dimension(minW, minH));
+        setSize(initialW, initialH);
         setLocationRelativeTo(null);
         getContentPane().setBackground(PANEL);
 
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                if (currentUser != null && content != null) {
-                    int w = content.getWidth();
-                    if (w <= 0) w = getWidth() - 280;
-                    if (lastResponsiveWidth > 0 && Math.abs(w - lastResponsiveWidth) > 60) {
-                        lastResponsiveWidth = w;
-                        if ("Dashboard".equals(currentPage) || "Lessons".equals(currentPage)
-                                || "Quiz".equals(currentPage) || "Profile".equals(currentPage)
-                                || "Achievements".equals(currentPage) || "History".equals(currentPage)) {
-                            showPage(currentPage);
-                        }
-                    } else if (lastResponsiveWidth <= 0) {
-                        lastResponsiveWidth = w;
-                    }
+                if (resizeDebounceTimer == null) {
+                    resizeDebounceTimer = new javax.swing.Timer(120, evt -> handleWindowResize());
+                    resizeDebounceTimer.setRepeats(false);
                 }
+                resizeDebounceTimer.restart();
             }
         });
 
         showAuth();
+    }
+
+    private void handleWindowResize() {
+        if (currentUser == null) {
+            if (authPanel != null) {
+                authPanel.revalidate();
+                authPanel.repaint();
+            }
+            return;
+        }
+
+        if (content == null) return;
+
+        if (sidebarPanel != null) {
+            int targetSideW = getWidth() < 1060 ? 220 : 260;
+            if (sidebarPanel.getPreferredSize().width != targetSideW) {
+                sidebarPanel.setPreferredSize(new Dimension(targetSideW, 0));
+                if (root != null) {
+                    root.revalidate();
+                }
+            }
+        }
+
+        int currentW = getEffectiveContentWidth();
+        if (Math.abs(currentW - lastResponsiveWidth) > 24) {
+            lastResponsiveWidth = currentW;
+
+            if (isQuizActive) {
+                content.revalidate();
+                content.repaint();
+                return;
+            }
+
+            if (activeLesson != null) {
+                showLesson(activeLesson);
+                return;
+            }
+
+            if (currentPage != null) {
+                showPage(currentPage);
+            }
+        }
     }
     
    
@@ -720,7 +779,26 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             DigiView.log("DATA", "Local data file not found (" + DATA_FILE.getAbsolutePath() + "). Starting with clean state.");
             return;
         }
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE))) {
+        try (FileInputStream fis = new FileInputStream(DATA_FILE);
+             ObjectInputStream in = new ObjectInputStream(fis) {
+                 @Override
+                 protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+                     ObjectStreamClass desc = super.readClassDescriptor();
+                     if ("System.DigiViewLMS$User".equals(desc.getName()) || "System.DigiView$User".equals(desc.getName())) {
+                         return ObjectStreamClass.lookup(User.class);
+                     }
+                     return desc;
+                 }
+
+                 @Override
+                 protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                     String name = desc.getName();
+                     if ("System.DigiViewLMS$User".equals(name) || "System.DigiView$User".equals(name)) {
+                         return User.class;
+                     }
+                     return super.resolveClass(desc);
+                 }
+             }) {
             Object data = in.readObject();
             if (data instanceof Map<?, ?>) {
                 Map<?, ?> map = (Map<?, ?>) data;
@@ -733,8 +811,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             }
             DigiView.log("DATA", "Successfully loaded " + users.size() + " user account(s) from " + DATA_FILE.getAbsolutePath());
         } catch (Exception ex) {
-            DigiView.logErr("DATA", "Saved data could not be loaded: " + ex.getMessage(), ex);
-            showThemedMessage("⚠️", "Digi-View", "Saved data could not be loaded. A new local data file will be used.");
+            DigiView.log("DATA", "Cached data schema update required (" + ex.getMessage() + "). Initializing fresh local state.");
         }
     }
 
@@ -798,53 +875,59 @@ private JPanel authCard(String heading, String subtitle) {
 }
 
     private JPanel buildLogin() {
-         final Color CARD_BG = new Color(13, 21, 36);
+        final Color CARD_BG = new Color(13, 21, 36);
         final Color CARD_BORDER = new Color(33, 52, 80);
         final Color HINT = new Color(120, 135, 160);
         final Color ACCENT = new Color(56, 189, 248);
 
-        JPanel outer = new GradientPanel(new GridBagLayout());
+        JPanel outer = new ScrollableGradientPanel(new GridBagLayout());
 
         RoundedPanel card = new RoundedPanel(34, CARD_BG, CARD_BORDER);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(40, 55, 28, 55));
-        card.setPreferredSize(new Dimension(480, 660));
-
+        card.setBorder(new EmptyBorder(38, 42, 28, 42));
+        card.setPreferredSize(new Dimension(480, 620));
 
         JPanel logo = createLogo();
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
         logo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
         card.add(logo);
-        card.add(Box.createVerticalStrut(45));
+        card.add(Box.createVerticalStrut(24));
 
-
-        JPanel heading = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        JPanel heading = new JPanel();
+        heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
         heading.setOpaque(false);
         heading.setAlignmentX(Component.CENTER_ALIGNMENT);
-        heading.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        heading.setPreferredSize(new Dimension(396, 60));
+        heading.setMaximumSize(new Dimension(396, 60));
 
-        JLabel signIn = new JLabel("SIGN IN");
-        signIn.setFont(new Font("SansSerif", Font.PLAIN, 28));
+        JLabel signIn = new JLabel("SIGN IN", SwingConstants.CENTER);
+        signIn.setFont(new Font("SansSerif", Font.BOLD, 26));
         signIn.setForeground(TEXT);
+        signIn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        signIn.setPreferredSize(new Dimension(396, 32));
+        signIn.setMaximumSize(new Dimension(396, 32));
 
-        JLabel fill = new JLabel("/ FILL OUT THE FORM");
-        fill.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        JLabel fill = new JLabel("Enter your credentials to access your account", SwingConstants.CENTER);
+        fill.setFont(new Font("SansSerif", Font.PLAIN, 12));
         fill.setForeground(HINT);
+        fill.setAlignmentX(Component.CENTER_ALIGNMENT);
+        fill.setPreferredSize(new Dimension(396, 20));
+        fill.setMaximumSize(new Dimension(396, 20));
 
         heading.add(signIn);
+        heading.add(Box.createVerticalStrut(6));
         heading.add(fill);
         card.add(heading);
-        card.add(Box.createVerticalStrut(40));
-
+        card.add(Box.createVerticalStrut(26));
 
         loginUsername = new RoundedTextField("Username");
         loginPassword = new RoundedPasswordField("Password");
         loginPassword.addActionListener(e -> login()); 
 
         card.add(loginUsername);
-        card.add(Box.createVerticalStrut(16));
+        card.add(Box.createVerticalStrut(14));
         card.add(loginPassword);
-        card.add(Box.createVerticalStrut(10));
+        card.add(Box.createVerticalStrut(14));
 
         RoundedButton loginBtn = new RoundedButton("SIGN IN", true);
         loginBtn.addActionListener(e -> {
@@ -852,9 +935,7 @@ private JPanel authCard(String heading, String subtitle) {
             login();
         });
         card.add(loginBtn);
-        card.add(Box.createVerticalStrut(22));
-        card.add(Box.createVerticalStrut(30));
-
+        card.add(Box.createVerticalStrut(18));
 
         RoundedButton create = new RoundedButton("CREATE AN ACCOUNT", false);
         create.addActionListener(e -> {
@@ -864,7 +945,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(create);
 
         card.add(Box.createVerticalGlue());
-
+        card.add(Box.createVerticalStrut(14));
 
         JLabel version = new JLabel("V1.1.0");
         version.setFont(new Font("SansSerif", Font.PLAIN, 12));
@@ -872,8 +953,27 @@ private JPanel authCard(String heading, String subtitle) {
         version.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(version);
 
-        outer.add(card);
-        return outer;
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(24, 24, 24, 24);
+        outer.add(card, gbc);
+
+        JScrollPane scrollPane = new JScrollPane(outer);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(24);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        return wrapper;
     }
 
 
@@ -1202,33 +1302,41 @@ private JPanel authCard(String heading, String subtitle) {
 
         RoundedPanel card = new RoundedPanel(34, CARD_BG, CARD_BORDER);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(35, 55, 28, 55));
+        card.setBorder(new EmptyBorder(32, 42, 24, 42));
 
 
         JPanel logo = createLogo();
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
         logo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
         card.add(logo);
-        card.add(Box.createVerticalStrut(30));
+        card.add(Box.createVerticalStrut(24));
 
-
-        JPanel heading = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        JPanel heading = new JPanel();
+        heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
         heading.setOpaque(false);
         heading.setAlignmentX(Component.CENTER_ALIGNMENT);
-        heading.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        heading.setPreferredSize(new Dimension(396, 60));
+        heading.setMaximumSize(new Dimension(396, 60));
 
-        JLabel title = new JLabel("SIGN UP");
-        title.setFont(new Font("SansSerif", Font.PLAIN, 28));
+        JLabel title = new JLabel("SIGN UP", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 26));
         title.setForeground(TEXT);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        title.setPreferredSize(new Dimension(396, 32));
+        title.setMaximumSize(new Dimension(396, 32));
 
-        JLabel sub = new JLabel("/ STUDENT PROFILE DETAILS");
-        sub.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        JLabel sub = new JLabel("Fill out your student profile details to register", SwingConstants.CENTER);
+        sub.setFont(new Font("SansSerif", Font.PLAIN, 12));
         sub.setForeground(HINT);
+        sub.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sub.setPreferredSize(new Dimension(396, 20));
+        sub.setMaximumSize(new Dimension(396, 20));
 
         heading.add(title);
+        heading.add(Box.createVerticalStrut(6));
         heading.add(sub);
         card.add(heading);
-        card.add(Box.createVerticalStrut(28));
+        card.add(Box.createVerticalStrut(22));
 
 
         RoundedTextField fullName = new RoundedTextField("Student Name");
@@ -1358,12 +1466,19 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(regVersion);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(24, 24, 24, 24);
         outer.add(card, gbc);
-
 
         JScrollPane scrollPane = new JScrollPane(outer);
         scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(24);
@@ -1409,10 +1524,10 @@ private JPanel authCard(String heading, String subtitle) {
                     showApp();
                 } else {
                     User cached = users.get(username.toLowerCase(Locale.ROOT));
-                    if (cached != null && cached.password.equals(password) && res.message.contains("Could not connect")) {
+                    if (cached != null && cached.password.equals(password)) {
                         currentUser = cached;
                         showApp();
-                        message("Signed in (Offline Mode).\nServer was unreachable.", JOptionPane.INFORMATION_MESSAGE);
+                        message("Signed in (Offline Mode).\nCloud server was unreachable (" + (res.message != null ? res.message.split("\n")[0] : "Network offline") + "). Working with local student data.", JOptionPane.INFORMATION_MESSAGE);
                         return;
                     }
                     message(res.message, JOptionPane.WARNING_MESSAGE);
@@ -1431,15 +1546,15 @@ private JPanel authCard(String heading, String subtitle) {
 
         root = new GradientPanel(new BorderLayout());
 
-        root.add(buildSidebar(), BorderLayout.WEST);
+        sidebarPanel = buildSidebar();
+        root.add(sidebarPanel, BorderLayout.WEST);
 
-        JPanel main = new GradientPanel(new BorderLayout());
+        mainPanel = new GradientPanel(new BorderLayout());
 
-        main.add(buildTopBar(), BorderLayout.NORTH);
+        mainPanel.add(buildTopBar(), BorderLayout.NORTH);
 
-        content = new JPanel(new BorderLayout());
-        content.setOpaque(false);
-        content.setBorder(new EmptyBorder(28, 30, 28, 30));
+        content = new ScrollableContentPanel();
+        content.setBorder(new EmptyBorder(26, 32, 26, 20));
 
         JScrollPane scroll = new JScrollPane(content);
 
@@ -1454,9 +1569,9 @@ private JPanel authCard(String heading, String subtitle) {
         scroll.getViewport().setScrollMode(JViewport.BLIT_SCROLL_MODE);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-        main.add(scroll, BorderLayout.CENTER);
+        mainPanel.add(scroll, BorderLayout.CENTER);
 
-        root.add(main, BorderLayout.CENTER);
+        root.add(mainPanel, BorderLayout.CENTER);
 
         getContentPane().add(root, BorderLayout.CENTER);
 
@@ -1478,7 +1593,8 @@ private JPanel authCard(String heading, String subtitle) {
             new MatteBorder(0, 0, 0, 1, new Color(24, 40, 64)),
             new EmptyBorder(24, 16, 18, 16)
         ));
-        sidebar.setPreferredSize(new Dimension(260, 0));
+        int sideW = getWidth() < 1060 ? 220 : 260;
+        sidebar.setPreferredSize(new Dimension(sideW, 0));
 
 
         JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
@@ -1595,7 +1711,8 @@ private JPanel authCard(String heading, String subtitle) {
         JLabel verLabel = new JLabel("DigiView v1.1.0");
         verLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
         verLabel.setForeground(new Color(100, 116, 139));
-        verLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        verLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        verLabel.setBorder(new EmptyBorder(0, 10, 0, 0));
         sidebar.add(verLabel);
         sidebar.add(Box.createVerticalStrut(6));
 
@@ -1605,10 +1722,10 @@ private JPanel authCard(String heading, String subtitle) {
 
 
     private int getEffectiveContentWidth() {
-        if (content != null && content.getWidth() > 100) {
-            return content.getWidth();
-        }
-        return Math.max(500, getWidth() - 280);
+        int sideW = (getWidth() < 1060 ? 220 : 260);
+        int w = getWidth() - sideW;
+        int reservedH = 66; // 32 left margin + 20 right margin + 14 scrollbar allowance
+        return Math.max(340, w - reservedH);
     }
 
     private <T extends JComponent> T fixHeight(T c, int h) {
@@ -1640,13 +1757,12 @@ private JPanel authCard(String heading, String subtitle) {
         welcome.setForeground(TEXT);
         welcome.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        int descW = Math.max(280, effW - 140);
+        int descW = Math.max(260, effW - 140);
         JLabel desc = new JLabel(
-            "<html><div style='width:" + descW + "px'>Keep learning, complete your HTML lessons, "
-            + "and challenge yourself with the quiz. Your goal is not just to memorize "
-            + "HTML\u2014it's to understand how it works.</div></html>");
-        desc.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        desc.setForeground(new Color(190, 205, 225));
+            "<html><table width='" + descW + "' cellpadding='0' cellspacing='0'><tr><td style='color:#becde1; font-family:SansSerif; font-size:15px;'>"
+            + "Keep learning, complete your HTML lessons, and challenge yourself with the quiz. "
+            + "Your goal is not just to memorize HTML\u2014it's to understand how it works."
+            + "</td></tr></table></html>");
         desc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         RoundedButton startBtn = new RoundedButton("\uD83D\uDE80  Start Learning", true);
@@ -1819,6 +1935,9 @@ private JPanel authCard(String heading, String subtitle) {
             showAuth();
             return;
         }
+        activeLesson = null;
+        isQuizActive = false;
+        lastResponsiveWidth = getEffectiveContentWidth();
         DigiView.log("NAV", "Page view switched to: " + page + " (User: " + currentUser.username + ", XP: " + currentUser.xp + ")");
         currentPage = page;
         if (pageTitle != null) pageTitle.setText(page);
@@ -1849,7 +1968,7 @@ private JPanel authCard(String heading, String subtitle) {
         top.setBackground(D_TOP);
         top.setBorder(new CompoundBorder(
             new MatteBorder(0, 0, 1, 0, new Color(24, 40, 64)),
-            new EmptyBorder(14, 30, 14, 30)
+            new EmptyBorder(14, 32, 14, 32)
         ));
 
         pageTitle = new JLabel("Dashboard");
@@ -2019,6 +2138,7 @@ private JPanel authCard(String heading, String subtitle) {
         heading.setFont(new Font("SansSerif", Font.BOLD, 28));
         heading.setForeground(TEXT);
         heading.setAlignmentX(Component.LEFT_ALIGNMENT);
+        heading.setBorder(new EmptyBorder(0, 0, 0, 12));
 
         JLabel sub = new JLabel("Learn the concept before taking the challenge.");
         sub.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -2066,9 +2186,8 @@ private JPanel authCard(String heading, String subtitle) {
             icon.setForeground(TEXT);
             icon.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel title = new JLabel(l.title);
-            title.setFont(new Font("SansSerif", Font.BOLD, 22));
-            title.setForeground(TEXT);
+            int titleW = Math.max(160, (effW / lCols) - 76);
+            JLabel title = new JLabel("<html><div style='width:" + titleW + "px; font-weight:bold; font-size:20px; color:#f8fafc'>" + l.title + "</div></html>");
             title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             JTextArea desc = new JTextArea(summary);
@@ -2132,10 +2251,10 @@ private JPanel authCard(String heading, String subtitle) {
     }
 
     private void showLesson(Lesson l) {
+        activeLesson = l;
         JPanel p = verticalPanel();
         p.setOpaque(false);
 
-       
         RoundedButton back = new RoundedButton("\u2190  Back to Lessons", false);
         back.setForeground(Color.WHITE);
         back.setPreferredSize(new Dimension(190, 42));
@@ -2143,6 +2262,7 @@ private JPanel authCard(String heading, String subtitle) {
         back.setAlignmentX(Component.LEFT_ALIGNMENT);
         back.addActionListener(e -> {
             playClickSound();
+            activeLesson = null;
             showPage("Lessons");
         });
         p.add(back);
@@ -2159,17 +2279,18 @@ private JPanel authCard(String heading, String subtitle) {
         title.setFont(new Font("SansSerif", Font.BOLD, 28));
         title.setForeground(TEXT);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setBorder(new EmptyBorder(0, 0, 0, 10));
 
         JLabel sub = new JLabel("Lesson explanation and example");
         sub.setFont(new Font("SansSerif", Font.PLAIN, 14));
         sub.setForeground(MUTED);
         sub.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        int descW = Math.max(280, effW - 100);
+        int descW = Math.max(260, effW - 84);
         JLabel explanation = new JLabel(
-            "<html><div style='width:" + descW + "px'>" + l.explanation + "</div></html>");
-        explanation.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        explanation.setForeground(new Color(215, 225, 240));
+            "<html><table width='" + descW + "' cellpadding='0' cellspacing='0'><tr><td style='color:#d7e1f0; font-family:SansSerif; font-size:16px;'>"
+            + l.explanation
+            + "</td></tr></table></html>");
         explanation.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel codeTitle = new JLabel("Code Example");
@@ -2177,32 +2298,31 @@ private JPanel authCard(String heading, String subtitle) {
         codeTitle.setForeground(CYAN);
         codeTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        
         JTextArea code = codeArea(l.code);
         code.setOpaque(false);
         code.setLineWrap(true);
 
         RoundedPanel codeBox = new RoundedPanel(16, new Color(3, 9, 18), new Color(20, 36, 58));
         codeBox.setLayout(new BorderLayout());
-        codeBox.setBorder(new EmptyBorder(10, 10, 10, 10));
+        codeBox.setBorder(new EmptyBorder(12, 14, 12, 14));
         codeBox.add(code, BorderLayout.CENTER);
 
         int lines = l.code.split("\n").length;
         int boxHeight = lines * 20 + 44;
-        int boxW = Math.max(280, Math.min(760, effW - 100));
+        int boxW = Math.max(260, effW - 84);
         Dimension boxSize = new Dimension(boxW, boxHeight);
         codeBox.setPreferredSize(boxSize);
-        codeBox.setMaximumSize(boxSize);
+        codeBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, boxHeight));
         codeBox.setMinimumSize(new Dimension(200, boxHeight));
         codeBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-       
         RoundedButton quiz = new RoundedButton("Take a Quiz  \u2192", true);
         quiz.setPreferredSize(new Dimension(170, 46));
         quiz.setMaximumSize(new Dimension(170, 46));
         quiz.setAlignmentX(Component.LEFT_ALIGNMENT);
         quiz.addActionListener(e -> {
             playClickSound();
+            activeLesson = null;
             showPage("Quiz");
         });
 
@@ -2236,19 +2356,18 @@ private JPanel authCard(String heading, String subtitle) {
         heroContent.setBorder(new EmptyBorder(40, 46, 40, 46));
 
         JLabel heroTitle = new JLabel(
-            "<html>Ready for the <font color='#22d3ee'>HTML Challenge?");
+            "<html>Ready for the <font color='#22d3ee'>HTML Challenge?</font></html>");
         heroTitle.setFont(new Font("SansSerif", Font.BOLD, 36));
         heroTitle.setForeground(TEXT);
         heroTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         int effW = getEffectiveContentWidth();
-        int heroDescW = Math.max(280, effW - 120);
+        int heroDescW = Math.max(260, effW - 140);
 
         JLabel heroDesc = new JLabel(
-            "<html><div style='width:" + heroDescW + "px'>Choose a difficulty and test your knowledge. "
-            + "Be careful\u2014wrong answers cost one heart.</div></html>");
-        heroDesc.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        heroDesc.setForeground(new Color(190, 205, 225));
+            "<html><table width='" + heroDescW + "' cellpadding='0' cellspacing='0'><tr><td style='color:#becde1; font-family:SansSerif; font-size:16px;'>"
+            + "Choose a difficulty and test your knowledge. Be careful\u2014wrong answers cost one heart."
+            + "</td></tr></table></html>");
         heroDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         heroContent.add(heroTitle);
@@ -2468,8 +2587,9 @@ private JPanel authCard(String heading, String subtitle) {
 }
     
     private void runQuiz(List<Question> questions, int index, int score, int difficulty) {
-        
+        isQuizActive = true;
         if (index >= questions.size()) {
+            isQuizActive = false;
             int percent = (int)Math.round(score * 100.0 / questions.size());
             currentUser.xp += score * 5;
             String qName = difficultyName(difficulty);
@@ -2530,6 +2650,7 @@ private JPanel authCard(String heading, String subtitle) {
             );
 
             if (exit) {
+                isQuizActive = false;
                 String qName = difficultyName(difficulty) + " (Exited)";
                 currentUser.history.add(new QuizRecord(
                     qName,
@@ -2568,11 +2689,13 @@ private JPanel authCard(String heading, String subtitle) {
         number.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         
+        int effW = getEffectiveContentWidth();
+        int qW = Math.max(260, effW - 84);
         String safeText = q.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
         JLabel question = new JLabel(
-            "<html><div style='width:860px'>" + safeText + "</div></html>");
-        question.setFont(new Font("SansSerif", Font.BOLD, 24));
-        question.setForeground(TEXT);
+            "<html><table width='" + qW + "' cellpadding='0' cellspacing='0'><tr><td style='color:#f8fafc; font-family:SansSerif; font-size:24px; font-weight:bold;'>"
+            + safeText
+            + "</td></tr></table></html>");
         question.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         card.add(heartsLabel);
@@ -2655,6 +2778,7 @@ private JPanel authCard(String heading, String subtitle) {
             updateHeartsLabel(heartsLabel);
 
             if (quizHearts <= 0) {
+                isQuizActive = false;
                 message(
                     "You ran out of hearts! Please try the quiz again.",
                     JOptionPane.WARNING_MESSAGE
@@ -2768,15 +2892,17 @@ card.add(label(resultMessage, 14, MUTED, false));
         heroTitle.setForeground(TEXT);
         heroTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel heroDesc = new JLabel(unlockedCount + " of " + items.size()
-                + " unlocked \u2014 achievements are based on your quiz results.");
-        heroDesc.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        heroDesc.setForeground(new Color(190, 205, 225));
+        int effW = getEffectiveContentWidth();
+        int heroDescW = Math.max(260, effW - 140);
+        JLabel heroDesc = new JLabel("<html><table width='" + heroDescW + "' cellpadding='0' cellspacing='0'><tr><td style='color:#becde1; font-family:SansSerif; font-size:15px;'>"
+                + unlockedCount + " of " + items.size()
+                + " unlocked \u2014 achievements are based on your quiz results.</td></tr></table></html>");
         heroDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         ProgressPill overall = new ProgressPill(unlockedCount * 100 / items.size());
         overall.setAlignmentX(Component.LEFT_ALIGNMENT);
-        overall.setPreferredSize(new Dimension(500, 14));
+        int barW = Math.min(500, Math.max(200, effW - 120));
+        overall.setPreferredSize(new Dimension(barW, 14));
         overall.setMaximumSize(new Dimension(500, 14));
 
         heroContent.add(heroTitle);
@@ -2790,7 +2916,6 @@ card.add(label(resultMessage, 14, MUTED, false));
         p.add(Box.createVerticalStrut(24));
 
 
-        int effW = getEffectiveContentWidth();
         int aCols = (effW >= 960) ? 3 : (effW >= 600 ? 2 : 1);
         int aRows = (items.size() + aCols - 1) / aCols;
         JPanel grid = new JPanel(new GridLayout(0, aCols, 18, 18));
@@ -2821,13 +2946,14 @@ card.add(label(resultMessage, 14, MUTED, false));
             topRow.add(status, BorderLayout.EAST);
 
 
-            JLabel title = new JLabel(name);
-            title.setFont(new Font("SansSerif", Font.BOLD, 20));
+            int cardW = Math.max(160, (effW - (aCols - 1) * 18) / aCols - 56);
+            JLabel title = new JLabel("<html><div style='width:" + cardW + "px'>" + name + "</div></html>");
+            title.setFont(new Font("SansSerif", Font.BOLD, 18));
             title.setForeground(unlocked ? TEXT : MUTED);
             title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel description = new JLabel(desc);
-            description.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            JLabel description = new JLabel("<html><div style='width:" + cardW + "px'>" + desc + "</div></html>");
+            description.setFont(new Font("SansSerif", Font.PLAIN, 13));
             description.setForeground(unlocked ? new Color(170, 185, 205) : new Color(110, 125, 150));
             description.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -2910,10 +3036,12 @@ card.add(label(resultMessage, 14, MUTED, false));
             JLabel title = new JLabel(item[1]);
             title.setFont(new Font("SansSerif", Font.PLAIN, 13));
             title.setForeground(MUTED);
+            title.setBorder(new EmptyBorder(0, 0, 0, 8));
 
             JLabel value = new JLabel(item[2]);
             value.setFont(new Font("SansSerif", Font.BOLD, 26));
             value.setForeground(TEXT);
+            value.setBorder(new EmptyBorder(0, 0, 0, 8));
 
             JPanel text = new JPanel();
             text.setOpaque(false);
@@ -2968,10 +3096,12 @@ card.add(label(resultMessage, 14, MUTED, false));
         JLabel title = new JLabel(level + " Quiz");
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
         title.setForeground(TEXT);
+        title.setBorder(new EmptyBorder(0, 0, 0, 8));
 
         JLabel date = new JLabel(formatHistoryDate(r.date));
         date.setFont(new Font("SansSerif", Font.PLAIN, 13));
         date.setForeground(MUTED);
+        date.setBorder(new EmptyBorder(0, 0, 0, 8));
 
         JPanel info = new JPanel();
         info.setOpaque(false);
@@ -3168,10 +3298,12 @@ card.add(label(resultMessage, 14, MUTED, false));
         JLabel nameLabel = new JLabel(name);
         nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
         nameLabel.setForeground(MUTED);
+        nameLabel.setBorder(new EmptyBorder(0, 0, 0, 4));
 
-        JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("SansSerif", Font.BOLD, 19));
+        JLabel valueLabel = new JLabel("<html>" + value + "</html>");
+        valueLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         valueLabel.setForeground(TEXT);
+        valueLabel.setBorder(new EmptyBorder(0, 0, 0, 4));
 
         JPanel text = new JPanel();
         text.setOpaque(false);
@@ -3198,6 +3330,7 @@ card.add(label(resultMessage, 14, MUTED, false));
         JLabel label = new JLabel(text);
         label.setFont(new Font("SansSerif", Font.BOLD, 13));
         label.setForeground(new Color(235, 242, 252));
+        label.setBorder(new EmptyBorder(0, 0, 0, 6));
         chip.add(label);
         return chip;
     }
@@ -3349,28 +3482,230 @@ card.add(label(resultMessage, 14, MUTED, false));
         dlg.setUndecorated(true);
         dlg.setBackground(new Color(0, 0, 0, 0));
 
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+        final boolean hasParent = this != null && this.isShowing();
+        if (hasParent) {
+            dlg.setBounds(this.getBounds());
+        } else {
+            dlg.setSize(500, 360);
+            dlg.setLocationRelativeTo(null);
+        }
+
+        JPanel scrim = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                if (hasParent) {
+                    g2.setColor(new Color(5, 12, 24, 205)); // Modern deep translucent scrim
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        scrim.setOpaque(false);
 
         RoundedPanel card = new RoundedPanel(28, new Color(13, 21, 36), new Color(33, 52, 80));
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(26, 30, 24, 30));
-        card.setPreferredSize(new Dimension(440, cancelText != null ? 275 : 250));
-        card.setMaximumSize(new Dimension(440, 380));
+        card.setBorder(new EmptyBorder(30, 36, 26, 36));
+        card.setMaximumSize(new Dimension(460, 480));
 
-        // Top Icon Badge
+        // Top Icon Badge with custom glowing vector emblems for Notice, Error, Success, and Info
         if (icon != null && !icon.isEmpty()) {
-            RoundedPanel iconBadge = new RoundedPanel(26, new Color(20, 37, 61), new Color(33, 52, 80));
-            iconBadge.setPreferredSize(new Dimension(54, 54));
-            iconBadge.setMaximumSize(new Dimension(54, 54));
-            iconBadge.setMinimumSize(new Dimension(54, 54));
-            iconBadge.setLayout(new GridBagLayout());
-            iconBadge.setAlignmentX(Component.CENTER_ALIGNMENT);
+            final String badgeIcon = icon;
+            final String dlgTitle = title != null ? title : "";
+            JPanel iconBadge = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+                    int w = getWidth(), h = getHeight();
 
-            JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
-            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
-            iconBadge.add(iconLabel);
+                    String lowerTitle = dlgTitle.toLowerCase();
+                    boolean isWarning = badgeIcon.contains("⚠") || lowerTitle.contains("notice") || lowerTitle.contains("warning") || lowerTitle.contains("alert");
+                    boolean isError = badgeIcon.contains("❌") || badgeIcon.contains("✖") || lowerTitle.contains("error") || lowerTitle.contains("fail");
+                    boolean isSuccess = badgeIcon.contains("✨") || badgeIcon.contains("✅") || lowerTitle.contains("success") || lowerTitle.contains("pass");
+                    boolean isLock = badgeIcon.contains("🔒") || lowerTitle.contains("lock");
+                    boolean isExit = badgeIcon.contains("🚪") || lowerTitle.contains("log out") || lowerTitle.contains("exit");
+                    boolean isRocket = badgeIcon.contains("🚀") || lowerTitle.contains("quiz") || lowerTitle.contains("start");
+                    boolean isCloud = badgeIcon.contains("☁") || lowerTitle.contains("server") || lowerTitle.contains("connect");
+
+                    Color bgTop, bgBtm, borderCol, glowCol;
+                    if (isWarning) {
+                        bgTop = new Color(52, 33, 11);
+                        bgBtm = new Color(26, 16, 6);
+                        borderCol = new Color(245, 158, 11, 220);
+                        glowCol = new Color(245, 158, 11, 55);
+                    } else if (isError) {
+                        bgTop = new Color(56, 17, 24);
+                        bgBtm = new Color(28, 8, 12);
+                        borderCol = new Color(239, 68, 68, 220);
+                        glowCol = new Color(239, 68, 68, 55);
+                    } else if (isSuccess) {
+                        bgTop = new Color(14, 46, 28);
+                        bgBtm = new Color(7, 24, 14);
+                        borderCol = new Color(34, 197, 94, 220);
+                        glowCol = new Color(34, 197, 94, 55);
+                    } else if (isLock) {
+                        bgTop = new Color(50, 36, 12);
+                        bgBtm = new Color(24, 18, 6);
+                        borderCol = new Color(234, 179, 8, 220);
+                        glowCol = new Color(234, 179, 8, 55);
+                    } else if (isExit) {
+                        bgTop = new Color(54, 20, 24);
+                        bgBtm = new Color(26, 10, 14);
+                        borderCol = new Color(244, 63, 94, 220);
+                        glowCol = new Color(244, 63, 94, 55);
+                    } else if (isRocket) {
+                        bgTop = new Color(36, 22, 62);
+                        bgBtm = new Color(18, 11, 32);
+                        borderCol = new Color(168, 85, 247, 220);
+                        glowCol = new Color(168, 85, 247, 55);
+                    } else if (isCloud) {
+                        bgTop = new Color(12, 38, 62);
+                        bgBtm = new Color(6, 19, 32);
+                        borderCol = new Color(14, 165, 233, 220);
+                        glowCol = new Color(14, 165, 233, 55);
+                    } else {
+                        bgTop = new Color(16, 38, 68);
+                        bgBtm = new Color(8, 20, 38);
+                        borderCol = new Color(56, 189, 248, 220);
+                        glowCol = new Color(56, 189, 248, 55);
+                    }
+
+                    // Soft outer glow halo
+                    g2.setColor(glowCol);
+                    g2.fillRoundRect(2, 2, w - 5, h - 5, 26, 26);
+
+                    // Badge container
+                    g2.setPaint(new GradientPaint(0, 4, bgTop, 0, h - 4, bgBtm));
+                    g2.fillRoundRect(4, 4, w - 9, h - 9, 22, 22);
+                    g2.setColor(borderCol);
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.drawRoundRect(4, 4, w - 9, h - 9, 22, 22);
+
+                    double cx = w / 2.0;
+                    double cy = h / 2.0;
+
+                    if (isWarning) {
+                        // High-fidelity vector warning triangle with smooth rounded apex and amber gradient
+                        Path2D.Double tri = new Path2D.Double();
+                        tri.moveTo(cx - 2.5, cy - 11.5);
+                        tri.quadTo(cx, cy - 15.5, cx + 2.5, cy - 11.5);
+                        tri.lineTo(cx + 15.0, cy + 10.0);
+                        tri.quadTo(cx + 17.0, cy + 13.5, cx + 13.0, cy + 13.5);
+                        tri.lineTo(cx - 13.0, cy + 13.5);
+                        tri.quadTo(cx - 17.0, cy + 13.5, cx - 15.0, cy + 10.0);
+                        tri.closePath();
+
+                        // Fill with vibrant golden amber gradient
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - 16), new Color(254, 240, 138), (float)cx, (float)(cy + 14), new Color(217, 119, 6)));
+                        g2.fill(tri);
+
+                        // Triangle outline for crisp contrast
+                        g2.setColor(new Color(255, 251, 235, 220));
+                        g2.setStroke(new BasicStroke(1.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        g2.draw(tri);
+
+                        // Bold exclamation mark in dark slate
+                        g2.setColor(new Color(15, 23, 42));
+                        g2.fillRoundRect((int)Math.round(cx - 1.8), (int)Math.round(cy - 6.5), 4, 9, 2, 2);
+                        g2.fillOval((int)Math.round(cx - 1.8), (int)Math.round(cy + 5.5), 4, 4);
+
+                    } else if (isError) {
+                        // High-fidelity vector error circle with crimson gradient and white cross
+                        double rad = 15.0;
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - rad), new Color(248, 113, 113), (float)cx, (float)(cy + rad), new Color(220, 38, 38)));
+                        g2.fill(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+                        g2.setColor(new Color(254, 202, 202));
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.draw(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+
+                        g2.setColor(Color.WHITE);
+                        g2.setStroke(new BasicStroke(2.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        float cr = 6.0f;
+                        g2.drawLine((int)(cx - cr), (int)(cy - cr), (int)(cx + cr), (int)(cy + cr));
+                        g2.drawLine((int)(cx + cr), (int)(cy - cr), (int)(cx - cr), (int)(cy + cr));
+
+                    } else if (isSuccess) {
+                        // High-fidelity vector success circle with emerald gradient and white checkmark
+                        double rad = 15.0;
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - rad), new Color(74, 222, 128), (float)cx, (float)(cy + rad), new Color(22, 163, 74)));
+                        g2.fill(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+                        g2.setColor(new Color(187, 247, 208));
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.draw(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+
+                        g2.setColor(Color.WHITE);
+                        g2.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        Path2D.Double check = new Path2D.Double();
+                        check.moveTo(cx - 6.5, cy + 0.5);
+                        check.lineTo(cx - 1.5, cy + 5.5);
+                        check.lineTo(cx + 6.5, cy - 4.5);
+                        g2.draw(check);
+
+                    } else if (isLock) {
+                        // Vector padlock
+                        g2.setColor(new Color(254, 240, 138));
+                        g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        g2.drawArc((int)(cx - 6.5), (int)(cy - 12.0), 13, 14, 0, 180);
+
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - 2), new Color(250, 204, 21), (float)cx, (float)(cy + 12), new Color(202, 138, 4)));
+                        g2.fillRoundRect((int)(cx - 10), (int)(cy - 2), 20, 15, 6, 6);
+                        g2.setColor(new Color(254, 240, 138));
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.drawRoundRect((int)(cx - 10), (int)(cy - 2), 20, 15, 6, 6);
+
+                        g2.setColor(new Color(15, 23, 42));
+                        g2.fillOval((int)(cx - 2), (int)(cy + 2), 4, 4);
+                        g2.fillRect((int)(cx - 1.5), (int)(cy + 4), 3, 4);
+
+                    } else if (isExit) {
+                        // Vector Doorway & Exit Arrow
+                        g2.setColor(new Color(251, 113, 133));
+                        g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        g2.drawRect((int)(cx - 10), (int)(cy - 10), 12, 20);
+
+                        g2.setColor(Color.WHITE);
+                        g2.drawLine((int)(cx - 2), (int)cy, (int)(cx + 10), (int)cy);
+                        g2.drawLine((int)(cx + 6), (int)(cy - 4), (int)(cx + 10), (int)cy);
+                        g2.drawLine((int)(cx + 6), (int)(cy + 4), (int)(cx + 10), (int)cy);
+
+                    } else if (isCloud) {
+                        // Vector Cloud
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - 10), new Color(56, 189, 248), (float)cx, (float)(cy + 10), new Color(2, 132, 199)));
+                        g2.fillOval((int)(cx - 12), (int)(cy - 4), 14, 14);
+                        g2.fillOval((int)(cx - 5), (int)(cy - 10), 16, 16);
+                        g2.fillOval((int)(cx + 4), (int)(cy - 4), 12, 12);
+                        g2.fillRoundRect((int)(cx - 12), (int)(cy + 1), 26, 9, 6, 6);
+                        g2.setColor(new Color(224, 242, 254));
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.drawRoundRect((int)(cx - 12), (int)(cy + 1), 26, 9, 6, 6);
+
+                    } else {
+                        // Cyan Info Emblem
+                        double rad = 15.0;
+                        g2.setPaint(new GradientPaint((float)cx, (float)(cy - rad), new Color(56, 189, 248), (float)cx, (float)(cy + rad), new Color(2, 132, 199)));
+                        g2.fill(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+                        g2.setColor(new Color(186, 230, 253));
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.draw(new Ellipse2D.Double(cx - rad, cy - rad, rad * 2, rad * 2));
+
+                        g2.setColor(Color.WHITE);
+                        g2.fillOval((int)Math.round(cx - 2.0), (int)Math.round(cy - 8.0), 4, 4);
+                        g2.fillRoundRect((int)Math.round(cx - 2.0), (int)Math.round(cy - 2.0), 4, 10, 2, 2);
+                    }
+
+                    g2.dispose();
+                }
+            };
+            iconBadge.setOpaque(false);
+            Dimension bd = new Dimension(68, 68);
+            iconBadge.setPreferredSize(bd);
+            iconBadge.setMaximumSize(bd);
+            iconBadge.setMinimumSize(bd);
+            iconBadge.setAlignmentX(Component.CENTER_ALIGNMENT);
 
             card.add(iconBadge);
             card.add(Box.createVerticalStrut(14));
@@ -3390,25 +3725,25 @@ card.add(label(resultMessage, 14, MUTED, false));
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\n", "<br/>");
-        JLabel msgLabel = new JLabel("<html><div style='text-align: center; width: 360px; color: #94A3B8; font-family: SansSerif; font-size: 13px; line-height: 1.4;'>"
+        JLabel msgLabel = new JLabel("<html><div style='text-align: center; width: 350px; color: #94A3B8; font-family: SansSerif; font-size: 13px; line-height: 1.45;'>"
                 + safeMsg + "</div></html>", SwingConstants.CENTER);
         msgLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(msgLabel);
-        card.add(Box.createVerticalStrut(22));
+        card.add(Box.createVerticalStrut(24));
 
         // Button row
         JPanel btnRow = new JPanel();
         btnRow.setLayout(new BoxLayout(btnRow, BoxLayout.X_AXIS));
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnRow.setMaximumSize(new Dimension(400, 50));
+        btnRow.setMaximumSize(new Dimension(380, 48));
 
         btnRow.add(Box.createHorizontalGlue());
         if (cancelText != null && !cancelText.isEmpty()) {
             RoundedButton btnCancel = new RoundedButton(cancelText, false);
             btnCancel.setFont(new Font("SansSerif", Font.BOLD, 13));
-            btnCancel.setPreferredSize(new Dimension(140, 46));
-            btnCancel.setMaximumSize(new Dimension(140, 46));
+            btnCancel.setPreferredSize(new Dimension(140, 44));
+            btnCancel.setMaximumSize(new Dimension(140, 44));
             btnCancel.addActionListener(e -> {
                 playClickSound();
                 result[0] = false;
@@ -3420,8 +3755,8 @@ card.add(label(resultMessage, 14, MUTED, false));
 
         RoundedButton btnConfirm = new RoundedButton(confirmText != null ? confirmText : "OK", true);
         btnConfirm.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btnConfirm.setPreferredSize(new Dimension(cancelText != null ? 140 : 180, 46));
-        btnConfirm.setMaximumSize(new Dimension(cancelText != null ? 140 : 180, 46));
+        btnConfirm.setPreferredSize(new Dimension(cancelText != null ? 140 : 170, 44));
+        btnConfirm.setMaximumSize(new Dimension(cancelText != null ? 140 : 170, 44));
         btnConfirm.addActionListener(e -> {
             playClickSound();
             result[0] = true;
@@ -3431,8 +3766,8 @@ card.add(label(resultMessage, 14, MUTED, false));
         btnRow.add(Box.createHorizontalGlue());
 
         card.add(btnRow);
-        wrapper.add(card, BorderLayout.CENTER);
-        dlg.setContentPane(wrapper);
+        scrim.add(card);
+        dlg.setContentPane(scrim);
 
         dlg.getRootPane().registerKeyboardAction(e -> {
             result[0] = false;
@@ -3444,11 +3779,31 @@ card.add(label(resultMessage, 14, MUTED, false));
             dlg.dispose();
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-        dlg.pack();
-        dlg.setSize(472, dlg.getPreferredSize().height);
-        dlg.setLocationRelativeTo(this != null && this.isShowing() ? this : null);
-        dlg.setVisible(true);
+        ComponentListener resizeListener = null;
+        if (hasParent) {
+            resizeListener = new ComponentAdapter() {
+                @Override public void componentMoved(ComponentEvent e) { dlg.setBounds(getBounds()); }
+                @Override public void componentResized(ComponentEvent e) { dlg.setBounds(getBounds()); }
+            };
+            this.addComponentListener(resizeListener);
+        }
 
+        final ComponentListener fResizeListener = resizeListener;
+        dlg.addWindowListener(new WindowAdapter() {
+            @Override public void windowClosed(WindowEvent e) {
+                if (hasParent && fResizeListener != null) {
+                    DigiViewLMS.this.removeComponentListener(fResizeListener);
+                }
+            }
+        });
+
+        if (!hasParent) {
+            dlg.pack();
+            dlg.setSize(480, dlg.getPreferredSize().height);
+            dlg.setLocationRelativeTo(null);
+        }
+
+        dlg.setVisible(true);
         return result[0];
     }
 
@@ -3528,19 +3883,23 @@ card.add(label(resultMessage, 14, MUTED, false));
         }
 
         private static synchronized void ensureLogoLoaded() {
-            if (logoChecked) return;
+            if (logoChecked && cachedLogo != null) return;
             logoChecked = true;
             try {
-                String[] candidates = new String[] {
+                String[] fileCandidates = new String[] {
+                    "public/Icons/Splash-icon.png",
+                    "public/Icons/Icon.jpg",
+                    "Icons/Splash-icon.png",
+                    "Icons/Icon.jpg",
                     "@/public/Icons/Splash-icon.png",
                     "@/public/Icons/Icon.jpg",
                     "@/Icons/Splash-icon.png",
-                    "public/Icons/Splash-icon.png",
-                    "Icons/Splash-icon.png"
+                    "../public/Icons/Splash-icon.png",
+                    "../public/Icons/Icon.jpg"
                 };
-                for (String c : candidates) {
+                for (String c : fileCandidates) {
                     File f = resolveRoot(c);
-                    if (f != null && f.exists()) {
+                    if (f != null && f.exists() && f.isFile()) {
                         Image img = javax.imageio.ImageIO.read(f);
                         if (img != null) {
                             cachedLogo = img;
@@ -3549,10 +3908,41 @@ card.add(label(resultMessage, 14, MUTED, false));
                     }
                     InputStream is = resolveRootStream(c);
                     if (is != null) {
-                        Image img = javax.imageio.ImageIO.read(is);
-                        if (img != null) {
-                            cachedLogo = img;
-                            return;
+                        try {
+                            Image img = javax.imageio.ImageIO.read(is);
+                            if (img != null) {
+                                cachedLogo = img;
+                                return;
+                            }
+                        } finally {
+                            try { is.close(); } catch (Exception ignored) {}
+                        }
+                    }
+                }
+
+                // Direct ClassLoader & Resource lookups
+                String[] resPaths = new String[] {
+                    "/Icons/Splash-icon.png",
+                    "/public/Icons/Splash-icon.png",
+                    "/Icons/Icon.jpg",
+                    "/Splash-icon.png",
+                    "Icons/Splash-icon.png",
+                    "public/Icons/Splash-icon.png"
+                };
+                for (String r : resPaths) {
+                    InputStream is = DigiView.class.getResourceAsStream(r);
+                    if (is == null && DigiView.class.getClassLoader() != null) {
+                        is = DigiView.class.getClassLoader().getResourceAsStream(r.startsWith("/") ? r.substring(1) : r);
+                    }
+                    if (is != null) {
+                        try {
+                            Image img = javax.imageio.ImageIO.read(is);
+                            if (img != null) {
+                                cachedLogo = img;
+                                return;
+                            }
+                        } finally {
+                            try { is.close(); } catch (Exception ignored) {}
                         }
                     }
                 }
@@ -3572,15 +3962,17 @@ card.add(label(resultMessage, 14, MUTED, false));
                 g2.setClip(round);
                 g2.drawImage(cachedLogo, 0, 0, w, h, null);
                 g2.setClip(null);
-                g2.setColor(new Color(56, 189, 248, 80));
+                g2.setColor(new Color(56, 189, 248, 100));
                 g2.draw(round);
             } else {
                 g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
-                        w, h, new Color(34, 190, 240)));
-                g2.fillRoundRect(0, 0, w, h, 20, 20);
+                        w, h, new Color(56, 189, 248)));
+                g2.fillRoundRect(0, 0, w - 1, h - 1, 18, 18);
+                g2.setColor(new Color(255, 255, 255, 60));
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 18, 18);
 
                 g2.setColor(Color.WHITE);
-                g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.34)));
+                g2.setFont(new Font("SansSerif", Font.BOLD, (int) (w * 0.38)));
                 FontMetrics fm = g2.getFontMetrics();
                 String s = "DV";
                 g2.drawString(s, (w - fm.stringWidth(s)) / 2,
