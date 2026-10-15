@@ -167,18 +167,6 @@
                 app:cornerRadius="24dp"
                 android:layout_marginTop="12dp" />
 
-            <!-- Demo account helper button -->
-            <TextView
-                android:id="@+id/tvQuickDemoLogin"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💡 Default login: student / admin123 (Tap to auto-fill)"
-                android:textColor="@color/cyan"
-                android:textSize="11.5sp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="16dp"
-                android:clickable="true"
-                android:focusable="true" />
 
             <!-- Version Footer -->
             <TextView
