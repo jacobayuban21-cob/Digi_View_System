@@ -37,7 +37,7 @@ digiview
 
 :: Or run direct one-liners from anywhere in the project:
 digiview run        # Launch Desktop Swing GUI
-digiview server     # Start Spring Boot Backend Server (:8085)
+digiview server     # Start local backend for localhost and LAN clients (:8085)
 digiview apk        # Build Android APK to dist\DigiView-Android.apk
 digiview install    # Install APK onto connected Android phone or emulator
 digiview mobile     # Build, install, and launch on Android device
@@ -92,14 +92,23 @@ Follow these 3 simple steps to connect the app to the cloud database:
    SUPABASE_DB_URL=jdbc:postgresql://db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require
    SUPABASE_DB_USER=postgres
    SUPABASE_DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE
-   PORT=8080
+   PORT=8085
    ```
    > 🔒 **Security Notice:** The `.env` file is in `.gitignore`, which means Git will **never** upload your password to GitHub!
 
 ---
 
 ### Step 3: Start the Backend Server Locally
-Double-click [`backend/run-backend.bat`](backend/run-backend.bat).
+From the repository root, run:
+
+```cmd
+digiview server
+```
+
+You can also double-click [`backend/run-backend.bat`](backend/run-backend.bat).
+The server command binds Spring Boot to `0.0.0.0:8085`, so the same server is
+available from this computer through `localhost` and from other devices on the
+same network through the displayed LAN IPv4 address.
 
 You will see:
 ```text
@@ -108,9 +117,16 @@ You will see:
 ===================================================
 [INFO] Loading database credentials from .env...
 ...
-Started DigiViewApplication in 2.5 seconds (process running at port 8080)
+Started DigiViewApplication in 2.5 seconds (process running at port 8085)
 ```
-Your backend is now live at `http://localhost:8080`!
+Your backend is now live at `http://localhost:8085`.
+
+For a different computer or a physical Android phone, use the LAN URL printed
+by the command, for example `http://192.168.1.10:8085`. Enter that URL in the
+desktop app's **LAN (:8085)** server preset or in the Android app's **SERVER
+BASE URL** field. Android emulators should use `http://10.0.2.2:8085/`.
+If Windows Firewall blocks the connection, run `digiview firewall` as
+Administrator and allow TCP port 8085.
 
 ---
 
@@ -146,6 +162,54 @@ If you need to send the desktop app to a classmate, teacher, or another computer
    * It uses its own bundled, portable Java 17 engine.
    * **Zero installation and zero administrator rights required!**
 
+### What is inside `dist\`?
+
+Run `digiview dist` to build the desktop, Android, and backend release
+artifacts. The output directory can contain the following packages:
+
+| Package | What it contains and does | How it is used |
+| :--- | :--- | :--- |
+| `dist\DigiViewSystem.jar` | The runnable desktop Swing application. It contains the compiled desktop classes, icons, and sound resources. It is built for Java 8 bytecode and can run on newer Java versions. | Run with `java -jar dist\DigiViewSystem.jar` from a machine with a compatible Java runtime, or use it through the portable bundle. |
+| `dist\DigiView-Portable\` | The unpacked Windows desktop bundle. It normally contains `DigiView.exe`, `DigiView.bat`, `DigiView-Debug.bat`, `DigiViewSystem.jar`, application resources/configuration, and a bundled `jre\` directory when `jlink` succeeds. | Double-click `DigiView.exe` for the normal GUI, or `DigiView-Debug.bat` to stream runtime logs. |
+| `dist\DigiView-Portable.zip` | A compressed copy of the `DigiView-Portable\` directory for sharing with another Windows computer. | Unzip it first, then run `DigiView.exe` or `DigiView.bat`; do not try to execute the JAR directly from inside the ZIP. |
+| `dist\DigiView-Android.apk` | The compiled Android application package produced from `android/`. It contains the mobile UI and Android client code, but not the Spring Boot server or Supabase database. | Install with `digiview install` or `adb install -r dist\DigiView-Android.apk`. |
+| `dist\DigiView-Backend.jar` | The packaged Spring Boot production backend copied from `backend\build\libs\app.jar`. It contains the REST API and server health dashboard, and requires Java 17+ plus the configured Supabase environment variables. | Run with `java -jar dist\DigiView-Backend.jar`; set `PORT` and the `SUPABASE_DB_*` variables first. |
+
+`backend\build\libs\app.jar` is the backend's Gradle build output. It is the
+source file used to create `dist\DigiView-Backend.jar`; it is not the desktop
+application JAR. The local development command `digiview server` uses Gradle
+`bootRun`, so it does not require either backend JAR to already exist.
+
+#### What happens when a package or JAR is missing?
+
+* **`DigiViewSystem.jar` missing from the portable folder:** `DigiView.exe`
+  displays a **File Missing** error and exits. `DigiView-Debug.bat` reports a
+  Java classpath/file error instead of opening the desktop app. Re-run
+  `digiview dist` or `scripts\build-release.bat` to rebuild it.
+* **Bundled `jre\` missing:** the portable launcher tries to use a Java
+  installation from `JAVA_HOME`, `JRE_HOME`, the Windows registry, standard
+  Java installation folders, or `PATH`. If no compatible JVM is found, it
+  displays a **Java Not Found** message and exits. The JAR itself is still
+  usable on a machine with Java installed.
+* **`DigiView-Portable.zip` missing:** the already-unpacked
+  `dist\DigiView-Portable\` folder can still run. The ZIP is only the sharing
+  archive and must be rebuilt if a new copy needs to be distributed.
+* **`DigiView-Android.apk` missing:** `digiview install` stops with an APK-not-found
+  error. `digiview mobile` or `digiview apk` builds the APK first; if the
+  Android SDK/build fails, no installation or launch occurs.
+* **`DigiView-Backend.jar` or `backend\build\libs\app.jar` missing:** desktop
+  and Android clients can still use the cloud backend or an already-running
+  local server, but the packaged backend cannot be started from that missing
+  file. Run `digiview dist` or the backend Gradle `bootJar` task to recreate it.
+  `digiview server` remains available because it starts the backend with
+  `bootRun`.
+
+The desktop source workflow is different from the packaged workflow:
+`digiview run` compiles/launches the source project through
+[`scripts/run.bat`](scripts/run.bat), so it does not need
+`dist\DigiViewSystem.jar`. The portable executable and direct JAR workflow do
+need the packaged desktop JAR described above.
+
 ---
 
 ## 4. 📱 Android App Port & Easy Build Commands
@@ -158,7 +222,7 @@ The native Android port is located in [`android/`](android/) and offers **100% f
   * 🎯 **Quiz Hub & Runner:** 3 difficulty tiers (Beginner, Intermediate, Advanced), live 5-hearts system, option card micro-animations, answer locks, and instant result cards.
   * 👤 **Profile:** Cyan-glow avatar, 2x2 account detail tiles, and level progress bar.
   * 📜 **History:** Past quiz attempts with status badges (`PASSED`, `FAILED`, `PERFECT`).
-* **Offline-First & Cloud Sync:** Persists instantly to Android `SharedPreferences` and syncs asynchronously via Retrofit to the Spring Boot backend (`http://10.0.2.2:8085/` for emulator or your Render cloud URL).
+* **Offline-First & Cloud Sync:** Persists instantly to Android `SharedPreferences` and syncs asynchronously via Retrofit to the Spring Boot backend (`http://10.0.2.2:8085/` for an emulator, the LAN URL printed by `digiview server` for a physical phone, or your Render cloud URL).
 
 ---
 

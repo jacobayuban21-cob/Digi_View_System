@@ -136,6 +136,30 @@ public class ApiClient {
     }
 
     /**
+     * Returns a site-local address for this computer so another device on the
+     * same network can connect to a backend started with digiview local.
+     */
+    public static String getLocalLanUrl() {
+        try {
+            java.util.Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                if (!networkInterface.isUp() || networkInterface.isLoopback() || networkInterface.isVirtual()) continue;
+                java.util.Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (address instanceof Inet4Address && address.isSiteLocalAddress()) {
+                        return "http://" + address.getHostAddress() + ":8085";
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            log("API", "Unable to detect LAN address: " + e.getMessage());
+        }
+        return DEFAULT_LOCAL_URL;
+    }
+
+    /**
      * Unified HTTP connection factory with modern headers and SSL/TLS configuration.
      */
     public static HttpURLConnection openConnection(String targetUrl, String method) throws IOException {

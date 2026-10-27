@@ -46,7 +46,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:background="@drawable/bg_option_normal"
-            android:hint="https://digi-view-system.onrender.com/"
+            android:hint="https://digi-view-system.onrender.com/ or http://192.168.1.10:8085/"
             android:textColorHint="@color/muted"
             android:textColor="@color/text_white"
             android:textSize="13sp"

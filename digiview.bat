@@ -65,7 +65,7 @@ if not "%~1"=="" (
     echo.
     echo Valid commands:
     echo   digiview run         - Launch Desktop Swing GUI
-    echo   digiview server      - Start Spring Boot Backend Server
+    echo   digiview server      - Start local Spring Boot Backend for localhost and LAN
     echo   digiview apk         - Build Android APK to dist\
     echo   digiview install     - Install APK on connected device/emulator
     echo   digiview mobile      - Build, install and launch on Android
@@ -93,7 +93,7 @@ echo     [1]  Run Desktop App          (Compile and launch Swing GUI)
 echo     [2]  Build Desktop Universal  (Universal Java 8-25+ JAR + Zero-Install ZIP)
 echo.
 echo   [ SPRING BOOT AND SUPABASE BACKEND ]
-echo     [3]  Run Backend Server       (Start Spring Boot on :8085 with .env)
+echo     [3]  Run Backend Server       (Start Spring Boot on localhost and LAN :8085)
 echo     [4]  Build Backend JAR        (Package app.jar with Dino Arcade)
 echo     [5]  Check Server Health      (Test live /health, uptime, Supabase)
 echo     [6]  Run Database Tests       (DatabaseSyncTest via Gradle)
@@ -114,7 +114,7 @@ echo     [0]  Exit CLI
 echo.
 echo ======================================================================
 set "CHOICE="
-set /p "CHOICE=Enter option [0-15, or 'apk', 'install', 'dist', 'run', 'firewall', 'exit']: "
+set /p "CHOICE=Enter option [0-15, or 'apk', 'install', 'dist', 'run', 'server', 'firewall', 'exit']: "
 
 if not defined CHOICE goto :interactive_menu
 set "CHOICE=!CHOICE: =!"
@@ -211,9 +211,12 @@ exit /b 0
 :: [3] Run Backend Server
 :cmd_run_server
 echo.
-echo [*] Starting Spring Boot Backend Server...
+echo [*] Starting Spring Boot Backend Server for localhost and LAN clients...
+echo [INFO] The server will listen on 0.0.0.0:8085.
 echo Press Ctrl+C at any time to stop the server.
 echo.
+set "PORT=8085"
+set "SERVER_ADDRESS=0.0.0.0"
 call "%PROJECT_ROOT%backend\run-backend.bat"
 if "%~1"=="" (
     echo.
@@ -256,7 +259,7 @@ exit /b 0
 :cmd_check_health
 echo.
 echo [*] Checking DigiView Server Health (Render Cloud ^& Local)...
-powershell -NoProfile -Command "$urls = @('https://digi-view-system.onrender.com/api/health', 'http://localhost:8085/api/health', 'http://localhost:8080/api/health'); $found = $false; foreach ($u in $urls) { try { $res = Invoke-RestMethod -Uri $u -TimeoutSec 5 -ErrorAction Stop; Write-Host '[ONLINE] ' -ForegroundColor Green -NoNewline; Write-Host $u; Write-Host ('  Status: ' + $res.status + ' | Service: ' + $res.service + ' | Uptime: ' + $res.uptimeFormatted); if ($res.database) { Write-Host ('  Database: ' + $res.database.status + ' (' + $res.database.databaseProduct + ')'); } if ($res.jvm) { Write-Host ('  JVM Memory: ' + $res.jvm.usedMemoryMb + ' MB / ' + $res.jvm.maxMemoryMb + ' MB | Threads: ' + $res.jvm.threadCount); } $found = $true; } catch { if (-not $u.Contains('localhost')) { Write-Host ('[CLOUD NOTICE] ' + $u + ' -> ' + $_.Exception.Message) -ForegroundColor Yellow; } } } if (-not $found) { Write-Host '[NOTICE] No servers reachable right now. Use ''digiview server'' for local development.' -ForegroundColor DarkGray; }"
+powershell -NoProfile -Command "$urls = @('https://digi-view-system.onrender.com/api/health', 'http://localhost:8085/api/health'); $found = $false; foreach ($u in $urls) { try { $res = Invoke-RestMethod -Uri $u -TimeoutSec 5 -ErrorAction Stop; Write-Host '[ONLINE] ' -ForegroundColor Green -NoNewline; Write-Host $u; Write-Host ('  Status: ' + $res.status + ' | Service: ' + $res.service + ' | Uptime: ' + $res.uptimeFormatted); if ($res.database) { Write-Host ('  Database: ' + $res.database.status + ' (' + $res.database.databaseProduct + ')'); } if ($res.jvm) { Write-Host ('  JVM Memory: ' + $res.jvm.usedMemoryMb + ' MB / ' + $res.jvm.maxMemoryMb + ' MB | Threads: ' + $res.jvm.threadCount); } $found = $true; } catch { if (-not $u.Contains('localhost')) { Write-Host ('[CLOUD NOTICE] ' + $u + ' -> ' + $_.Exception.Message) -ForegroundColor Yellow; } } } if (-not $found) { Write-Host '[NOTICE] No servers reachable right now. Use ''digiview server'' for local development.' -ForegroundColor DarkGray; }"
 if "%~1"=="" (
     echo.
     pause

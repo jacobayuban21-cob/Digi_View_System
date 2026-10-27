@@ -1,0 +1,506 @@
+{
+  ".vscode/launch.json": {
+    "mtime": 1791967455.3905938,
+    "seen": 1792164209.0116165,
+    "ast_hash": "d342eb181a5e0790f41e8224661557d3",
+    "semantic_hash": ""
+  },
+  ".vscode/settings.json": {
+    "mtime": 1792049660.2418153,
+    "seen": 1792164209.011622,
+    "ast_hash": "0a6aea2810f6c2852ce183ffb3a21a99",
+    "semantic_hash": ""
+  },
+  "android/app/build.gradle": {
+    "mtime": 1792046985.3866737,
+    "seen": 1792164209.0116243,
+    "ast_hash": "9d6c9cbf830313c9d969925251e874ac",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/MainActivity.java": {
+    "mtime": 1792066820.4806254,
+    "seen": 1792164209.011626,
+    "ast_hash": "1f140cde35a49b514ccb03b657c34af2",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/api/ApiClient.java": {
+    "mtime": 1792046985.3908172,
+    "seen": 1792164209.0116274,
+    "ast_hash": "9bfb451acccd3a246989d747b5dc0bff",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/api/DigiViewApi.java": {
+    "mtime": 1792046985.3917062,
+    "seen": 1792164209.0116286,
+    "ast_hash": "a863fdb55be1402a3df94c7d8e97b839",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/ApiResponse.java": {
+    "mtime": 1792046985.3917062,
+    "seen": 1792164209.0116298,
+    "ast_hash": "66a1ea24815399754a9d756bbbb84929",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/AuthRequest.java": {
+    "mtime": 1792046985.3927162,
+    "seen": 1792164209.0116308,
+    "ast_hash": "7171162dcd91edb5513cb392a6fb8198",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/LeaderboardEntry.java": {
+    "mtime": 1792046985.3937159,
+    "seen": 1792164209.0116317,
+    "ast_hash": "89d2b4e579a55a734a1cc7e26867c970",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/QuizRecord.java": {
+    "mtime": 1792046985.3937159,
+    "seen": 1792164209.0116327,
+    "ast_hash": "bd76d1c30e00aae55ee5273a4f52c815",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/RegisterRequest.java": {
+    "mtime": 1792046985.3937159,
+    "seen": 1792164209.0116334,
+    "ast_hash": "2948b7b3da4fde671e5602b22febefa4",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/User.java": {
+    "mtime": 1792046985.3947144,
+    "seen": 1792164209.0116343,
+    "ast_hash": "f78eea3c63780a0adf6fb1751f7249d5",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/model/UserProfile.java": {
+    "mtime": 1792046985.3947144,
+    "seen": 1792164209.0116355,
+    "ast_hash": "32463df6841321521cfb0b676d93f824",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/digiview/lms/util/SoundManager.java": {
+    "mtime": 1792046985.395715,
+    "seen": 1792164209.0116365,
+    "ast_hash": "cc7797e46ce4ef2d66975e7bd70c6196",
+    "semantic_hash": ""
+  },
+  "android/build.gradle": {
+    "mtime": 1792046985.4346392,
+    "seen": 1792164209.0116374,
+    "ast_hash": "93027c3860385888a0d89cd0912cec69",
+    "semantic_hash": ""
+  },
+  "android/gradlew": {
+    "mtime": 1792046985.4376512,
+    "seen": 1792164209.0116382,
+    "ast_hash": "b485b74137b14625b6807e0d32f9f0f2",
+    "semantic_hash": ""
+  },
+  "android/settings.gradle": {
+    "mtime": 1792046985.439175,
+    "seen": 1792164209.0116394,
+    "ast_hash": "c8792ca225e5b8110b14cce1654548d2",
+    "semantic_hash": ""
+  },
+  "backend/build.gradle": {
+    "mtime": 1792046985.441703,
+    "seen": 1792164209.0116405,
+    "ast_hash": "a2a029b3004b44fd1c44e9fdb75fd4ac",
+    "semantic_hash": ""
+  },
+  "backend/gradlew": {
+    "mtime": 1792046985.4447584,
+    "seen": 1792164209.0116413,
+    "ast_hash": "b485b74137b14625b6807e0d32f9f0f2",
+    "semantic_hash": ""
+  },
+  "backend/schema.sql": {
+    "mtime": 1792046985.4460661,
+    "seen": 1792164209.0116422,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "backend/settings.gradle": {
+    "mtime": 1792046985.446835,
+    "seen": 1792164209.011643,
+    "ast_hash": "7e0c9706cb55fdc6980fa117179f7f33",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/DigiViewApplication.java": {
+    "mtime": 1792046985.4494283,
+    "seen": 1792164209.011644,
+    "ast_hash": "dbcc2568975b1b8ceda7797b8b8c9b7d",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/config/CorsConfig.java": {
+    "mtime": 1792046985.450951,
+    "seen": 1792164209.0116448,
+    "ast_hash": "90fe76947a40117f9cdc5f398212167b",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/config/DataInitializer.java": {
+    "mtime": 1792046985.4515862,
+    "seen": 1792164209.011646,
+    "ast_hash": "d0080e468f696f2904f8f04a0e5e0900",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/AssetController.java": {
+    "mtime": 1792046985.4525936,
+    "seen": 1792164209.011647,
+    "ast_hash": "1e20014eb689ca5c04347af9ffa3ea1c",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/AuthController.java": {
+    "mtime": 1792046985.4525936,
+    "seen": 1792164209.011648,
+    "ast_hash": "06a4915f5b66ee027d820d4cfece2b4e",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/HealthController.java": {
+    "mtime": 1792046985.4541209,
+    "seen": 1792164209.0116491,
+    "ast_hash": "5375c9510b2f1b1c92b81dddf9e3994c",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/LeaderboardController.java": {
+    "mtime": 1792046985.4541209,
+    "seen": 1792164209.0116498,
+    "ast_hash": "950aa8a38c04fdf38074e1776ba7a335",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/QuizController.java": {
+    "mtime": 1792046985.4551318,
+    "seen": 1792164209.0116506,
+    "ast_hash": "71b3ec9ac06647419074ee4514c463df",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/controller/UserController.java": {
+    "mtime": 1792046985.455661,
+    "seen": 1792164209.0116513,
+    "ast_hash": "5e1f04e7247d8b89ac3d93296fae324a",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/ApiResponse.java": {
+    "mtime": 1792046985.4566696,
+    "seen": 1792164209.0116525,
+    "ast_hash": "2abdcf5ea52528548a3d1ba2c75faed1",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/AuthRequest.java": {
+    "mtime": 1792046985.4566696,
+    "seen": 1792164209.0116534,
+    "ast_hash": "3c8e63f40948971fbf9f38030c9d0af6",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/LeaderboardEntryDto.java": {
+    "mtime": 1792046985.4581928,
+    "seen": 1792164209.0116541,
+    "ast_hash": "96019f3d9847bb0dce3bc0b584bf8880",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/QuizRecordDto.java": {
+    "mtime": 1792046985.4581928,
+    "seen": 1792164209.011655,
+    "ast_hash": "33c27cabed78b5b514c93de1ac7a0c51",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/RegisterRequest.java": {
+    "mtime": 1792046985.4592028,
+    "seen": 1792164209.011656,
+    "ast_hash": "1e92913b01b8acf8cbc9e0395ab22bdd",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/dto/UserProfileDto.java": {
+    "mtime": 1792046985.4592028,
+    "seen": 1792164209.011657,
+    "ast_hash": "d61eeecfb3b36b29fd2ed869087a9603",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/entity/AchievementEntity.java": {
+    "mtime": 1792046985.4608026,
+    "seen": 1792164209.0116577,
+    "ast_hash": "1519f9eb628ea75f6a301d087cc92f81",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/entity/QuizRecordEntity.java": {
+    "mtime": 1792046985.4608026,
+    "seen": 1792164209.0116584,
+    "ast_hash": "11755e6685dfca985e7d54980a87ea13",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/entity/UserEntity.java": {
+    "mtime": 1792046985.461812,
+    "seen": 1792164209.0116596,
+    "ast_hash": "d5774419359c35cc3ad72d7cced62bee",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/repository/AchievementRepository.java": {
+    "mtime": 1792046985.462837,
+    "seen": 1792164209.0116606,
+    "ast_hash": "baecaff3d937d9060cb4760821e30fa3",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/repository/QuizRecordRepository.java": {
+    "mtime": 1792046985.46385,
+    "seen": 1792164209.0116613,
+    "ast_hash": "b9651e17795b49cba9f1077c59f9aca3",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/repository/UserRepository.java": {
+    "mtime": 1792046985.46385,
+    "seen": 1792164209.011662,
+    "ast_hash": "e222e96ca9502786051c696a5098ea92",
+    "semantic_hash": ""
+  },
+  "backend/src/main/java/com/digiview/service/KeepAliveService.java": {
+    "mtime": 1792046985.4648483,
+    "seen": 1792164209.0116632,
+    "ast_hash": "fddba1727a83b455f375e08d03fa56c4",
+    "semantic_hash": ""
+  },
+  "backend/src/test/java/com/digiview/DatabaseSyncTest.java": {
+    "mtime": 1792046985.5440462,
+    "seen": 1792164209.0116644,
+    "ast_hash": "38bb72b40c1572da2bd55d1ece19ac9f",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/data/AchievementRegistry.java": {
+    "mtime": 1792046985.6103156,
+    "seen": 1792164209.011665,
+    "ast_hash": "924b8cffaf7f8beb797d0e0ee1b4ad49",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/data/LessonCurriculum.java": {
+    "mtime": 1792046985.610823,
+    "seen": 1792164209.011666,
+    "ast_hash": "3b770aafedd30129b6006820a8920ea7",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/data/QuestionBank.java": {
+    "mtime": 1792046985.6114383,
+    "seen": 1792164209.0116673,
+    "ast_hash": "4f19a7a8a3a29c0320f9bddda3c64e17",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/logic/QuizProgressionRules.java": {
+    "mtime": 1792066820.4836397,
+    "seen": 1792164209.011668,
+    "ast_hash": "fe4edf0d74ebd7b5e5daf00ccafe8d33",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/model/Achievement.java": {
+    "mtime": 1792046985.6124475,
+    "seen": 1792164209.0116687,
+    "ast_hash": "144021767ae4bb0627956dbb04d84401",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/model/Lesson.java": {
+    "mtime": 1792046985.6124475,
+    "seen": 1792164209.0116699,
+    "ast_hash": "53e51ef783a2ea0938bdfc72dbc62286",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/model/Question.java": {
+    "mtime": 1792046985.6137614,
+    "seen": 1792164209.0116706,
+    "ast_hash": "ae5ffea57b5e9a93ce45ac2cc30a2323",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/model/QuizRecord.java": {
+    "mtime": 1792046985.6137614,
+    "seen": 1792164209.0116713,
+    "ast_hash": "33f009e926fea9fd24d042ad30c88e2e",
+    "semantic_hash": ""
+  },
+  "shared/com/digiview/core/model/User.java": {
+    "mtime": 1792046985.6137614,
+    "seen": 1792164209.0116723,
+    "ast_hash": "ecb9974dd5ac500503d41a4fe8b2b8ce",
+    "semantic_hash": ""
+  },
+  "src/Launcher/DigiViewLauncher.cs": {
+    "mtime": 1792061639.457928,
+    "seen": 1792164209.0116735,
+    "ast_hash": "1f52e6d89cdc0e4a4d5cd4f1c45531ed",
+    "semantic_hash": ""
+  },
+  "src/System/ApiClient.java": {
+    "mtime": 1792061639.4614606,
+    "seen": 1792164209.0116742,
+    "ast_hash": "b8c995f2e65c245ef67ff14cd885d0cb",
+    "semantic_hash": ""
+  },
+  "src/System/DigiView.java": {
+    "mtime": 1792066820.4874635,
+    "seen": 1792164209.0116751,
+    "ast_hash": "04ba8ef4dac91da9b9b77b1654a03659",
+    "semantic_hash": ""
+  },
+  "PROJECT_STRUCTURE.md": {
+    "mtime": 1792061639.4303024,
+    "seen": 1792164209.011677,
+    "ast_hash": "169a581b13b03c56ec5e4012f4683b99",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1792061639.433631,
+    "seen": 1792164209.011678,
+    "ast_hash": "cfa92774bce7f3350c316d378999114c",
+    "semantic_hash": ""
+  },
+  "RELEASE_NOTES.md": {
+    "mtime": 1792048409.6667535,
+    "seen": 1792164209.0116787,
+    "ast_hash": "c123df29086430f8d30fc2edffe8d73d",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/index.html": {
+    "mtime": 1792046985.4747934,
+    "seen": 1792164209.0116796,
+    "ast_hash": "f433939e67a5e97cb1eddb27d04d7bc2",
+    "semantic_hash": ""
+  },
+  "render.yaml": {
+    "mtime": 1792046985.606258,
+    "seen": 1792164209.0116808,
+    "ast_hash": "5589638571f10f4d290d6fc43b06fa18",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable/ic_launcher_dv.png": {
+    "mtime": 1792046985.4102566,
+    "seen": 1792164209.0116816,
+    "ast_hash": "6b557c45f9289605089cd085039ca4b3",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/Icon.jpg": {
+    "mtime": 1792046985.4683063,
+    "seen": 1792164209.0116825,
+    "ast_hash": "464b75a6af1e0ac80f811c77a7107ce4",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/Icons/Icon.jpg": {
+    "mtime": 1792046985.4715295,
+    "seen": 1792164209.0116832,
+    "ast_hash": "464b75a6af1e0ac80f811c77a7107ce4",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/Icons/Splash-icon.png": {
+    "mtime": 1792046985.4727795,
+    "seen": 1792164209.0116842,
+    "ast_hash": "6b557c45f9289605089cd085039ca4b3",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/Splash-icon.png": {
+    "mtime": 1792046985.4737926,
+    "seen": 1792164209.0116851,
+    "ast_hash": "6b557c45f9289605089cd085039ca4b3",
+    "semantic_hash": ""
+  },
+  "public/Icons/Icon.jpg": {
+    "mtime": 1792046985.5504258,
+    "seen": 1792164209.011686,
+    "ast_hash": "464b75a6af1e0ac80f811c77a7107ce4",
+    "semantic_hash": ""
+  },
+  "public/Icons/Splash-icon.png": {
+    "mtime": 1792046985.5516188,
+    "seen": 1792164209.0116873,
+    "ast_hash": "6b557c45f9289605089cd085039ca4b3",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/raw/freesound_community_relax_32200.mp3": {
+    "mtime": 1792046985.4277098,
+    "seen": 1792164209.0116882,
+    "ast_hash": "18db92e525823a8fb9d5855091dd9cac",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/raw/mixkit_select_click_1109.wav": {
+    "mtime": 1792046985.4303932,
+    "seen": 1792164209.011689,
+    "ast_hash": "cda24e9048eebf14cf00c2923c192a67",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/raw/mixkit_single_key_type_2533.wav": {
+    "mtime": 1792046985.4324918,
+    "seen": 1792164209.01169,
+    "ast_hash": "5a40b5fda22b22669dcb8e239e9fd186",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/sounds/freesound_community-relax-32200.mp3": {
+    "mtime": 1792046985.4839141,
+    "seen": 1792164209.0116909,
+    "ast_hash": "18db92e525823a8fb9d5855091dd9cac",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/sounds/freesound_community-relax-32200.wav": {
+    "mtime": 1792046985.5386539,
+    "seen": 1792164209.0116918,
+    "ast_hash": "2da2da139bf8924e6fd98378ec983267",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/sounds/mixkit-select-click-1109.wav": {
+    "mtime": 1792046985.541857,
+    "seen": 1792164209.0116925,
+    "ast_hash": "cda24e9048eebf14cf00c2923c192a67",
+    "semantic_hash": ""
+  },
+  "backend/src/main/resources/static/sounds/mixkit-single-key-type-2533.wav": {
+    "mtime": 1792046985.5430486,
+    "seen": 1792164209.0116935,
+    "ast_hash": "5a40b5fda22b22669dcb8e239e9fd186",
+    "semantic_hash": ""
+  },
+  "public/sounds/freesound_community-relax-32200.mp3": {
+    "mtime": 1792046985.5594332,
+    "seen": 1792164209.0116944,
+    "ast_hash": "18db92e525823a8fb9d5855091dd9cac",
+    "semantic_hash": ""
+  },
+  "public/sounds/freesound_community-relax-32200.wav": {
+    "mtime": 1792046985.6037614,
+    "seen": 1792164209.0116954,
+    "ast_hash": "2da2da139bf8924e6fd98378ec983267",
+    "semantic_hash": ""
+  },
+  "public/sounds/mixkit-select-click-1109.wav": {
+    "mtime": 1792046985.606258,
+    "seen": 1792164209.0116963,
+    "ast_hash": "cda24e9048eebf14cf00c2923c192a67",
+    "semantic_hash": ""
+  },
+  "public/sounds/mixkit-single-key-type-2533.wav": {
+    "mtime": 1792046985.606258,
+    "seen": 1792164209.011697,
+    "ast_hash": "5a40b5fda22b22669dcb8e239e9fd186",
+    "semantic_hash": ""
+  },
+  "src/System/sounds/freesound_community-relax-32200.mp3": {
+    "mtime": 1791960985.4520638,
+    "seen": 1792164209.0116982,
+    "ast_hash": "18db92e525823a8fb9d5855091dd9cac",
+    "semantic_hash": ""
+  },
+  "src/System/sounds/freesound_community-relax-32200.wav": {
+    "mtime": 1792046985.6646843,
+    "seen": 1792164209.0116992,
+    "ast_hash": "2da2da139bf8924e6fd98378ec983267",
+    "semantic_hash": ""
+  },
+  "src/System/sounds/mixkit-select-click-1109.wav": {
+    "mtime": 1791960985.4553823,
+    "seen": 1792164209.0117,
+    "ast_hash": "cda24e9048eebf14cf00c2923c192a67",
+    "semantic_hash": ""
+  },
+  "src/System/sounds/mixkit-single-key-type-2533.wav": {
+    "mtime": 1791960985.4570932,
+    "seen": 1792164209.0117006,
+    "ast_hash": "5a40b5fda22b22669dcb8e239e9fd186",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1792164225.8832388,
+    "seen": 1792164229.1226404,
+    "ast_hash": "85aba9c3afe0c3169a6219ef092bbf11",
+    "semantic_hash": ""
+  }
+}

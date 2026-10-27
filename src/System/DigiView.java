@@ -2052,8 +2052,16 @@ private JPanel authCard(String heading, String subtitle) {
         localPreset.setFont(new Font("SansSerif", Font.PLAIN, 12));
         localPreset.addActionListener(e -> urlField.setText(ApiClient.DEFAULT_LOCAL_URL));
 
+        JButton lanPreset = new JButton("📡 LAN (:8085)");
+        lanPreset.setBackground(new Color(24, 42, 68));
+        lanPreset.setForeground(TEXT);
+        lanPreset.setFocusPainted(false);
+        lanPreset.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lanPreset.addActionListener(e -> urlField.setText(ApiClient.getLocalLanUrl()));
+
         presetRow.add(renderPreset);
         presetRow.add(localPreset);
+        presetRow.add(lanPreset);
         p.add(presetRow);
         p.add(Box.createVerticalStrut(16));
 
