@@ -1,4 +1,23 @@
-# 🚀 DigiView LMS — Release Notes (v1.1.0 — Minor Feature Release)
+# 🚀 DigiView LMS — Release Notes
+
+## v1.1.1 — Local Server and Distribution Documentation
+
+**Release Date:** October 27, 2026
+**Version:** `1.1.1` (Minor Maintenance Release)
+
+### Highlights
+
+- Unified backend startup under `digiview server`.
+- Local Spring Boot server now supports localhost and LAN clients on
+  `0.0.0.0:8085`.
+- Added LAN endpoint reporting and desktop LAN server selection.
+- Documented distribution packages, JAR responsibilities, and missing-file
+  behavior in [README.md](README.md).
+- Added [CHANGELOG.md](CHANGELOG.md) and [RELEASE_LOG.md](RELEASE_LOG.md).
+
+---
+
+## v1.1.0 — Minor Feature Release
 
 **Release Date:** October 15, 2026  
 **Version:** `1.1.0` (Minor Feature Release)  

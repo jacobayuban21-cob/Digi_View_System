@@ -57,7 +57,7 @@ public class DigiView {
         });
 
         log("SYSTEM", "==========================================================");
-        log("SYSTEM", "  DigiView LMS Desktop v1.1.0 (Minor Update)");
+        log("SYSTEM", "  DigiView LMS Desktop v1.1.1 (Minor Update)");
         log("SYSTEM", "  Java Runtime : " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")");
         log("SYSTEM", "  OS Platform  : " + System.getProperty("os.name") + " " + System.getProperty("os.version") + " (" + System.getProperty("os.arch") + ")");
         log("SYSTEM", "  Working Dir  : " + new File(".").getAbsolutePath());
@@ -615,7 +615,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     public DigiViewLMS() {
-        setTitle("DigiView - v1.1.0");
+        setTitle("DigiView - v1.1.1");
         loadAppIcon();
         loadData();
         initAudio();
@@ -927,6 +927,8 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(loginUsername);
         card.add(Box.createVerticalStrut(14));
         card.add(loginPassword);
+        JCheckBox showLoginPassword = createPasswordToggle(loginPassword, "Show password");
+        card.add(showLoginPassword);
         card.add(Box.createVerticalStrut(14));
 
         RoundedButton loginBtn = new RoundedButton("SIGN IN", true);
@@ -947,7 +949,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(Box.createVerticalGlue());
         card.add(Box.createVerticalStrut(14));
 
-        JLabel version = new JLabel("V1.1.0");
+        JLabel version = new JLabel("V1.1.1");
         version.setFont(new Font("SansSerif", Font.PLAIN, 12));
         version.setForeground(HINT);
         version.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1092,6 +1094,16 @@ private JPanel authCard(String heading, String subtitle) {
         protected void paintBorder(Graphics g) {
             paintInputOutline(g, this);
         }
+    }
+
+    private JCheckBox createPasswordToggle(JPasswordField passwordField, String label) {
+        JCheckBox toggle = new JCheckBox(label);
+        toggle.setOpaque(false);
+        toggle.setForeground(MUTED);
+        toggle.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        toggle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        toggle.addActionListener(e -> passwordField.setEchoChar(toggle.isSelected() ? (char) 0 : '\u2022'));
+        return toggle;
     }
     
 
@@ -1367,8 +1379,11 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(gender);
         card.add(Box.createVerticalStrut(14));
         card.add(password);
+        JCheckBox showRegisterPassword = createPasswordToggle(password, "Show password");
+        card.add(showRegisterPassword);
         card.add(Box.createVerticalStrut(14));
         card.add(confirm);
+        JCheckBox showConfirmPassword = createPasswordToggle(confirm, "Show confirmation");
         card.add(Box.createVerticalStrut(24));
 
         RoundedButton register = new RoundedButton("CREATE ACCOUNT", true);
@@ -1403,14 +1418,7 @@ private JPanel authCard(String heading, String subtitle) {
                     .toLowerCase(Locale.ROOT);
             if (baseUsername.isEmpty()) baseUsername = "student";
 
-            String un = baseUsername;
-            int suffix = 1;
-            while (users.containsKey(un.toLowerCase(Locale.ROOT))) {
-                un = baseUsername + suffix;
-                suffix++;
-            }
-
-            final String regUn = un;
+            final String regUn = baseUsername;
             final String regPw = pw;
             final String regName = name;
             final String regG = g;
@@ -1459,7 +1467,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(back);
 
         card.add(Box.createVerticalStrut(14));
-        JLabel regVersion = new JLabel("V1.1.0");
+        JLabel regVersion = new JLabel("V1.1.1");
         regVersion.setFont(new Font("SansSerif", Font.PLAIN, 12));
         regVersion.setForeground(HINT);
         regVersion.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1708,7 +1716,7 @@ private JPanel authCard(String heading, String subtitle) {
         sidebar.add(logout);
         sidebar.add(Box.createVerticalStrut(10));
 
-        JLabel verLabel = new JLabel("DigiView v1.1.0");
+        JLabel verLabel = new JLabel("DigiView v1.1.1");
         verLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
         verLabel.setForeground(new Color(100, 116, 139));
         verLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

@@ -48,6 +48,8 @@ Digi_View_System/
 ├── 📜 README.md                  # Beginner-friendly guide & developer instructions
 ├── 📜 PROJECT_STRUCTURE.md       # Complete repository architecture and documentation
 ├── 📜 RELEASE_NOTES.md           # Comprehensive release notes and system enhancements
+├── 📜 CHANGELOG.md               # Itemized version-to-version change history
+├── 📜 RELEASE_LOG.md             # Release summaries, impact, and verification notes
 ├── 📜 build.xml                  # Apache Ant build script for NetBeans IDE
 ├── 📜 manifest.mf                # JAR Manifest defining main entry point System.DigiView
 ├── ⚙️ render.yaml               # ☁️ Render Cloud Blueprint specification (Infrastructure as Code)
@@ -190,6 +192,8 @@ Digi_View_System/
 | [`README.md`](README.md) | Beginner-friendly project overview, architecture diagram, and step-by-step developer guide. |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Comprehensive architecture documentation with visual diagrams and file breakdowns. |
 | [`RELEASE_NOTES.md`](RELEASE_NOTES.md) | Full release notes, version history, JVM compatibility guide, and changelogs. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Concise, versioned list of added, changed, and documented project behavior. |
+| [`RELEASE_LOG.md`](RELEASE_LOG.md) | Release-focused summary of highlights, operational impact, and verification results. |
 | [`render.yaml`](render.yaml) | Infrastructure as Code (IaC) blueprint for one-click deployment to Render. Configures Docker runtime, health check path, and environment variables. |
 | [`build.xml`](build.xml) | Standard Apache Ant build script used by Apache NetBeans for building, cleaning, and running the project. |
 | [`manifest.mf`](manifest.mf) | Manifest configuration designating `System.DigiView` as the Main-Class. |

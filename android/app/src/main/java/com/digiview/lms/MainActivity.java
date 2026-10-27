@@ -12,6 +12,8 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
+import android.text.method.HideReturnsTransformationMethod;
+import android.text.method.PasswordTransformationMethod;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.digiview.lms.api.ApiClient;
@@ -31,6 +33,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1134,6 +1138,7 @@ public class MainActivity extends AppCompatActivity {
 
         etLoginUsername = findViewById(R.id.etLoginUsername);
         etLoginPassword = findViewById(R.id.etLoginPassword);
+        bindPasswordToggle(R.id.etLoginPassword, R.id.cbShowLoginPassword);
         btnLoginServerPill = findViewById(R.id.btnLoginServerPill);
         tvLoginServerText = findViewById(R.id.tvLoginServerText);
         btnDoLogin = findViewById(R.id.btnDoLogin);
@@ -1145,6 +1150,8 @@ public class MainActivity extends AppCompatActivity {
         spRegGender = findViewById(R.id.spRegGender);
         etRegPassword = findViewById(R.id.etRegPassword);
         etRegConfirmPassword = findViewById(R.id.etRegConfirmPassword);
+        bindPasswordToggle(R.id.etRegPassword, R.id.cbShowRegPassword);
+        bindPasswordToggle(R.id.etRegConfirmPassword, R.id.cbShowRegConfirmPassword);
         btnDoRegister = findViewById(R.id.btnDoRegister);
         btnGoToLogin = findViewById(R.id.btnGoToLogin);
 
@@ -1176,7 +1183,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (btnLoginServerPill != null) {
-            btnLoginServerPill.setVisibility(View.GONE);
+            btnLoginServerPill.setVisibility(View.VISIBLE);
+            updateServerPillText();
+            btnLoginServerPill.setOnClickListener(v -> showServerSettingsDialog());
         }
 
         if (btnDoLogin != null) {
@@ -1204,10 +1213,92 @@ public class MainActivity extends AppCompatActivity {
                 Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
                 authLoginCard.startAnimation(fadeIn);
             }
+
             if (authRegisterCard != null) {
                 authRegisterCard.setVisibility(View.GONE);
             }
         }
+    }
+
+    private void updateServerPillText() {
+        if (tvLoginServerText != null) {
+            tvLoginServerText.setText("Server: " + ApiClient.getBaseUrl() + " (Tap to change)");
+        }
+    }
+
+    private void showServerSettingsDialog() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        content.setPadding(padding, 0, padding, 0);
+
+        EditText urlInput = new EditText(this);
+        urlInput.setSingleLine(true);
+        urlInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        urlInput.setHint("http://192.168.1.10:8085/");
+        urlInput.setText(ApiClient.getBaseUrl());
+        content.addView(urlInput);
+
+        TextView help = new TextView(this);
+        help.setText("Use http://10.0.2.2:8085/ for an emulator, or the LAN URL printed by digiview server for a physical phone.");
+        help.setTextColor(getResources().getColor(R.color.muted, getTheme()));
+        help.setTextSize(12);
+        content.addView(help);
+
+        Button testButton = new Button(this);
+        testButton.setText("Test Server");
+        content.addView(testButton);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("DigiView Server")
+                .setView(content)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Save", null)
+                .create();
+
+        testButton.setOnClickListener(v -> testServerUrl(urlInput.getText().toString().trim()));
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String url = urlInput.getText().toString().trim();
+            if (url.isEmpty()) {
+                urlInput.setError("Enter a server URL");
+                return;
+            }
+            ApiClient.setBaseUrl(url);
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putString(KEY_SERVER_URL, ApiClient.getBaseUrl())
+                    .apply();
+            updateServerPillText();
+            dialog.dismiss();
+        }));
+        dialog.show();
+    }
+
+    private void testServerUrl(String rawUrl) {
+        String target = rawUrl;
+        if (!target.endsWith("/")) target += "/";
+        final String healthUrl = target + "health";
+        Toast.makeText(this, "Testing " + healthUrl, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(healthUrl).openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                int status = connection.getResponseCode();
+                final int responseCode = status;
+                runOnUiThread(() -> Toast.makeText(this,
+                        responseCode >= 200 && responseCode < 400 ? "Server is online (HTTP " + responseCode + ")" : "Server returned HTTP " + responseCode,
+                        Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                final String error = e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Could not reach server: " + error,
+                        Toast.LENGTH_LONG).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
     }
 
     private void hideAuthScreen() {
@@ -1318,6 +1409,19 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    private void bindPasswordToggle(int passwordId, int toggleId) {
+        EditText password = findViewById(passwordId);
+        CheckBox toggle = findViewById(toggleId);
+        if (password == null || toggle == null) return;
+        toggle.setOnCheckedChangeListener((button, checked) -> {
+            int selection = password.getSelectionStart();
+            password.setTransformationMethod(checked
+                    ? HideReturnsTransformationMethod.getInstance()
+                    : PasswordTransformationMethod.getInstance());
+            password.setSelection(Math.max(0, selection));
+        });
+    }
+
     private void performRegister() {
         String name = etRegFullName != null ? etRegFullName.getText().toString().trim() : "";
         String gr = etRegGrade != null ? etRegGrade.getText().toString().trim() : "";
@@ -1347,11 +1451,10 @@ public class MainActivity extends AppCompatActivity {
             btnDoRegister.setText("CREATING ACCOUNT...");
         }
 
-        attemptRegisterOnServer(baseUsername, 0, name, gender, fullSec, pw);
+        attemptRegisterOnServer(baseUsername, name, gender, fullSec, pw);
     }
 
-    private void attemptRegisterOnServer(String baseUsername, int suffix, String name, String gender, String fullSec, String pw) {
-        String un = (suffix == 0) ? baseUsername : (baseUsername + suffix);
+    private void attemptRegisterOnServer(String un, String name, String gender, String fullSec, String pw) {
         RegisterRequest req = new RegisterRequest(name, 16, gender, "General", fullSec, un, pw);
         ApiClient.getApi().register(req).enqueue(new Callback<ApiResponse<User>>() {
             @Override
@@ -1383,17 +1486,24 @@ public class MainActivity extends AppCompatActivity {
                                 switchPage(0);
                             }
                     );
-                } else if (response.code() == 400 && suffix < 25) {
-                    // Username already taken on server, auto-increment suffix and re-try
-                    attemptRegisterOnServer(baseUsername, suffix + 1, name, gender, fullSec, pw);
                 } else {
                     if (btnDoRegister != null) {
                         btnDoRegister.setEnabled(true);
                         btnDoRegister.setText("CREATE ACCOUNT");
                     }
                     String err = "Registration failed.";
-                    if (response.body() != null && response.body().message != null) {
+                    if (response.body() != null && response.body().message != null && !response.body().message.isEmpty()) {
                         err = response.body().message;
+                    } else if (response.errorBody() != null) {
+                        try {
+                            String errorJson = response.errorBody().string();
+                            int messageStart = errorJson.indexOf("\"message\":\"");
+                            if (messageStart >= 0) {
+                                int valueStart = messageStart + 11;
+                                int valueEnd = errorJson.indexOf('"', valueStart);
+                                if (valueEnd > valueStart) err = errorJson.substring(valueStart, valueEnd);
+                            }
+                        } catch (Exception ignored) {}
                     }
                     showThemedAlertDialog("⚠️", "Registration Failed", err, "TRY AGAIN", null);
                 }

@@ -9,6 +9,22 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
 
 ---
 
+## 🆕 Latest Changes (v1.1.1)
+
+The latest maintenance update improves local development and release
+packaging documentation:
+
+- Combined backend startup under the single `digiview server` command.
+- The server now starts on `0.0.0.0:8085`, supporting both localhost and LAN
+  clients.
+- Added LAN URL output and desktop LAN server selection.
+- Documented every `dist\` package and JAR, including missing-artifact
+  behavior.
+- Added [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and
+  the v1.1.1 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
+---
+
 ## ⚡ Quick Start: Choose What You Want to Do
 
 ```
@@ -127,6 +143,36 @@ desktop app's **LAN (:8085)** server preset or in the Android app's **SERVER
 BASE URL** field. Android emulators should use `http://10.0.2.2:8085/`.
 If Windows Firewall blocks the connection, run `digiview firewall` as
 Administrator and allow TCP port 8085.
+
+#### Physical Android phone local-server setup
+
+1. Rebuild and install the Android APK after local-server changes:
+   ```cmd
+   digiview apk
+   digiview install
+   ```
+2. Start the backend with `digiview server`.
+3. On the phone's DigiView login screen, tap the **Server** bar. It is now
+   visible and lets you enter, test, and save a server URL.
+4. Enter the laptop's IPv4 address, not `localhost`:
+   ```text
+   http://192.168.1.11:8085/
+   ```
+   Replace `192.168.1.11` with the address printed by `digiview server`.
+5. Tap **Test Server**, confirm `Server is online (HTTP 200)`, then tap
+   **Save**.
+
+If the laptop is sharing its internet connection through Windows Mobile
+Hotspot, use the laptop's **Mobile Hotspot adapter address** (commonly
+`192.168.137.1`) instead of its normal Wi-Fi address. The phone must be
+connected to that hotspot, and Windows Firewall must allow inbound TCP port
+8085. A phone and laptop being connected to the same Wi-Fi name is not
+enough if the router has client isolation enabled.
+
+The Android login and registration screens also provide show/hide password
+controls. Registration rejects an existing username instead of silently
+creating a suffixed username; use a different username when the server
+reports that the account is already taken.
 
 ---
 

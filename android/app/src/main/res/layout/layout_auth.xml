@@ -115,12 +115,21 @@
                 android:layout_marginTop="14dp"
                 android:inputType="textPassword" />
 
-            <!-- Cloud Server Connection Quick Bar (Hidden for production) -->
+            <CheckBox
+                android:id="@+id/cbShowLoginPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show password"
+                android:textColor="@color/auth_hint"
+                android:textSize="12sp"
+                android:buttonTint="@color/cyan"
+                android:layout_marginTop="2dp" />
+
+            <!-- Server Connection Quick Bar -->
             <LinearLayout
                 android:id="@+id/btnLoginServerPill"
                 android:layout_width="match_parent"
                 android:layout_height="36dp"
-                android:visibility="gone"
                 android:background="@drawable/bg_pill"
                 android:gravity="center"
                 android:orientation="horizontal"
@@ -132,7 +141,7 @@
                     android:id="@+id/tvLoginServerText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="☁️ Render Cloud (Connected)"
+                    android:text="Server: loading..."
                     android:textColor="@color/cyan"
                     android:textSize="11.5sp" />
             </LinearLayout>
@@ -172,7 +181,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="V1.1.0"
+                android:text="V1.1.1"
                 android:textColor="@color/auth_hint"
                 android:textSize="11sp"
                 android:layout_gravity="center_horizontal"
@@ -324,6 +333,16 @@
                 android:layout_marginTop="12dp"
                 android:inputType="textPassword" />
 
+            <CheckBox
+                android:id="@+id/cbShowRegPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show password"
+                android:textColor="@color/auth_hint"
+                android:textSize="12sp"
+                android:buttonTint="@color/cyan"
+                android:layout_marginTop="2dp" />
+
             <!-- Confirm Password -->
             <EditText
                 android:id="@+id/etRegConfirmPassword"
@@ -339,6 +358,16 @@
                 android:singleLine="true"
                 android:layout_marginTop="12dp"
                 android:inputType="textPassword" />
+
+            <CheckBox
+                android:id="@+id/cbShowRegConfirmPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show confirmation"
+                android:textColor="@color/auth_hint"
+                android:textSize="12sp"
+                android:buttonTint="@color/cyan"
+                android:layout_marginTop="2dp" />
 
             <!-- Create Account Button -->
             <com.google.android.material.button.MaterialButton
@@ -374,7 +403,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="V1.1.0"
+                android:text="V1.1.1"
                 android:textColor="@color/auth_hint"
                 android:textSize="11sp"
                 android:layout_gravity="center_horizontal"
