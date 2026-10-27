@@ -17,6 +17,16 @@ if exist ".env" (
     )
 )
 
+if not defined PORT set "PORT=8085"
+if not defined SERVER_ADDRESS set "SERVER_ADDRESS=0.0.0.0"
+echo [INFO] Local server address: %SERVER_ADDRESS%:%PORT%
+echo [INFO] Localhost URL: http://localhost:%PORT%
+for /f "tokens=2 delims=:" %%I in ('ipconfig ^| findstr /R /C:"IPv4 Address" /C:"IPv4 Address."') do (
+    for /f "tokens=* delims= " %%J in ("%%I") do echo [INFO] LAN URL: http://%%J:%PORT%
+)
+echo [INFO] If LAN clients cannot connect, run digiview firewall as Administrator.
+echo.
+
 set "GRADLE_BIN="
 where gradle >nul 2>&1
 if %ERRORLEVEL% equ 0 set "GRADLE_BIN=gradle"
