@@ -547,6 +547,27 @@ public class ApiClient {
         }
     }
 
+    public static String getUserProfileJson(String username) {
+        try {
+            HttpURLConnection conn = openConnection(
+                redirectRootUrl("/api/users/" + URLEncoder.encode(username, "UTF-8")),
+                "GET"
+            );
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            int code = conn.getResponseCode();
+            InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+            String responseStr = readStream(is);
+            log("API", "GET /api/users/" + username + " -> HTTP " + code);
+            if (code >= 200 && code < 300) {
+                return responseStr;
+            }
+        } catch (Exception e) {
+            log("API", "GET /api/users/" + username + " failed: " + e.getMessage());
+        }
+        return null;
+    }
+
     private static String readStream(InputStream is) {
         if (is == null) return "";
         try {

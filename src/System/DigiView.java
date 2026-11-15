@@ -870,12 +870,100 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             }
             currentUser = cached;
             showApp();
+            syncUserFromServer(cached.username);
             return true;
         } catch (Exception ex) {
             DigiView.log("WARN", "Failed to restore login session: " + ex.getMessage());
             clearLoginSession();
             return false;
         }
+    }
+
+    private void syncUserFromServer(String username) {
+        if (username == null || username.trim().isEmpty()) return;
+        new Thread(() -> {
+            String json = ApiClient.getUserProfileJson(username.trim());
+            if (json == null || json.isEmpty()) return;
+
+            // Expect ApiResponse wrapper with "data":{...}
+            int dataIdx = json.indexOf("\"data\"");
+            String payload = dataIdx >= 0 ? json.substring(dataIdx) : json;
+
+            String fullName = ApiClient.parseJsonString(payload, "fullName");
+            String gradeSection = ApiClient.parseJsonString(payload, "gradeSection");
+            String gender = ApiClient.parseJsonString(payload, "gender");
+            int serverXp = ApiClient.parseJsonInt(payload, "xp", -1);
+
+            java.util.List<QuizRecord> serverHistory = new java.util.ArrayList<>();
+            int histIdx = payload.indexOf("\"history\"");
+            if (histIdx >= 0) {
+                int arrStart = payload.indexOf('[', histIdx);
+                int arrEnd = payload.indexOf(']', arrStart);
+                if (arrStart >= 0 && arrEnd > arrStart) {
+                    String arr = payload.substring(arrStart + 1, arrEnd);
+                    int pos = 0;
+                    while (pos < arr.length()) {
+                        int objStart = arr.indexOf('{', pos);
+                        if (objStart < 0) break;
+                        int depth = 0;
+                        int objEnd = -1;
+                        for (int i = objStart; i < arr.length(); i++) {
+                            char c = arr.charAt(i);
+                            if (c == '{') depth++;
+                            else if (c == '}') {
+                                depth--;
+                                if (depth == 0) { objEnd = i; break; }
+                            }
+                        }
+                        if (objEnd < 0) break;
+                        String obj = arr.substring(objStart, objEnd + 1);
+                        String u = ApiClient.parseJsonString(obj, "username");
+                        String quiz = ApiClient.parseJsonString(obj, "quiz");
+                        int score = ApiClient.parseJsonInt(obj, "score", 0);
+                        int total = ApiClient.parseJsonInt(obj, "total", 0);
+                        int percent = ApiClient.parseJsonInt(obj, "percent", 0);
+                        String date = ApiClient.parseJsonString(obj, "date");
+                        if (u == null || u.isEmpty() || u.equalsIgnoreCase(username)) {
+                            serverHistory.add(new QuizRecord(quiz, score, total, percent, date));
+                        }
+                        pos = objEnd + 1;
+                    }
+                }
+            }
+
+            SwingUtilities.invokeLater(() -> {
+                if (currentUser == null || !currentUser.username.equalsIgnoreCase(username)) return;
+                if (serverXp > currentUser.xp) currentUser.xp = serverXp;
+                if (fullName != null && !fullName.isEmpty()) currentUser.fullName = fullName;
+                if (gradeSection != null && !gradeSection.isEmpty()) currentUser.gradeSection = gradeSection;
+                if (gender != null && !gender.isEmpty()) currentUser.gender = gender;
+
+                for (QuizRecord qr : serverHistory) {
+                    boolean exists = false;
+                    for (QuizRecord local : currentUser.history) {
+                        String lq = local.quiz == null ? "" : local.quiz;
+                        String rq = qr.quiz == null ? "" : qr.quiz;
+                        String ld = local.date == null ? "" : local.date;
+                        String rd = qr.date == null ? "" : qr.date;
+                        if (lq.equals(rq) && ld.equals(rd) && local.score == qr.score && local.total == qr.total && local.percent == qr.percent) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        currentUser.history.add(qr);
+                    }
+                }
+
+                saveData();
+                refreshHeaderStats();
+                if ("History".equals(currentPage)) renderHistory();
+                if ("Dashboard".equals(currentPage)) renderDashboard();
+                if ("Profile".equals(currentPage)) renderProfile();
+                if ("Quiz".equals(currentPage)) renderQuizSelection();
+                if ("Achievements".equals(currentPage)) renderAchievements();
+            });
+        }).start();
     }
     
      private void showAuth() {
@@ -1491,6 +1579,7 @@ private JPanel authCard(String heading, String subtitle) {
                         saveData();
                         saveLoginSession(finalUser);
                         showApp();
+                        syncUserFromServer(finalUser);
                         message("Account created successfully on DigiView Server!\n\n"
                                 + "Your username is: " + finalUser
                                 + "\nPlease remember this username for login.",
@@ -1585,12 +1674,14 @@ private JPanel authCard(String heading, String subtitle) {
                     saveData();
                     saveLoginSession(u.username);
                     showApp();
+                    syncUserFromServer(u.username);
                 } else {
                     User cached = users.get(username.toLowerCase(Locale.ROOT));
                     if (cached != null && cached.password.equals(password)) {
                         currentUser = cached;
                         saveLoginSession(cached.username);
                         showApp();
+                        syncUserFromServer(cached.username);
                         message("Signed in (Offline Mode).\nCloud server was unreachable (" + (res.message != null ? res.message.split("\n")[0] : "Network offline") + "). Working with local student data.", JOptionPane.INFORMATION_MESSAGE);
                         return;
                     }
