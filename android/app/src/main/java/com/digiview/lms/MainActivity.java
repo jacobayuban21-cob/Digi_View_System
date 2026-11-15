@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_GENDER = "gender";
     private static final String KEY_XP = "xp";
     private static final String KEY_HISTORY = "history_json";
+    private static final String KEY_HISTORY_MAP = "history_map_json";
     private static final String KEY_USERS_JSON = "users_map_json";
     private static final String KEY_SESSION_USER = "session_username";
     private static final String KEY_SESSION_EXPIRY = "session_expiry";
@@ -285,14 +286,50 @@ public class MainActivity extends AppCompatActivity {
             ));
         }
 
+        loadHistoryForCurrentUser(sp);
+    }
+
+    private void loadHistoryForCurrentUser(SharedPreferences sp) {
         historyRecords.clear();
-        String jsonHistory = sp.getString(KEY_HISTORY, "[]");
+        if (sp == null) sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String userKey = currentUsername == null ? "" : currentUsername.trim().toLowerCase(Locale.ROOT);
+        if (userKey.isEmpty()) return;
+
         try {
-            JSONArray arr = new JSONArray(jsonHistory);
+            String mapJson = sp.getString(KEY_HISTORY_MAP, "");
+            if (mapJson == null || mapJson.isEmpty()) {
+                // Backward compatibility: migrate old global history list
+                String legacy = sp.getString(KEY_HISTORY, "[]");
+                JSONArray legacyArr = new JSONArray(legacy);
+                JSONObject migratedMap = new JSONObject();
+                for (int i = 0; i < legacyArr.length(); i++) {
+                    JSONObject obj = legacyArr.optJSONObject(i);
+                    if (obj == null) continue;
+                    String u = obj.optString("username", userKey).trim().toLowerCase(Locale.ROOT);
+                    if (u.isEmpty()) u = userKey;
+                    JSONArray bucket = migratedMap.optJSONArray(u);
+                    if (bucket == null) {
+                        bucket = new JSONArray();
+                        migratedMap.put(u, bucket);
+                    }
+                    bucket.put(obj);
+                }
+                mapJson = migratedMap.toString();
+                sp.edit().putString(KEY_HISTORY_MAP, mapJson).remove(KEY_HISTORY).apply();
+            }
+
+            JSONObject map = new JSONObject(mapJson);
+            JSONArray arr = map.optJSONArray(userKey);
+            if (arr == null) return;
             for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
+                JSONObject obj = arr.optJSONObject(i);
+                if (obj == null) continue;
+                String recUser = obj.optString("username", currentUsername);
+                if (recUser != null && !recUser.trim().isEmpty() && !recUser.equalsIgnoreCase(currentUsername)) {
+                    continue;
+                }
                 QuizRecord r = new QuizRecord(
-                        obj.optString("username", currentUsername),
+                        currentUsername,
                         obj.optString("quiz", "Quiz"),
                         obj.optInt("score", 0),
                         obj.optInt("total", 5),
@@ -302,6 +339,13 @@ public class MainActivity extends AppCompatActivity {
                 historyRecords.add(r);
             }
         } catch (Exception ignored) {}
+    }
+
+    private void loadHistoryForUser(String username) {
+        if (username != null && !username.trim().isEmpty()) {
+            currentUsername = username;
+        }
+        loadHistoryForCurrentUser(getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE));
     }
 
     private void saveLoginSession(String username) {
@@ -337,6 +381,7 @@ public class MainActivity extends AppCompatActivity {
         currentGender = cached.gender;
         currentXp = cached.xp;
         isLoggedIn = true;
+        loadHistoryForUser(currentUsername);
         updateTopBar();
         if (authScreenContainer != null) {
             authScreenContainer.setVisibility(View.GONE);
@@ -377,20 +422,33 @@ public class MainActivity extends AppCompatActivity {
         }
         ed.putString(KEY_USERS_JSON, usersObj.toString());
 
-        JSONArray arr = new JSONArray();
-        for (QuizRecord r : historyRecords) {
-            try {
-                JSONObject obj = new JSONObject();
-                obj.put("username", r.getUsername());
-                obj.put("quiz", r.getQuiz());
-                obj.put("score", r.getScore());
-                obj.put("total", r.getTotal());
-                obj.put("percent", r.getPercent());
-                obj.put("date", r.getDate());
-                arr.put(obj);
-            } catch (Exception ignored) {}
+        try {
+            JSONObject map = new JSONObject(sp.getString(KEY_HISTORY_MAP, "{}"));
+            String userKey = currentUsername == null ? "" : currentUsername.trim().toLowerCase(Locale.ROOT);
+            if (!userKey.isEmpty()) {
+                JSONArray arr = new JSONArray();
+                for (QuizRecord r : historyRecords) {
+                    try {
+                        if (r.getUsername() != null && !r.getUsername().equalsIgnoreCase(currentUsername)) {
+                            continue;
+                        }
+                        JSONObject obj = new JSONObject();
+                        obj.put("username", currentUsername);
+                        obj.put("quiz", r.getQuiz());
+                        obj.put("score", r.getScore());
+                        obj.put("total", r.getTotal());
+                        obj.put("percent", r.getPercent());
+                        obj.put("date", r.getDate());
+                        arr.put(obj);
+                    } catch (Exception ignored) {}
+                }
+                map.put(userKey, arr);
+            }
+            ed.putString(KEY_HISTORY_MAP, map.toString());
+            ed.remove(KEY_HISTORY);
+        } catch (Exception e) {
+            ed.remove(KEY_HISTORY);
         }
-        ed.putString(KEY_HISTORY, arr.toString());
         ed.apply();
 
         updateTopBar();
@@ -1098,6 +1156,9 @@ public class MainActivity extends AppCompatActivity {
 
                         if (p.history != null && !p.history.isEmpty()) {
                             for (QuizRecord qr : p.history) {
+                                if (qr.getUsername() != null && !qr.getUsername().equalsIgnoreCase(currentUsername)) {
+                                    continue;
+                                }
                                 boolean exists = false;
                                 for (QuizRecord local : historyRecords) {
                                     if (local.getQuiz().equals(qr.getQuiz()) && local.getDate().equals(qr.getDate())) {
@@ -1476,6 +1537,7 @@ public class MainActivity extends AppCompatActivity {
 
                             UserEntry newEntry = new UserEntry(currentUsername, password, currentFullName, currentSection, currentGender, currentXp);
                             usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newEntry);
+                            loadHistoryForUser(currentUsername);
                             saveUserData();
                             saveLoginSession(currentUsername);
 
@@ -1519,6 +1581,7 @@ public class MainActivity extends AppCompatActivity {
                             currentGender = cached.gender;
                             currentXp = cached.xp;
                             isLoggedIn = true;
+                            loadHistoryForUser(currentUsername);
                             saveUserData();
                             saveLoginSession(currentUsername);
 
@@ -1604,6 +1667,7 @@ public class MainActivity extends AppCompatActivity {
 
                     UserEntry newUser = new UserEntry(currentUsername, pw, currentFullName, currentSection, currentGender, currentXp);
                     usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newUser);
+                    loadHistoryForUser(currentUsername);
                     saveUserData();
                     saveLoginSession(currentUsername);
 
@@ -1667,6 +1731,8 @@ public class MainActivity extends AppCompatActivity {
                 () -> {
                     isLoggedIn = false;
                     clearLoginSession();
+                    historyRecords.clear();
+                    currentXp = 0;
                     showAuthScreen();
                 }
         );
