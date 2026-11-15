@@ -3,6 +3,27 @@
 All notable project changes are recorded here. Dates use the project release
 calendar in `YYYY-MM-DD` format.
 
+## [1.1.2] - 2026-11-15
+
+### Added
+
+- 1-day login session persistence on desktop and Android so users are not asked
+  to sign in again until the session expires.
+- Hard quiz typed-answer mode with quick-access symbol buttons for missing-code
+  questions (especially for mobile input convenience).
+- Heart-depletion choice dialog allowing users to **Try Again** at the same
+  difficulty or **Exit to Home**.
+
+### Changed
+
+- Bumped Desktop, Android, and Backend application versions to `1.1.2`.
+- Incremented Android `versionCode` from `3` to `4`.
+- Brightened background/theme colors for both desktop and mobile interfaces.
+- Locked quiz navigation during an active quiz; users must finish or exit the
+  quiz before switching screens.
+- Updated heart-depletion handling to use themed dialogs and reset quiz state
+  correctly when returning home on Android.
+
 ## [1.1.1] - 2026-10-27
 
 ### Added

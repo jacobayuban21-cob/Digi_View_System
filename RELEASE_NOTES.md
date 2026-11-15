@@ -1,5 +1,29 @@
 # 🚀 DigiView LMS — Release Notes
 
+## v1.1.2 — Quiz UX, Typed Hard Mode, and Session Persistence
+
+**Release Date:** November 15, 2026  
+**Version:** `1.1.2` (Minor UI and Quiz Experience Update)
+
+### Highlights
+
+- **Brighter UI:** Updated desktop and mobile background/theme colors for a brighter, clearer interface.
+- **Quiz Lock:** Active quizzes are now locked to the quiz screen; users must finish or exit the quiz before navigating elsewhere.
+- **Heart Depletion Popup:** Running out of hearts now shows a themed dialog with:
+  - **Try Again** to restart the quiz at the same difficulty
+  - **Exit to Home** to leave the attempt and return home
+- **Hard Quiz Typed Mode:** Hard/Advanced quiz questions now require typing the missing code instead of selecting multiple-choice options, with quick-access symbol buttons for easier mobile input.
+- **1-Day Login Session:** Desktop and Android now persist login sessions for approximately 24 hours, so users are not asked to sign in again until the session expires or they log out.
+- **Android Quiz Hub Fix:** Reset quiz hub state correctly after choosing **Exit to Home** from the heart-depletion dialog so the Quiz tab loads normally.
+
+### Version Alignment
+
+- Desktop: `v1.1.2`
+- Android: version name `1.1.2`, version code `4`
+- Backend: `1.1.2`
+
+---
+
 ## v1.1.1 — Local Server and Distribution Documentation
 
 **Release Date:** October 27, 2026

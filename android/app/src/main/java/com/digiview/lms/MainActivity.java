@@ -59,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_XP = "xp";
     private static final String KEY_HISTORY = "history_json";
     private static final String KEY_USERS_JSON = "users_map_json";
+    private static final String KEY_SESSION_USER = "session_username";
+    private static final String KEY_SESSION_EXPIRY = "session_expiry";
+    private static final long SESSION_DURATION_MS = 24L * 60L * 60L * 1000L;
 
     // User Entry for Multi-User Local Persistence
     private static class UserEntry {
@@ -143,6 +146,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView[] activeOptionTexts = new TextView[4];
     private TextView[] activeOptionBadges = new TextView[4];
     private MaterialButton btnActiveSubmit, btnActiveNext, btnActiveExitQuiz;
+    private View activeTypedAnswerContainer;
+    private android.widget.EditText etActiveTypedAnswer;
 
     // History Records Cache
     private final List<QuizRecord> historyRecords = new ArrayList<>();
@@ -163,8 +168,10 @@ public class MainActivity extends AppCompatActivity {
         // Start on Dashboard underneath
         switchPage(0);
 
-        // Greet user with Desktop-matching Login screen initially
-        showAuthScreen();
+        if (!restoreSessionIfValid()) {
+            // Greet user with Desktop-matching Login screen initially
+            showAuthScreen();
+        }
 
         // Start study background music automatically
         SoundManager.getInstance(this).startRelaxMusic(this);
@@ -297,6 +304,47 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception ignored) {}
     }
 
+    private void saveLoginSession(String username) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_SESSION_USER, username)
+                .putLong(KEY_SESSION_EXPIRY, System.currentTimeMillis() + SESSION_DURATION_MS)
+                .apply();
+    }
+
+    private void clearLoginSession() {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .remove(KEY_SESSION_USER)
+                .remove(KEY_SESSION_EXPIRY)
+                .apply();
+    }
+
+    private boolean restoreSessionIfValid() {
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String sessionUser = sp.getString(KEY_SESSION_USER, "");
+        long expiry = sp.getLong(KEY_SESSION_EXPIRY, 0L);
+        if (sessionUser == null || sessionUser.trim().isEmpty() || expiry <= System.currentTimeMillis()) {
+            clearLoginSession();
+            return false;
+        }
+        UserEntry cached = usersMap.get(sessionUser.toLowerCase(Locale.ROOT));
+        if (cached == null) {
+            clearLoginSession();
+            return false;
+        }
+        currentUsername = cached.username;
+        currentFullName = cached.fullName;
+        currentSection = cached.gradeSection;
+        currentGender = cached.gender;
+        currentXp = cached.xp;
+        isLoggedIn = true;
+        updateTopBar();
+        if (authScreenContainer != null) {
+            authScreenContainer.setVisibility(View.GONE);
+        }
+        syncUserFromServer(currentUsername);
+        return true;
+    }
+
     private void saveUserData() {
         SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor ed = sp.edit();
@@ -422,6 +470,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void switchPage(int index) {
+        if (quizActiveView != null && quizActiveView.getVisibility() == View.VISIBLE && index != 2) {
+            Toast.makeText(this, "Please finish or exit the quiz before leaving this screen.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         SoundManager.getInstance(this).playClick();
         activePageIndex = index;
 
@@ -627,6 +679,24 @@ public class MainActivity extends AppCompatActivity {
         btnActiveSubmit = hub.findViewById(R.id.btnActiveSubmit);
         btnActiveNext = hub.findViewById(R.id.btnActiveNext);
         btnActiveExitQuiz = hub.findViewById(R.id.btnActiveExitQuiz);
+        activeTypedAnswerContainer = hub.findViewById(R.id.activeTypedAnswerContainer);
+        etActiveTypedAnswer = hub.findViewById(R.id.etActiveTypedAnswer);
+
+        bindSymbolButton(hub, R.id.btnSymLt, "<");
+        bindSymbolButton(hub, R.id.btnSymGt, ">");
+        bindSymbolButton(hub, R.id.btnSymSlash, "/");
+        bindSymbolButton(hub, R.id.btnSymEq, "=");
+        bindSymbolButton(hub, R.id.btnSymQuote, "\"");
+        bindSymbolButton(hub, R.id.btnSymApos, "'");
+        bindSymbolButton(hub, R.id.btnSymLBrace, "{");
+        bindSymbolButton(hub, R.id.btnSymRBrace, "}");
+        bindSymbolButton(hub, R.id.btnSymLParen, "(");
+        bindSymbolButton(hub, R.id.btnSymRParen, ")");
+        bindSymbolButton(hub, R.id.btnSymSemi, ";");
+        bindSymbolButton(hub, R.id.btnSymColon, ":");
+        bindSymbolButton(hub, R.id.btnSymUnderscore, "_");
+        bindSymbolButton(hub, R.id.btnSymDash, "-");
+        bindSymbolButton(hub, R.id.btnSymBang, "!");
 
         for (int i = 0; i < 4; i++) {
             final int optIndex = i;
@@ -760,19 +830,34 @@ public class MainActivity extends AppCompatActivity {
 
         updateHeartsText();
 
+        boolean isTypedMode = activeDifficultyLevel == 3;
+        if (activeTypedAnswerContainer != null) {
+            activeTypedAnswerContainer.setVisibility(isTypedMode ? View.VISIBLE : View.GONE);
+        }
+        if (etActiveTypedAnswer != null) {
+            etActiveTypedAnswer.setText("");
+            etActiveTypedAnswer.setEnabled(true);
+            etActiveTypedAnswer.setBackgroundResource(R.drawable.bg_option_normal);
+        }
+
         for (int i = 0; i < 4; i++) {
-            activeOptionTexts[i].setText(q.options.get(i));
-            activeOptionTexts[i].setTextColor(getResources().getColor(R.color.text_white, getTheme()));
-            activeOptionTexts[i].setTypeface(null, android.graphics.Typeface.NORMAL);
-            activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
-            activeOptionLayouts[i].setEnabled(true);
-            if (activeOptionBadges[i] != null) {
-                activeOptionBadges[i].setBackgroundResource(R.drawable.bg_pill);
-                activeOptionBadges[i].setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+            if (isTypedMode) {
+                activeOptionLayouts[i].setVisibility(View.GONE);
+            } else {
+                activeOptionLayouts[i].setVisibility(View.VISIBLE);
+                activeOptionTexts[i].setText(q.options.get(i));
+                activeOptionTexts[i].setTextColor(getResources().getColor(R.color.text_white, getTheme()));
+                activeOptionTexts[i].setTypeface(null, android.graphics.Typeface.NORMAL);
+                activeOptionLayouts[i].setBackgroundResource(R.drawable.bg_option_normal);
+                activeOptionLayouts[i].setEnabled(true);
+                if (activeOptionBadges[i] != null) {
+                    activeOptionBadges[i].setBackgroundResource(R.drawable.bg_pill);
+                    activeOptionBadges[i].setTextColor(getResources().getColor(R.color.cyan, getTheme()));
+                }
             }
         }
 
-        tvActiveFeedback.setText("Choose the best answer.");
+        tvActiveFeedback.setText(isTypedMode ? "Type the missing code to complete the answer." : "Choose the best answer.");
         tvActiveFeedback.setTextColor(getResources().getColor(R.color.muted, getTheme()));
 
         btnActiveSubmit.setVisibility(View.VISIBLE);
@@ -788,7 +873,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void selectQuizOption(int index) {
-        if (isSubmitted) return;
+        if (isSubmitted || activeDifficultyLevel == 3) return;
         SoundManager.getInstance(this).playClick();
         selectedOptionIndex = index;
 
@@ -815,34 +900,69 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void bindSymbolButton(View root, int id, String symbol) {
+        View v = root.findViewById(id);
+        if (v != null) {
+            v.setOnClickListener(btn -> {
+                SoundManager.getInstance(this).playClick();
+                if (etActiveTypedAnswer == null || isSubmitted) return;
+                int start = Math.max(etActiveTypedAnswer.getSelectionStart(), 0);
+                int end = Math.max(etActiveTypedAnswer.getSelectionEnd(), 0);
+                etActiveTypedAnswer.getText().replace(Math.min(start, end), Math.max(start, end), symbol);
+                etActiveTypedAnswer.setSelection(Math.min(start, end) + symbol.length());
+                etActiveTypedAnswer.requestFocus();
+            });
+        }
+    }
+
     private void submitQuizAnswer() {
-        if (selectedOptionIndex == -1) {
-            Toast.makeText(this, "Please select an answer first.", Toast.LENGTH_SHORT).show();
-            return;
+        if (isSubmitted) return;
+        Question q = activeQuestions.get(activeQuestionIndex);
+        boolean isTypedMode = activeDifficultyLevel == 3;
+
+        boolean isCorrect;
+        if (isTypedMode) {
+            String typed = etActiveTypedAnswer != null ? etActiveTypedAnswer.getText().toString().trim() : "";
+            if (typed.isEmpty()) {
+                Toast.makeText(this, "Please type your answer first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String correctText = q.options.get(q.answer).trim();
+            isCorrect = typed.equalsIgnoreCase(correctText);
+            if (etActiveTypedAnswer != null) {
+                etActiveTypedAnswer.setEnabled(false);
+                etActiveTypedAnswer.setBackgroundResource(isCorrect ? R.drawable.bg_option_correct : R.drawable.bg_option_wrong);
+            }
+        } else {
+            if (selectedOptionIndex == -1) {
+                Toast.makeText(this, "Please select an answer first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            isCorrect = (selectedOptionIndex == q.answer);
+            if (isCorrect) {
+                activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_correct);
+                if (activeOptionBadges[selectedOptionIndex] != null) {
+                    activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_success);
+                    activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
+                }
+            } else {
+                activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_wrong);
+                if (activeOptionBadges[selectedOptionIndex] != null) {
+                    activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_danger);
+                    activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
+                }
+            }
         }
 
         isSubmitted = true;
         btnActiveSubmit.setEnabled(false);
 
-        Question q = activeQuestions.get(activeQuestionIndex);
-        boolean isCorrect = (selectedOptionIndex == q.answer);
-
         if (isCorrect) {
             activeScore++;
-            activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_correct);
-            if (activeOptionBadges[selectedOptionIndex] != null) {
-                activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_success);
-                activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
-            }
             tvActiveFeedback.setText("Correct answer! Great job! 🎉");
             tvActiveFeedback.setTextColor(getResources().getColor(R.color.green, getTheme()));
         } else {
             activeHearts--;
-            activeOptionLayouts[selectedOptionIndex].setBackgroundResource(R.drawable.bg_option_wrong);
-            if (activeOptionBadges[selectedOptionIndex] != null) {
-                activeOptionBadges[selectedOptionIndex].setBackgroundResource(R.drawable.bg_badge_danger);
-                activeOptionBadges[selectedOptionIndex].setTextColor(Color.WHITE);
-            }
             tvActiveFeedback.setText("Incorrect. One heart deducted.");
             tvActiveFeedback.setTextColor(getResources().getColor(R.color.red, getTheme()));
         }
@@ -850,15 +970,23 @@ public class MainActivity extends AppCompatActivity {
         updateHeartsText();
 
         if (activeHearts <= 0) {
-            showThemedAlertDialog(
+            showThemedConfirmDialog(
                     "💔",
                     "Out of Hearts",
-                    "You ran out of hearts! Review the lessons and try again.",
+                    "You ran out of hearts! This attempt will be marked as 'Needs Review'.\nWould you like to try again at the same difficulty?",
                     "TRY AGAIN",
+                    "EXIT TO HOME",
+                    () -> {
+                        recordQuizAttempt(activeDifficultyName + " Quiz (Failed)", activeScore, activeQuestions.size(), 0);
+                        startQuiz(activeDifficultyName, activeDifficultyLevel);
+                    },
                     () -> {
                         recordQuizAttempt(activeDifficultyName + " Quiz (Failed)", activeScore, activeQuestions.size(), 0);
                         quizActiveView.setVisibility(View.GONE);
+                        quizResultView.setVisibility(View.GONE);
                         quizDifficultyView.setVisibility(View.VISIBLE);
+                        refreshQuizTierLocks();
+                        switchPage(0);
                     }
             );
             return;
@@ -1349,6 +1477,7 @@ public class MainActivity extends AppCompatActivity {
                             UserEntry newEntry = new UserEntry(currentUsername, password, currentFullName, currentSection, currentGender, currentXp);
                             usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newEntry);
                             saveUserData();
+                            saveLoginSession(currentUsername);
 
                             // Automatically fetch latest profile & history from server
                             syncUserFromServer(currentUsername);
@@ -1391,6 +1520,7 @@ public class MainActivity extends AppCompatActivity {
                             currentXp = cached.xp;
                             isLoggedIn = true;
                             saveUserData();
+                            saveLoginSession(currentUsername);
 
                             hideAuthScreen();
                             switchPage(0);
@@ -1475,6 +1605,7 @@ public class MainActivity extends AppCompatActivity {
                     UserEntry newUser = new UserEntry(currentUsername, pw, currentFullName, currentSection, currentGender, currentXp);
                     usersMap.put(currentUsername.toLowerCase(Locale.ROOT), newUser);
                     saveUserData();
+                    saveLoginSession(currentUsername);
 
                     showThemedAlertDialog(
                             "🎉",
@@ -1535,6 +1666,7 @@ public class MainActivity extends AppCompatActivity {
                 "CANCEL",
                 () -> {
                     isLoggedIn = false;
+                    clearLoginSession();
                     showAuthScreen();
                 }
         );
@@ -1546,17 +1678,23 @@ public class MainActivity extends AppCompatActivity {
     public void showThemedConfirmDialog(String icon, String title, String message,
                                          String confirmText, String cancelText,
                                          Runnable onConfirm) {
-        showThemedDialogInternal(icon, title, message, confirmText, cancelText, onConfirm, true);
+        showThemedDialogInternal(icon, title, message, confirmText, cancelText, onConfirm, null, true);
+    }
+
+    public void showThemedConfirmDialog(String icon, String title, String message,
+                                         String confirmText, String cancelText,
+                                         Runnable onConfirm, Runnable onCancel) {
+        showThemedDialogInternal(icon, title, message, confirmText, cancelText, onConfirm, onCancel, false);
     }
 
     public void showThemedAlertDialog(String icon, String title, String message,
                                        String buttonText, Runnable onDismiss) {
-        showThemedDialogInternal(icon, title, message, buttonText, null, onDismiss, false);
+        showThemedDialogInternal(icon, title, message, buttonText, null, onDismiss, null, false);
     }
 
     private void showThemedDialogInternal(String icon, String title, String message,
                                           String confirmText, String cancelText,
-                                          Runnable onAction, boolean cancelable) {
+                                          Runnable onAction, Runnable onCancelAction, boolean cancelable) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm, null);
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
@@ -1593,6 +1731,9 @@ public class MainActivity extends AppCompatActivity {
             btnCancel.setOnClickListener(v -> {
                 SoundManager.getInstance(this).playClick();
                 dialog.dismiss();
+                if (onCancelAction != null) {
+                    onCancelAction.run();
+                }
             });
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) btnOk.getLayoutParams();
             if (lp != null) {

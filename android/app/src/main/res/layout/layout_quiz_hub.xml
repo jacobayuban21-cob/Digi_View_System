@@ -461,6 +461,77 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+            <!-- Typed Answer (Hard Quiz) -->
+            <LinearLayout
+                android:id="@+id/activeTypedAnswerContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Type the missing code:"
+                    android:textColor="@color/cyan"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etActiveTypedAnswer"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_option_normal"
+                    android:hint="Enter your answer"
+                    android:inputType="textNoSuggestions|textVisiblePassword"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:singleLine="true"
+                    android:textColor="@color/text_white"
+                    android:textColorHint="@color/muted"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quick symbols"
+                    android:textColor="@color/muted"
+                    android:textSize="12sp"
+                    android:layout_marginTop="10dp" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginTop="6dp">
+
+                    <LinearLayout
+                        android:id="@+id/activeSymbolRow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymLt" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="&lt;" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymGt" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="&gt;" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymSlash" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="/" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymEq" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="=" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymQuote" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="&quot;" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymApos" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="'" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymLBrace" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="{" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymRBrace" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="}" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymLParen" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="(" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymRParen" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text=")" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymSemi" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text=";" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymColon" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text=":" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymUnderscore" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="_" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymDash" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="-" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnSymBang" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:minWidth="0dp" android:insetTop="0dp" android:insetBottom="0dp" android:padding="0dp" android:text="!" android:textColor="@color/text_white" android:textSize="14sp" app:cornerRadius="10dp" app:strokeColor="@color/d_line" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+            </LinearLayout>
+
             <!-- Feedback Label -->
             <TextView
                 android:id="@+id/tvActiveFeedback"
