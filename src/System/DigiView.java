@@ -57,7 +57,7 @@ public class DigiView {
         });
 
         log("SYSTEM", "==========================================================");
-        log("SYSTEM", "  DigiView LMS Desktop v1.1.1 (Minor Update)");
+        log("SYSTEM", "  DigiView LMS Desktop v1.1.2 (Minor Update)");
         log("SYSTEM", "  Java Runtime : " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")");
         log("SYSTEM", "  OS Platform  : " + System.getProperty("os.name") + " " + System.getProperty("os.version") + " (" + System.getProperty("os.arch") + ")");
         log("SYSTEM", "  Working Dir  : " + new File(".").getAbsolutePath());
@@ -522,35 +522,37 @@ private void updateHeartsLabel(JLabel heartsLabel) {
         int h = getHeight();
 
         g2.setPaint(new GradientPaint(
-            0, 0, new Color(5, 15, 35),
-            w, h, new Color(18, 65, 130)
+            0, 0, new Color(22, 52, 92),
+            w, h, new Color(42, 95, 158)
         ));
         g2.fillRect(0, 0, w, h);
 
-        g2.setColor(new Color(37, 99, 235, 35));
+        g2.setColor(new Color(37, 99, 235, 45));
         g2.fillOval(w - 320, -100, 420, 420);
 
-        g2.setColor(new Color(56, 189, 248, 22));
+        g2.setColor(new Color(56, 189, 248, 30));
         g2.fillOval(-160, h - 250, 420, 420);
 
         g2.dispose();
     }
 }
-    private static final Color BG = new Color(16, 31, 53);
-    private static final Color PANEL = new Color(16, 31, 53);
-    private static final Color PANEL2 = new Color(20, 41, 67);
+    private static final Color BG = new Color(32, 52, 82);
+    private static final Color PANEL = new Color(32, 52, 82);
+    private static final Color PANEL2 = new Color(40, 64, 98);
     private static final Color BLUE = new Color(37, 99, 235);
     private static final Color CYAN = new Color(56, 189, 248);
     private static final Color TEXT = new Color(248, 250, 252);
-    private static final Color MUTED = new Color(148, 163, 184);
+    private static final Color MUTED = new Color(170, 184, 204);
     private static final Color GREEN = new Color(34, 197, 94);
     private static final Color RED = new Color(239, 68, 68);
     private static final File DATA_FILE = new File(System.getProperty("user.home"), "digiview-data.ser");
+    private static final File SESSION_FILE = new File(System.getProperty("user.home"), "digiview-session.properties");
+    private static final long SESSION_DURATION_MS = 24L * 60L * 60L * 1000L;
     
-    private static final Color D_SIDEBAR = new Color(6, 15, 30);
-    private static final Color D_TOP     = new Color(7, 17, 32);
-    private static final Color D_CARD    = new Color(14, 27, 48);
-    private static final Color D_LINE    = new Color(30, 48, 76);
+    private static final Color D_SIDEBAR = new Color(16, 28, 48);
+    private static final Color D_TOP     = new Color(18, 32, 54);
+    private static final Color D_CARD    = new Color(28, 46, 74);
+    private static final Color D_LINE    = new Color(52, 78, 112);
     
     private final Map<String, NavButton> navButtons = new LinkedHashMap<>();
     private JLabel topXp, topHearts, sideLevel;
@@ -615,7 +617,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     public DigiViewLMS() {
-        setTitle("DigiView - v1.1.1");
+        setTitle("DigiView - v1.1.2");
         loadAppIcon();
         loadData();
         initAudio();
@@ -643,7 +645,9 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             }
         });
 
-        showAuth();
+        if (!restoreLoginSession()) {
+            showAuth();
+        }
     }
 
     private void handleWindowResize() {
@@ -824,6 +828,55 @@ private void updateHeartsLabel(JLabel heartsLabel) {
             showThemedMessage("❌", "Save Error", "Unable to save local data: " + ex.getMessage());
         }
     }
+
+    private void saveLoginSession(String username) {
+        try {
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("username", username == null ? "" : username);
+            props.setProperty("expiresAt", String.valueOf(System.currentTimeMillis() + SESSION_DURATION_MS));
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(SESSION_FILE)) {
+                props.store(out, "DigiView session");
+            }
+        } catch (Exception ex) {
+            DigiView.log("WARN", "Failed to save login session: " + ex.getMessage());
+        }
+    }
+
+    private void clearLoginSession() {
+        try {
+            if (SESSION_FILE.exists() && !SESSION_FILE.delete()) {
+                DigiView.log("WARN", "Unable to delete session file: " + SESSION_FILE.getAbsolutePath());
+            }
+        } catch (Exception ex) {
+            DigiView.log("WARN", "Failed to clear login session: " + ex.getMessage());
+        }
+    }
+
+    private boolean restoreLoginSession() {
+        if (!SESSION_FILE.exists()) return false;
+        try (java.io.FileInputStream in = new java.io.FileInputStream(SESSION_FILE)) {
+            java.util.Properties props = new java.util.Properties();
+            props.load(in);
+            String username = props.getProperty("username", "").trim();
+            long expiresAt = Long.parseLong(props.getProperty("expiresAt", "0"));
+            if (username.isEmpty() || expiresAt <= System.currentTimeMillis()) {
+                clearLoginSession();
+                return false;
+            }
+            User cached = users.get(username.toLowerCase(Locale.ROOT));
+            if (cached == null) {
+                clearLoginSession();
+                return false;
+            }
+            currentUser = cached;
+            showApp();
+            return true;
+        } catch (Exception ex) {
+            DigiView.log("WARN", "Failed to restore login session: " + ex.getMessage());
+            clearLoginSession();
+            return false;
+        }
+    }
     
      private void showAuth() {
         getContentPane().removeAll();
@@ -949,7 +1002,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(Box.createVerticalGlue());
         card.add(Box.createVerticalStrut(14));
 
-        JLabel version = new JLabel("V1.1.1");
+        JLabel version = new JLabel("V1.1.2");
         version.setFont(new Font("SansSerif", Font.PLAIN, 12));
         version.setForeground(HINT);
         version.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1436,6 +1489,7 @@ private JPanel authCard(String heading, String subtitle) {
                         currentUser = new User(res.fullName != null ? res.fullName : regName, res.xp, res.gender != null ? res.gender : regG, "N/A", regSec, finalUser, regPw);
                         users.put(finalUser.toLowerCase(Locale.ROOT), currentUser);
                         saveData();
+                        saveLoginSession(finalUser);
                         showApp();
                         message("Account created successfully on DigiView Server!\n\n"
                                 + "Your username is: " + finalUser
@@ -1467,7 +1521,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(back);
 
         card.add(Box.createVerticalStrut(14));
-        JLabel regVersion = new JLabel("V1.1.1");
+        JLabel regVersion = new JLabel("V1.1.2");
         regVersion.setFont(new Font("SansSerif", Font.PLAIN, 12));
         regVersion.setForeground(HINT);
         regVersion.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1529,11 +1583,13 @@ private JPanel authCard(String heading, String subtitle) {
                     currentUser = u;
                     users.put(u.username.toLowerCase(Locale.ROOT), u);
                     saveData();
+                    saveLoginSession(u.username);
                     showApp();
                 } else {
                     User cached = users.get(username.toLowerCase(Locale.ROOT));
                     if (cached != null && cached.password.equals(password)) {
                         currentUser = cached;
+                        saveLoginSession(cached.username);
                         showApp();
                         message("Signed in (Offline Mode).\nCloud server was unreachable (" + (res.message != null ? res.message.split("\n")[0] : "Network offline") + "). Working with local student data.", JOptionPane.INFORMATION_MESSAGE);
                         return;
@@ -1710,13 +1766,14 @@ private JPanel authCard(String heading, String subtitle) {
             );
             if (ok) {
                 currentUser = null;
+                clearLoginSession();
                 showAuth();
             }
         });
         sidebar.add(logout);
         sidebar.add(Box.createVerticalStrut(10));
 
-        JLabel verLabel = new JLabel("DigiView v1.1.1");
+        JLabel verLabel = new JLabel("DigiView v1.1.2");
         verLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
         verLabel.setForeground(new Color(100, 116, 139));
         verLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1941,6 +1998,11 @@ private JPanel authCard(String heading, String subtitle) {
         if (currentUser == null) {
             DigiView.log("NAV", "showPage('" + page + "') invoked with null user -> redirecting to showAuth()");
             showAuth();
+            return;
+        }
+        if (isQuizActive && !page.equals(currentPage)) {
+            showThemedMessage("⚠️", "Quiz In Progress",
+                "You must finish the quiz or exit the quiz before leaving this screen.");
             return;
         }
         activeLesson = null;
@@ -2713,26 +2775,70 @@ private JPanel authCard(String heading, String subtitle) {
         p.add(card);
         p.add(Box.createVerticalStrut(20));
 
-        
-        List<Integer> order = new ArrayList<>(Arrays.asList(0, 1, 2, 3));
-        Collections.shuffle(order);
-
-        String[] letters = {"A", "B", "C", "D"};
+        boolean isTypedMode = (difficulty == 3);
         ButtonGroup group = new ButtonGroup();
         List<AnswerOption> options = new ArrayList<>();
+        final JTextField[] typedAnswerField = new JTextField[1];
 
-        for (int pos = 0; pos < order.size(); pos++) {
-            int oi = order.get(pos);
-            AnswerOption opt = new AnswerOption(letters[pos], q.options.get(oi), oi);
-            opt.addActionListener(e -> playClickSound());
-            group.add(opt);
-            options.add(opt);
-            p.add(fixHeight(opt, 58));
-            p.add(Box.createVerticalStrut(12));
+        if (isTypedMode) {
+            JLabel typeHint = label("Type the missing code:", 14, CYAN, true);
+            typeHint.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            RoundedTextField answerField = new RoundedTextField("Enter missing code");
+            answerField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
+            answerField.setPreferredSize(new Dimension(400, 54));
+            answerField.setAlignmentX(Component.LEFT_ALIGNMENT);
+            typedAnswerField[0] = answerField;
+
+            JPanel symbols = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+            symbols.setOpaque(false);
+            symbols.setAlignmentX(Component.LEFT_ALIGNMENT);
+            String[] syms = {"<", ">", "/", "=", "\"", "'", "{", "}", "(", ")", ";", ":", "_", "-", "!"};
+            for (String sym : syms) {
+                RoundedButton symBtn = new RoundedButton(sym, false);
+                symBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+                symBtn.setPreferredSize(new Dimension(46, 36));
+                symBtn.addActionListener(ev -> {
+                    playClickSound();
+                    JTextField tf = typedAnswerField[0];
+                    if (tf != null && tf.isEnabled()) {
+                        try {
+                            tf.getDocument().insertString(tf.getCaretPosition(), sym, null);
+                            tf.requestFocusInWindow();
+                        } catch (Exception ignored) {}
+                    }
+                });
+                symbols.add(symBtn);
+            }
+
+            JLabel symLabel = label("Quick symbols", 12, MUTED, false);
+            symLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            p.add(typeHint);
+            p.add(Box.createVerticalStrut(8));
+            p.add(fixHeight(answerField, 54));
+            p.add(Box.createVerticalStrut(8));
+            p.add(symLabel);
+            p.add(symbols);
+            p.add(Box.createVerticalStrut(8));
+        } else {
+            List<Integer> order = new ArrayList<>(Arrays.asList(0, 1, 2, 3));
+            Collections.shuffle(order);
+
+            String[] letters = {"A", "B", "C", "D"};
+
+            for (int pos = 0; pos < order.size(); pos++) {
+                int oi = order.get(pos);
+                AnswerOption opt = new AnswerOption(letters[pos], q.options.get(oi), oi);
+                opt.addActionListener(e -> playClickSound());
+                group.add(opt);
+                options.add(opt);
+                p.add(fixHeight(opt, 58));
+                p.add(Box.createVerticalStrut(12));
+            }
         }
 
-        
-        JLabel feedback = label("Choose the best answer.", 15, MUTED, false);
+        JLabel feedback = label(isTypedMode ? "Type the missing code to complete the answer." : "Choose the best answer.", 15, MUTED, false);
         feedback.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         RoundedButton submit = new RoundedButton("Submit Answer", true);
@@ -2748,37 +2854,52 @@ private JPanel authCard(String heading, String subtitle) {
         submit.addActionListener(e -> {
             playClickSound();
 
-            if (group.getSelection() == null) {
-                message(
-                    "Please select an answer first.",
-                    JOptionPane.WARNING_MESSAGE
+            boolean correct;
+            String chosenLabel = "";
+            if (isTypedMode) {
+                String typed = typedAnswerField[0] != null ? typedAnswerField[0].getText().trim() : "";
+                if (typed.isEmpty()) {
+                    message("Please type your answer first.", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                String correctText = q.options.get(q.answer).trim();
+                correct = typed.equalsIgnoreCase(correctText);
+                chosenLabel = typed;
+                if (typedAnswerField[0] != null) {
+                    typedAnswerField[0].setEnabled(false);
+                }
+            } else {
+                if (group.getSelection() == null) {
+                    message(
+                        "Please select an answer first.",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+
+                int chosen = Integer.parseInt(
+                    group.getSelection().getActionCommand()
                 );
-                return;
-            }
+                chosenLabel = String.valueOf(chosen);
+                correct = chosen == q.answer;
 
-            int chosen = Integer.parseInt(
-                group.getSelection().getActionCommand()
-            );
-
-            boolean correct = chosen == q.answer;
-            
-            liveScore[0] = score + (correct ? 1 : 0);
-
-            submit.setEnabled(false);
-
-            for (AnswerOption o : options) {
-                if (o.optionIndex == chosen) {
-                    o.lock(correct ? AnswerOption.CORRECT : AnswerOption.WRONG);
-                } else {
-                    o.lock(AnswerOption.NORMAL);
+                for (AnswerOption o : options) {
+                    if (o.optionIndex == chosen) {
+                        o.lock(correct ? AnswerOption.CORRECT : AnswerOption.WRONG);
+                    } else {
+                        o.lock(AnswerOption.NORMAL);
+                    }
                 }
             }
+
+            liveScore[0] = score + (correct ? 1 : 0);
+            submit.setEnabled(false);
 
             if (!correct) {
                 quizHearts--;
             }
 
-            DigiView.log("QUIZ", "Q" + (index + 1) + "/" + questions.size() + " Answer Submitted: Chosen=" + chosen + " (" + (correct ? "CORRECT" : "WRONG") + ") | Hearts: " + quizHearts + " | Current Score: " + liveScore[0]);
+            DigiView.log("QUIZ", "Q" + (index + 1) + "/" + questions.size() + " Answer Submitted: " + chosenLabel + " (" + (correct ? "CORRECT" : "WRONG") + ") | Hearts: " + quizHearts + " | Current Score: " + liveScore[0]);
 
             updateHeartsLabel(heartsLabel);
 
@@ -2794,12 +2915,19 @@ private JPanel authCard(String heading, String subtitle) {
                 final int cPercent = currentPercent;
                 new Thread(() -> ApiClient.submitQuizRecord(uName, qName, lScore, tTotal, cPercent, new Date().toString())).start();
 
-                message(
-                    "You ran out of hearts! Please review the lessons and try again.\nThis attempt has been marked as 'Needs Review' in your Quiz History.",
-                    JOptionPane.WARNING_MESSAGE
+                boolean tryAgain = showThemedConfirm(
+                    "💔",
+                    "Out of Hearts",
+                    "You ran out of hearts! This attempt has been marked as 'Needs Review'.\nWould you like to try the quiz again at the same difficulty?",
+                    "TRY AGAIN",
+                    "EXIT TO HOME"
                 );
 
-                showPage("Quiz");
+                if (tryAgain) {
+                    startQuiz(difficulty);
+                } else {
+                    showPage("Dashboard");
+                }
                 return;
             }
 

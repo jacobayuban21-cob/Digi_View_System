@@ -9,19 +9,16 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
 
 ---
 
-## 🆕 Latest Changes (v1.1.1)
+## 🆕 Latest Changes (v1.1.2)
 
-The latest maintenance update improves local development and release
-packaging documentation:
+This minor update focuses on quiz flow and user experience:
 
-- Combined backend startup under the single `digiview server` command.
-- The server now starts on `0.0.0.0:8085`, supporting both localhost and LAN
-  clients.
-- Added LAN URL output and desktop LAN server selection.
-- Documented every `dist\` package and JAR, including missing-artifact
-  behavior.
-- Added [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and
-  the v1.1.1 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
+- Brightened desktop and mobile UI backgrounds for improved readability.
+- Locked quiz navigation during active quizzes (users must finish or exit).
+- Added a themed heart-depletion popup with **Try Again** (same difficulty) or **Exit to Home**.
+- Hard/Advanced quizzes now use typed missing-code answers with quick-access symbol buttons.
+- Added 1-day login session persistence on desktop and Android.
+- See [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and the v1.1.2 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ---
 

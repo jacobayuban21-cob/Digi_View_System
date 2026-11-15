@@ -5,6 +5,41 @@ release. For the detailed feature history, see
 [RELEASE_NOTES.md](RELEASE_NOTES.md). For itemized changes, see
 [CHANGELOG.md](CHANGELOG.md).
 
+## v1.1.2 - Quiz UX and Session Persistence
+
+**Release date:** 2026-11-15  
+**Release type:** Minor UI and quiz-experience update
+
+### Release highlights
+
+1. **Brighter interface theme**
+   - Adjusted desktop and mobile background/theme colors for improved
+     readability.
+
+2. **Locked quiz flow**
+   - While a quiz is active, navigation away is blocked until the user finishes
+     or exits the quiz.
+
+3. **Improved heart-depletion handling**
+   - When hearts run out, users can choose **Try Again** (same difficulty) or
+     **Exit to Home** via themed confirmation dialogs.
+   - Android quiz hub state resets correctly after exiting to home.
+
+4. **Hard quiz typed input**
+   - Hard/Advanced quiz questions now require typing the missing code instead of
+     multiple-choice selection.
+   - Quick-access symbol buttons were added to make mobile code entry easier.
+
+5. **1-day login sessions**
+   - Desktop and Android now persist login sessions for approximately 24 hours,
+     reducing repeated login prompts until session expiry or logout.
+
+### Version alignment
+
+- Desktop UI/runtime logs: `v1.1.2`
+- Android: version name `1.1.2`, version code `4`
+- Backend Gradle artifacts: `1.1.2`
+
 ## v1.1.1 - Local Server and Distribution Documentation
 
 **Release date:** 2026-10-27  
