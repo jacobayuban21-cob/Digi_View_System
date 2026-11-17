@@ -24,8 +24,9 @@
                 android:layout_height="wrap_content"
                 android:text="Choose Difficulty"
                 android:textColor="@color/text_white"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:maxLines="1" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -127,9 +128,10 @@
                         android:layout_height="wrap_content"
                         android:text="🔒 Locked"
                         android:textColor="@color/amber"
-                        android:textSize="11.5sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
-                        android:layout_marginEnd="10dp" />
+                        android:maxLines="1"
+                        android:layout_marginEnd="8dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -189,9 +191,10 @@
                         android:layout_height="wrap_content"
                         android:text="🔒 Locked"
                         android:textColor="@color/red"
-                        android:textSize="11.5sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
-                        android:layout_marginEnd="10dp" />
+                        android:maxLines="1"
+                        android:layout_marginEnd="8dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -247,12 +250,14 @@
 
                     <TextView
                         android:id="@+id/activeQuizTitle"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Beginner Quiz"
                         android:textColor="@color/text_white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
 
                     <TextView
                         android:id="@+id/activeQuizProgress"
@@ -267,7 +272,12 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnActiveExitQuiz"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
+                    android:layout_height="40dp"
+                    android:minWidth="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
                     android:text="Exit"
                     android:textColor="@color/red"
                     android:textSize="12sp"
@@ -481,7 +491,7 @@
                 <EditText
                     android:id="@+id/etActiveTypedAnswer"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="48dp"
                     android:layout_marginTop="8dp"
                     android:background="@drawable/bg_option_normal"
                     android:hint="Enter your answer"
@@ -491,7 +501,7 @@
                     android:singleLine="true"
                     android:textColor="@color/text_white"
                     android:textColorHint="@color/muted"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -546,7 +556,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnActiveSubmit"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="48dp"
                 android:backgroundTint="@color/blue"
                 android:text="Submit Answer"
                 android:textColor="@color/text_white"
@@ -559,7 +569,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnActiveNext"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="48dp"
                 android:backgroundTint="@color/cyan"
                 android:text="Next Question →"
                 android:textColor="@color/d_sidebar"
@@ -571,7 +581,7 @@
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="32dp" />
+                android:layout_height="48dp" />
 
         </LinearLayout>
     </ScrollView>
@@ -681,7 +691,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnResultReturn"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="48dp"
                 android:backgroundTint="@color/blue"
                 android:text="Return to Hub"
                 android:textColor="@color/text_white"
@@ -692,7 +702,7 @@
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="32dp" />
+                android:layout_height="48dp" />
 
         </LinearLayout>
     </ScrollView>

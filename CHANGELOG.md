@@ -3,6 +3,27 @@
 All notable project changes are recorded here. Dates use the project release
 calendar in `YYYY-MM-DD` format.
 
+## [1.1.3] - 2026-11-17
+
+### Added
+
+- Desktop profile/history sync from server on login/session restore to improve
+  desktop ↔ mobile history parity.
+
+### Changed
+
+- Bumped Desktop, Android, and Backend application versions to `1.1.3`.
+- Incremented Android `versionCode` from `4` to `5`.
+
+### Fixed
+
+- Android local quiz history is now isolated per account, preventing new
+  accounts from inheriting history from previously logged-in users.
+- Responsive Android layout fixes for smaller screens: single-line top-bar
+  version pill, tighter top-bar spacing, centered/narrower auth card,
+  single-line server pill, and better bottom spacing so content is not clipped
+  by the bottom navigation.
+
 ## [1.1.2] - 2026-11-15
 
 ### Added

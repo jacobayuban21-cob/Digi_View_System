@@ -1395,6 +1395,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showAuthScreen() {
+        historyRecords.clear();
+        activeHearts = 5;
+        activeQuestionIndex = 0;
+        activeScore = 0;
+        activeQuestions.clear();
+        isSubmitted = false;
+        selectedOptionIndex = -1;
+
         if (authScreenContainer != null) {
             authScreenContainer.setVisibility(View.VISIBLE);
             if (authLoginCard != null) {
@@ -1548,6 +1556,7 @@ public class MainActivity extends AppCompatActivity {
                             switchPage(0);
                             Toast.makeText(MainActivity.this, "Welcome, " + currentFullName + "!", Toast.LENGTH_SHORT).show();
                         } else {
+                            historyRecords.clear();
                             String errorMsg = "Invalid username or password.";
                             if (response.body() != null && response.body().message != null && !response.body().message.isEmpty()) {
                                 errorMsg = response.body().message;

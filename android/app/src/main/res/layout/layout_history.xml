@@ -16,8 +16,9 @@
             android:layout_height="wrap_content"
             android:text="Quiz History"
             android:textColor="@color/text_white"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:maxLines="1" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -49,7 +50,7 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="32dp" />
+            android:layout_height="40dp" />
 
     </LinearLayout>
 </ScrollView>

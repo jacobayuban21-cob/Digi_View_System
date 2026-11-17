@@ -57,7 +57,7 @@ public class DigiView {
         });
 
         log("SYSTEM", "==========================================================");
-        log("SYSTEM", "  DigiView LMS Desktop v1.1.2 (Minor Update)");
+        log("SYSTEM", "  DigiView LMS Desktop v1.1.3 (Minor Update)");
         log("SYSTEM", "  Java Runtime : " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")");
         log("SYSTEM", "  OS Platform  : " + System.getProperty("os.name") + " " + System.getProperty("os.version") + " (" + System.getProperty("os.arch") + ")");
         log("SYSTEM", "  Working Dir  : " + new File(".").getAbsolutePath());
@@ -617,7 +617,7 @@ private void updateHeartsLabel(JLabel heartsLabel) {
     }
 
     public DigiViewLMS() {
-        setTitle("DigiView - v1.1.2");
+        setTitle("DigiView - v1.1.3");
         loadAppIcon();
         loadData();
         initAudio();
@@ -1090,7 +1090,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(Box.createVerticalGlue());
         card.add(Box.createVerticalStrut(14));
 
-        JLabel version = new JLabel("V1.1.2");
+        JLabel version = new JLabel("V1.1.3");
         version.setFont(new Font("SansSerif", Font.PLAIN, 12));
         version.setForeground(HINT);
         version.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1610,7 +1610,7 @@ private JPanel authCard(String heading, String subtitle) {
         card.add(back);
 
         card.add(Box.createVerticalStrut(14));
-        JLabel regVersion = new JLabel("V1.1.2");
+        JLabel regVersion = new JLabel("V1.1.3");
         regVersion.setFont(new Font("SansSerif", Font.PLAIN, 12));
         regVersion.setForeground(HINT);
         regVersion.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1864,7 +1864,7 @@ private JPanel authCard(String heading, String subtitle) {
         sidebar.add(logout);
         sidebar.add(Box.createVerticalStrut(10));
 
-        JLabel verLabel = new JLabel("DigiView v1.1.2");
+        JLabel verLabel = new JLabel("DigiView v1.1.3");
         verLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
         verLabel.setForeground(new Color(100, 116, 139));
         verLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
