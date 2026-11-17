@@ -1,5 +1,29 @@
 # 🚀 DigiView LMS — Release Notes
 
+## v1.1.3 — History Isolation and Small-Screen UI Polish
+
+**Release Date:** November 17, 2026  
+**Version:** `1.1.3` (Minor Stability and UX Update)
+
+### Highlights
+
+- **Per-account history isolation (Android):** local quiz history is now scoped
+  per logged-in user, so a newly logged-in account no longer inherits history
+  from a previously logged-in account.
+- **Desktop ↔ mobile history parity:** desktop now syncs profile/history from the
+  server on login/session restore.
+- **Small-screen UI polish:** fixed top-bar version pill wrapping, tightened
+  top-bar spacing, centered/narrowed auth card, single-line server pill, and
+  increased bottom spacing to avoid content clipping behind the bottom nav.
+
+### Version Alignment
+
+- Desktop: `v1.1.3`
+- Android: version name `1.1.3`, version code `5`
+- Backend: `1.1.3`
+
+---
+
 ## v1.1.2 — Quiz UX, Typed Hard Mode, and Session Persistence
 
 **Release Date:** November 15, 2026  

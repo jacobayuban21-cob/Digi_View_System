@@ -5,6 +5,33 @@ release. For the detailed feature history, see
 [RELEASE_NOTES.md](RELEASE_NOTES.md). For itemized changes, see
 [CHANGELOG.md](CHANGELOG.md).
 
+## v1.1.3 - History Isolation and Small-Screen UI Polish
+
+**Release date:** 2026-11-17  
+**Release type:** Minor stability and UX update
+
+### Release highlights
+
+1. **Per-account history isolation**
+   - Android local quiz history is stored/loaded per logged-in user so newly
+     created/logged-in accounts do not inherit another account's history.
+
+2. **Desktop ↔ mobile sync parity**
+   - Desktop now fetches and merges server profile/history on login and session
+     restore, improving history consistency when using both clients.
+
+3. **Small-screen Android responsiveness**
+   - Top-bar version pill no longer wraps.
+   - Tightened top-bar spacing and centered/narrower auth card.
+   - Server URL pill stays single-line.
+   - Increased bottom spacers so cards are not clipped by bottom navigation.
+
+### Version alignment
+
+- Desktop UI/runtime logs: `v1.1.3`
+- Android: version name `1.1.3`, version code `5`
+- Backend Gradle artifacts: `1.1.3`
+
 ## v1.1.2 - Quiz UX and Session Persistence
 
 **Release date:** 2026-11-15  

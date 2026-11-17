@@ -9,16 +9,14 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
 
 ---
 
-## 🆕 Latest Changes (v1.1.2)
+## 🆕 Latest Changes (v1.1.3)
 
-This minor update focuses on quiz flow and user experience:
+This minor update focuses on cross-device history behavior and small-screen UI polish:
 
-- Brightened desktop and mobile UI backgrounds for improved readability.
-- Locked quiz navigation during active quizzes (users must finish or exit).
-- Added a themed heart-depletion popup with **Try Again** (same difficulty) or **Exit to Home**.
-- Hard/Advanced quizzes now use typed missing-code answers with quick-access symbol buttons.
-- Added 1-day login session persistence on desktop and Android.
-- See [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and the v1.1.2 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
+- Isolated local quiz history per account so a newly logged-in account cannot inherit another account's history.
+- Desktop now syncs profile/history from the server on login/session restore for better desktop↔mobile parity.
+- Improved Android responsive layout for smaller screens (top bar, auth screen, quiz controls, and page spacing).
+- See [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and the v1.1.3 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ---
 

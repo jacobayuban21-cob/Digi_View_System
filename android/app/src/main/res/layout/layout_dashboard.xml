@@ -47,12 +47,14 @@
 
                     <TextView
                         android:id="@+id/dashWelcomeTitle"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Welcome, Student!"
                         android:textColor="@color/text_white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
 
                     <TextView
                         android:id="@+id/dashWelcomeSubtitle"
@@ -356,7 +358,7 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="32dp" />
+            android:layout_height="48dp" />
 
     </LinearLayout>
 </ScrollView>
