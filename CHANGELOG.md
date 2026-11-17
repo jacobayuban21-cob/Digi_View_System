@@ -9,11 +9,18 @@ calendar in `YYYY-MM-DD` format.
 
 - Desktop profile/history sync from server on login/session restore to improve
   desktop ↔ mobile history parity.
+- Editor-style syntax highlighting for lesson code samples with five selectable
+  themes: DigiView Dark (default), VS Code Dark+, Monokai, GitHub Light, and
+  Solarized Dark.
+- Code theme selector in Profile on both Desktop (themed modal dialog) and
+  Android (single-choice dialog), with the selection persisted locally.
 
 ### Changed
 
 - Bumped Desktop, Android, and Backend application versions to `1.1.3`.
 - Incremented Android `versionCode` from `4` to `5`.
+- Added shared `CodeTheme` model and `CodeSyntaxHighlighter` tokenizer so both
+  clients render lesson code with consistent, editor-like colors.
 
 ### Fixed
 
@@ -23,6 +30,11 @@ calendar in `YYYY-MM-DD` format.
   version pill, tighter top-bar spacing, centered/narrower auth card,
   single-line server pill, and better bottom spacing so content is not clipped
   by the bottom navigation.
+- Lesson text truncation on Desktop: lesson card summaries now wrap and expand
+  instead of being clipped to a fixed height; code snippets no longer cut off
+  silently, and lesson detail code blocks expand to fit their content.
+- Android lesson cards and lesson detail text now use available width fully and
+  allow more lines so lesson summaries and code are not truncated.
 
 ## [1.1.2] - 2026-11-15
 

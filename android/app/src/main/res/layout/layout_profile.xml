@@ -339,6 +339,20 @@
             app:cornerRadius="24dp"
             android:layout_marginTop="20dp" />
 
+        <!-- Code Theme Selector -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCodeTheme"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:backgroundTint="#152A45"
+            app:strokeColor="@color/d_line"
+            app:strokeWidth="1dp"
+            android:text="🧩 Code Theme: DigiView Dark"
+            android:textColor="@color/cyan"
+            android:textSize="13sp"
+            app:cornerRadius="24dp"
+            android:layout_marginTop="12dp" />
+
         <!-- Switch User / Sign In Button (Hidden for production) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnProfileAuth"

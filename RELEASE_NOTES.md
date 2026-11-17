@@ -1,6 +1,6 @@
 # 🚀 DigiView LMS — Release Notes
 
-## v1.1.3 — History Isolation and Small-Screen UI Polish
+## v1.1.3 — History Isolation, Code Themes, and UI Polish
 
 **Release Date:** November 17, 2026  
 **Version:** `1.1.3` (Minor Stability and UX Update)
@@ -12,6 +12,14 @@
   from a previously logged-in account.
 - **Desktop ↔ mobile history parity:** desktop now syncs profile/history from the
   server on login/session restore.
+- **Editor-style code themes:** lesson code samples are now syntax-highlighted
+  like popular code editors, with five selectable themes — **DigiView Dark**,
+  **VS Code Dark+**, **Monokai**, **GitHub Light**, and **Solarized Dark**. A
+  **Code Theme** selector was added to Profile on both Desktop and Android, and
+  the choice is remembered locally.
+- **Lesson readability:** fixed truncated lesson text on Desktop and Android —
+  summaries wrap and expand, code snippets show more content, and lesson detail
+  code blocks expand to fit instead of being clipped.
 - **Small-screen UI polish:** fixed top-bar version pill wrapping, tightened
   top-bar spacing, centered/narrowed auth card, single-line server pill, and
   increased bottom spacing to avoid content clipping behind the bottom nav.

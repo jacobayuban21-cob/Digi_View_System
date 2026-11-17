@@ -2369,17 +2369,25 @@ private JPanel authCard(String heading, String subtitle) {
             desc.setForeground(MUTED);
             desc.setFont(new Font("SansSerif", Font.PLAIN, 14));
             desc.setAlignmentX(Component.LEFT_ALIGNMENT);
-            desc.setPreferredSize(new Dimension(100, 48));
-            desc.setMinimumSize(new Dimension(0, 48));
-            desc.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+            int descCols = Math.max(20, Math.min(60, (effW / lCols) - 76));
+            desc.setColumns(descCols);
+            desc.setSize(new Dimension((effW / lCols) - 76, Integer.MAX_VALUE));
 
 
             RoundedPanel pill = new RoundedPanel(14, new Color(3, 9, 18), new Color(12, 24, 40));
             pill.setLayout(new BorderLayout());
             pill.setBorder(new EmptyBorder(0, 16, 0, 16));
-            JLabel codeLabel = new JLabel(codeSnippet(l.code, 70));
-            codeLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-            codeLabel.setForeground(new Color(125, 211, 252));
+            com.digiview.core.model.CodeTheme theme = currentCodeTheme();
+            String snippet = codeSnippet(l.code, 140);
+            if (snippet.length() < l.code.replaceAll("\\s+", " ").trim().length()) snippet += " …";
+            String html = com.digiview.core.logic.CodeSyntaxHighlighter.toHtml(snippet, theme);
+            html = html.replace("<html>", "<html><div style='font-family:monospace;'>");
+            html = html.replace("</body></html>", "</div></body></html>");
+            JLabel codeLabel = new JLabel(html);
+            codeLabel.setOpaque(true);
+            codeLabel.setBackground(new Color(theme.background));
+            pill.setBackground(new Color(theme.background));
+            pill.setBorder(new EmptyBorder(10, 16, 10, 16));
             pill.add(codeLabel, BorderLayout.CENTER);
 
 
@@ -2413,8 +2421,7 @@ private JPanel authCard(String heading, String subtitle) {
             grid.add(card);
         }
 
-        int rows = (lessons.size() + lCols - 1) / lCols;
-        p.add(fixHeight(grid, rows * 340 + (rows - 1) * 18));
+        p.add(grid);
 
         addToContent(p);
     }
@@ -2467,22 +2474,21 @@ private JPanel authCard(String heading, String subtitle) {
         codeTitle.setForeground(CYAN);
         codeTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JTextArea code = codeArea(l.code);
-        code.setOpaque(false);
-        code.setLineWrap(true);
+        com.digiview.core.model.CodeTheme theme = currentCodeTheme();
+        String codeHtml = com.digiview.core.logic.CodeSyntaxHighlighter.toHtml(l.code, theme);
+        codeHtml = codeHtml.replace("<html>", "<html><div style='font-family:monospace;'>");
+        codeHtml = codeHtml.replace("</body></html>", "</div></body></html>");
+        JLabel codeView = new JLabel(codeHtml);
+        codeView.setOpaque(false);
 
-        RoundedPanel codeBox = new RoundedPanel(16, new Color(3, 9, 18), new Color(20, 36, 58));
+        RoundedPanel codeBox = new RoundedPanel(16, new Color(theme.background), new Color(20, 36, 58));
         codeBox.setLayout(new BorderLayout());
         codeBox.setBorder(new EmptyBorder(12, 14, 12, 14));
-        codeBox.add(code, BorderLayout.CENTER);
+        codeBox.add(codeView, BorderLayout.CENTER);
 
-        int lines = l.code.split("\n").length;
-        int boxHeight = lines * 20 + 44;
         int boxW = Math.max(260, effW - 84);
-        Dimension boxSize = new Dimension(boxW, boxHeight);
-        codeBox.setPreferredSize(boxSize);
-        codeBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, boxHeight));
-        codeBox.setMinimumSize(new Dimension(200, boxHeight));
+        codeBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        codeBox.setMinimumSize(new Dimension(200, 60));
         codeBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         RoundedButton quiz = new RoundedButton("Take a Quiz  \u2192", true);
@@ -3430,6 +3436,137 @@ card.add(label(resultMessage, 14, MUTED, false));
         }
     }
 
+    private static final File CODE_THEME_FILE = new File(System.getProperty("user.home"), "digiview-code-theme.properties");
+    private String codeThemeId = loadCodeTheme();
+
+    private String loadCodeTheme() {
+        try {
+            if (CODE_THEME_FILE.exists()) {
+                java.util.Properties props = new java.util.Properties();
+                try (java.io.FileInputStream in = new java.io.FileInputStream(CODE_THEME_FILE)) {
+                    props.load(in);
+                }
+                String id = props.getProperty("id", "digiview");
+                return com.digiview.core.model.CodeTheme.getById(id).id;
+            }
+        } catch (Exception ignored) {}
+        return "digiview";
+    }
+
+    private void saveCodeTheme(String id) {
+        codeThemeId = com.digiview.core.model.CodeTheme.getById(id).id;
+        try {
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("id", codeThemeId);
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(CODE_THEME_FILE)) {
+                props.store(out, "DigiView Code Theme");
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private com.digiview.core.model.CodeTheme currentCodeTheme() {
+        return com.digiview.core.model.CodeTheme.getById(codeThemeId);
+    }
+
+    private void showCodeThemeDialog() {
+        playClickSound();
+        java.util.List<com.digiview.core.model.CodeTheme> themes = com.digiview.core.model.CodeTheme.all();
+        String[] names = new String[themes.size()];
+        for (int i = 0; i < themes.size(); i++) names[i] = themes.get(i).name;
+
+        JDialog dlg = new JDialog(this, true);
+        dlg.setUndecorated(true);
+        dlg.setBackground(new Color(0, 0, 0, 0));
+        dlg.setBounds(getBounds());
+
+        JPanel scrim = new JPanel(new GridBagLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(5, 12, 24, 205));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        scrim.setOpaque(false);
+
+        RoundedPanel card = new RoundedPanel(28, new Color(13, 21, 36), new Color(33, 52, 80));
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(30, 38, 26, 38));
+        card.setMaximumSize(new Dimension(460, 340));
+
+        JLabel badge = new JLabel("🎨", SwingConstants.CENTER);
+        badge.setFont(new Font("SansSerif", Font.PLAIN, 40));
+        badge.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(badge);
+        card.add(Box.createVerticalStrut(14));
+
+        JLabel title = new JLabel("Code Theme", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 21));
+        title.setForeground(TEXT);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(title);
+        card.add(Box.createVerticalStrut(10));
+
+        JLabel desc = new JLabel(
+            "<html><div style='text-align:center; width:330px; color:#94A3B8; font-family:SansSerif; font-size:13px;'>"
+            + "Choose a color theme for the lesson code samples.<br>Applies to all lesson code blocks.</div></html>",
+            SwingConstants.CENTER);
+        desc.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(desc);
+        card.add(Box.createVerticalStrut(20));
+
+        RoundedComboBox combo = new RoundedComboBox(names);
+        combo.setSelectedIndex(indexOfCodeTheme(codeThemeId));
+        combo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(combo);
+        card.add(Box.createVerticalStrut(24));
+
+        JPanel btnRow = new JPanel();
+        btnRow.setOpaque(false);
+        btnRow.setLayout(new BoxLayout(btnRow, BoxLayout.X_AXIS));
+        btnRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRow.setMaximumSize(new Dimension(380, 48));
+
+        RoundedButton cancel = new RoundedButton("CANCEL", false);
+        cancel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        cancel.setPreferredSize(new Dimension(140, 44));
+        cancel.setMaximumSize(new Dimension(140, 44));
+        cancel.addActionListener(e -> { playClickSound(); dlg.dispose(); });
+
+        RoundedButton apply = new RoundedButton("APPLY", true);
+        apply.setFont(new Font("SansSerif", Font.BOLD, 13));
+        apply.setPreferredSize(new Dimension(140, 44));
+        apply.setMaximumSize(new Dimension(140, 44));
+        apply.addActionListener(e -> {
+            playClickSound();
+            int idx = combo.getSelectedIndex();
+            if (idx >= 0) {
+                saveCodeTheme(themes.get(idx).id);
+                if ("Lessons".equals(currentPage)) showPage("Lessons");
+                if ("Profile".equals(currentPage)) renderProfile();
+            }
+            dlg.dispose();
+        });
+
+        btnRow.add(cancel);
+        btnRow.add(Box.createHorizontalStrut(14));
+        btnRow.add(apply);
+        card.add(btnRow);
+
+        scrim.add(card);
+        dlg.setContentPane(scrim);
+        dlg.setVisible(true);
+    }
+
+    private int indexOfCodeTheme(String id) {
+        java.util.List<com.digiview.core.model.CodeTheme> themes = com.digiview.core.model.CodeTheme.all();
+        for (int i = 0; i < themes.size(); i++) {
+            if (themes.get(i).id.equals(id)) return i;
+        }
+        return 0;
+    }
+
     private void renderProfile() {
         JPanel p = verticalPanel();
         p.setOpaque(false);
@@ -3524,6 +3661,19 @@ card.add(label(resultMessage, 14, MUTED, false));
         levelCard.add(levelTop, BorderLayout.NORTH);
         levelCard.add(bar, BorderLayout.CENTER);
         p.add(fixHeight(levelCard, 100));
+        p.add(Box.createVerticalStrut(20));
+
+        RoundedButton codeThemeBtn = new RoundedButton("🧩  Code Theme: " + currentCodeTheme().name, false);
+        codeThemeBtn.setForeground(new Color(56, 189, 248));
+        codeThemeBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        codeThemeBtn.setPreferredSize(new Dimension(260, 42));
+        codeThemeBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        codeThemeBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        codeThemeBtn.addActionListener(e -> {
+            playClickSound();
+            showCodeThemeDialog();
+        });
+        p.add(fixHeight(codeThemeBtn, 42));
 
         addToContent(p);
     }

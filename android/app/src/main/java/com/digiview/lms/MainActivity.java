@@ -62,7 +62,10 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_USERS_JSON = "users_map_json";
     private static final String KEY_SESSION_USER = "session_username";
     private static final String KEY_SESSION_EXPIRY = "session_expiry";
+    private static final String KEY_CODE_THEME = "code_theme";
     private static final long SESSION_DURATION_MS = 24L * 60L * 60L * 1000L;
+
+    private String codeThemeId = "digiview";
 
     // User Entry for Multi-User Local Persistence
     private static class UserEntry {
@@ -246,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
             sp.edit().putString(KEY_SERVER_URL, savedServer).apply();
         }
         ApiClient.setBaseUrl(savedServer);
+        codeThemeId = sp.getString(KEY_CODE_THEME, "digiview");
 
         currentUsername = sp.getString(KEY_USERNAME, "student");
         currentFullName = sp.getString(KEY_FULL_NAME, "Student User");
@@ -668,7 +672,14 @@ public class MainActivity extends AppCompatActivity {
         tvIcon.setText(item.icon);
         tvTitle.setText(item.title);
         tvExp.setText(item.explanation);
-        tvCode.setText(item.code);
+        com.digiview.core.model.CodeTheme theme = com.digiview.core.model.CodeTheme.getById(codeThemeId);
+        tvCode.setText(buildHighlightedCode(item.code));
+        tvCode.setMaxLines(40);
+        tvCode.setTextColor(theme.plainText);
+        View codeContainer = dialogView.findViewById(R.id.lessonModalCodeContainer);
+        if (codeContainer != null) {
+            codeContainer.setBackgroundColor(theme.background);
+        }
 
         btnClose.setOnClickListener(v -> {
             SoundManager.getInstance(this).playClick();
@@ -1188,6 +1199,70 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // =========================================================================
+    // CODE THEME HELPERS
+    // =========================================================================
+    private CharSequence buildHighlightedCode(String code) {
+        com.digiview.core.model.CodeTheme theme = com.digiview.core.model.CodeTheme.getById(codeThemeId);
+        android.text.SpannableStringBuilder builder = new android.text.SpannableStringBuilder();
+        if (code == null || code.isEmpty()) return builder;
+        java.util.List<com.digiview.core.logic.CodeSyntaxHighlighter.Token> tokens =
+                com.digiview.core.logic.CodeSyntaxHighlighter.tokenize(code);
+        int cursor = 0;
+        for (com.digiview.core.logic.CodeSyntaxHighlighter.Token t : tokens) {
+            if (t.start > cursor) {
+                builder.append(code.substring(cursor, t.start));
+            }
+            int segStart = builder.length();
+            builder.append(code.substring(t.start, t.end));
+            int segEnd = builder.length();
+            builder.setSpan(new android.text.style.ForegroundColorSpan(roleColor(theme, t.role)), segStart, segEnd,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            cursor = t.end;
+        }
+        if (cursor < code.length()) builder.append(code.substring(cursor));
+        return builder;
+    }
+
+    private int roleColor(com.digiview.core.model.CodeTheme theme,
+                          com.digiview.core.logic.CodeSyntaxHighlighter.Role role) {
+        switch (role) {
+            case COMMENT: return theme.comment;
+            case DOCTYPE: return theme.doctype;
+            case TAG_PUNCTUATION: return theme.tag;
+            case TAG_NAME: return theme.tagName;
+            case ATTRIBUTE_NAME: return theme.attributeName;
+            case ATTRIBUTE_VALUE: return theme.attributeValue;
+            default: return theme.plainText;
+        }
+    }
+
+    private void showCodeThemeDialog() {
+        java.util.List<com.digiview.core.model.CodeTheme> themes = com.digiview.core.model.CodeTheme.all();
+        String[] names = new String[themes.size()];
+        for (int i = 0; i < themes.size(); i++) names[i] = themes.get(i).name;
+
+        new AlertDialog.Builder(this)
+                .setTitle("Code Theme")
+                .setSingleChoiceItems(names, indexOfTheme(codeThemeId), (dialog, which) -> {
+                    codeThemeId = themes.get(which).id;
+                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                            .putString(KEY_CODE_THEME, codeThemeId).apply();
+                    dialog.dismiss();
+                    Toast.makeText(this, "Code theme set to " + themes.get(which).name, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private int indexOfTheme(String id) {
+        java.util.List<com.digiview.core.model.CodeTheme> themes = com.digiview.core.model.CodeTheme.all();
+        for (int i = 0; i < themes.size(); i++) {
+            if (themes.get(i).id.equals(id)) return i;
+        }
+        return 0;
+    }
+
+    // =========================================================================
     // 6. PROFILE PAGE
     // =========================================================================
     private void refreshProfileView() {
@@ -1245,6 +1320,16 @@ public class MainActivity extends AppCompatActivity {
         View btnProfileAuth = viewProfile.findViewById(R.id.btnProfileAuth);
         if (btnProfileAuth != null) {
             btnProfileAuth.setVisibility(View.GONE);
+        }
+
+        MaterialButton btnCodeTheme = viewProfile.findViewById(R.id.btnCodeTheme);
+        if (btnCodeTheme != null) {
+            com.digiview.core.model.CodeTheme theme = com.digiview.core.model.CodeTheme.getById(codeThemeId);
+            btnCodeTheme.setText("🧩 Code Theme: " + theme.name);
+            btnCodeTheme.setOnClickListener(v -> {
+                SoundManager.getInstance(this).playClick();
+                showCodeThemeDialog();
+            });
         }
 
         View btnLogout = viewProfile.findViewById(R.id.btnProfileLogout);
