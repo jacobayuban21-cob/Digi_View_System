@@ -29,22 +29,24 @@
 
         <TextView
             android:id="@+id/tvLessonItemTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="HTML Basics"
             android:textColor="@color/text_white"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/tvLessonItemSummary"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Fundamental structure of HTML documents."
             android:textColor="@color/muted"
             android:textSize="12sp"
             android:layout_marginTop="2dp"
-            android:maxLines="2"
+            android:maxLines="4"
             android:ellipsize="end" />
     </LinearLayout>
 

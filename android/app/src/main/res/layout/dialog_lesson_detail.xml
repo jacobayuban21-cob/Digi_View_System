@@ -38,12 +38,14 @@
 
                 <TextView
                     android:id="@+id/tvLessonModalTitle"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="HTML Basics"
                     android:textColor="@color/text_white"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -74,7 +76,8 @@
             android:text="HTML stands for HyperText Markup Language..."
             android:textColor="@color/text_white"
             android:textSize="14sp"
-            android:lineSpacingExtra="5dp" />
+            android:lineSpacingExtra="5dp"
+            android:maxLines="20" />
 
         <!-- Code Snippet Section -->
         <TextView
@@ -89,6 +92,7 @@
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
+            android:id="@+id/lessonModalCodeContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_code_container"

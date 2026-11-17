@@ -11,10 +11,12 @@ Welcome to **DigiView LMS**! A complete, modern educational application featurin
 
 ## 🆕 Latest Changes (v1.1.3)
 
-This minor update focuses on cross-device history behavior and small-screen UI polish:
+This minor update focuses on cross-device history behavior, editor-style code themes, and UI polish:
 
 - Isolated local quiz history per account so a newly logged-in account cannot inherit another account's history.
 - Desktop now syncs profile/history from the server on login/session restore for better desktop↔mobile parity.
+- Lesson code samples now use editor-style syntax highlighting with five selectable themes (DigiView Dark, VS Code Dark+, Monokai, GitHub Light, Solarized Dark), chosen from Profile on both Desktop and Android.
+- Fixed truncated lesson text on Desktop and Android so full summaries and code are visible.
 - Improved Android responsive layout for smaller screens (top bar, auth screen, quiz controls, and page spacing).
 - See [CHANGELOG.md](CHANGELOG.md), [RELEASE_LOG.md](RELEASE_LOG.md), and the v1.1.3 entry in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 

@@ -5,7 +5,7 @@ release. For the detailed feature history, see
 [RELEASE_NOTES.md](RELEASE_NOTES.md). For itemized changes, see
 [CHANGELOG.md](CHANGELOG.md).
 
-## v1.1.3 - History Isolation and Small-Screen UI Polish
+## v1.1.3 - History Isolation, Code Themes, and UI Polish
 
 **Release date:** 2026-11-17  
 **Release type:** Minor stability and UX update
@@ -20,7 +20,17 @@ release. For the detailed feature history, see
    - Desktop now fetches and merges server profile/history on login and session
      restore, improving history consistency when using both clients.
 
-3. **Small-screen Android responsiveness**
+3. **Editor-style code themes**
+   - Lesson code samples are syntax-highlighted with five selectable themes:
+     DigiView Dark, VS Code Dark+, Monokai, GitHub Light, and Solarized Dark.
+   - Code theme selector added to Profile on Desktop and Android; the choice is
+     persisted per device.
+
+4. **Lesson readability**
+   - Fixed truncated lesson summaries and code blocks on Desktop and Android so
+     full lesson content is visible.
+
+5. **Small-screen Android responsiveness**
    - Top-bar version pill no longer wraps.
    - Tightened top-bar spacing and centered/narrower auth card.
    - Server URL pill stays single-line.
